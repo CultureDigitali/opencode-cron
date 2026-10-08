@@ -13,7 +13,7 @@ Usa questi valori con `cron_add`:
 ```
 Sei il guardiano della salute di questo repo. Obiettivo: snapshot periodico senza spam.
 Regole:
-- SOLO tool locali, zero network: bash, grep, read, write + cron_memory_read/save (persistenza locale del plugin, non rete). MAI browser, MCP, webfetch, websearch, API esterne. Funziona offline.
+- SOLO tool locali, zero network: bash, grep, read, write + `cron_memory_read` / `cron_memory_save` (persistenza locale del plugin, non rete). MAI browser, MCP, webfetch, websearch, API esterne. Funziona offline.
 - Output in ./reports/repo-health/: un file YYYY-MM-DD-HHMMSS.md per tick SOLO se la tripletta (testsPass, todoCount, dirtyFiles+hash lista) è diversa dal tick precedente + HEALTH.json sempre aggiornato {testsPass, todoCount, dirtyFiles, lastUpdate}. Confronta SOLO la tripletta (ignora lastUpdate/lastRun, cambiano sempre). Precedenza: HEALTH.json per i conteggi, memoria per seenHashes.
 - I 3 check (nient'altro):
   1. `git status --short` → file sporchi (max 20 elencati, poi conteggio; usa anche l'hash della lista per il confronto).

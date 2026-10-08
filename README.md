@@ -77,7 +77,7 @@ Template: [`templates/news-tweet-watch.md`](templates/news-tweet-watch.md) · Se
 ```
 chat (/cron-add, cron_add tool)
   └─> .opencode/cron/jobs.json + memory/<id>.md
-        ├─> TUI open: in-process scheduler → client.session.prompt(sessionID)
+        ├─> TUI open: in-process scheduler → ctx.session.prompt({ sessionID, text })
         └─> TUI closed: launchd/systemd/cron/schtasks → opencode-cron-run check → opencode run --session <id>
 ```
 
@@ -88,7 +88,7 @@ Every tick injects:
 3. mandatory 3-question self-check before acting
 4. followup task, then `cron_memory_save`
 
-Compaction hook (`experimental.session.compacting`) re-injects the memory into the summary. Details: [`docs/how-it-works.md`](docs/how-it-works.md) · [`docs/opencode-persistent-memory-cron.md`](docs/opencode-persistent-memory-cron.md)
+Compaction hook (`ctx.session.hook("compaction")`) re-injects the memory into the summary. Details: [`docs/how-it-works.md`](docs/how-it-works.md) · [`docs/opencode-persistent-memory-cron.md`](docs/opencode-persistent-memory-cron.md)
 
 ## Tools (9)
 
@@ -137,7 +137,7 @@ Treat `.opencode/cron/jobs.json` + `memory/*.md` like code. The model runs them 
 Yes. `os-install` → launchd/systemd/schtasks + `check` every minute. TUI-open = in-process, TUI-closed = OS runner. Same `sessionID`.
 
 **What happens on context compact?**
-Nothing lost. The `experimental.session.compacting` hook re-injects `memory/<id>.md` into the summary. Memory is source of truth, not chat history.
+Nothing lost. The `compaction` session hook (`ctx.session.hook("compaction")`) re-injects `memory/<id>.md` into the summary. Memory is source of truth, not chat history.
 
 **Will I get duplicate runs / spam?**
 No. `seenHashes` dedup + atomic locks + `skipIfRunning: true` + no catch-up by default. Zero-news tick just updates `lastRun`.

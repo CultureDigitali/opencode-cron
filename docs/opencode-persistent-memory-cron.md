@@ -3,7 +3,7 @@
 Each job owns `memory/<id>.md` plus `<id>.state.json` (`seenHashes`, counts, failures).
 
 - Created by `cron_add` from the frozen system prompt; updated only via `cron_memory_save` at end of tick.
-- Injected into every tick prompt as source of truth, and into the compaction summary via `experimental.session.compacting`.
+- Injected into every tick prompt as source of truth, and into the compaction summary via the `compaction` session hook (`ctx.session.hook("compaction")`).
 - Caps: 32k chars markdown, last 200 hashes kept, `.bak` backup on each save.
 - `removeJob` deletes md + state + backup + run log + lock — no orphans.
 
