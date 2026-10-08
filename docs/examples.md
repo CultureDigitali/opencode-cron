@@ -21,6 +21,13 @@ cron: "*/30 * * * *"
 
 Same job, explicit cron syntax. `computeNextRun` evaluates it with `cron-parser` (validated semantically at creation).
 
+## Repo Health Guardian (self-contained, no external pieces)
+
+Template [`../templates/repo-guardian.md`](../templates/repo-guardian.md) — `every: 30m`.
+Only built-in tools: `git status`, one test run (120s timeout, never watch), exact grep
+with `--exclude-dir=node_modules --exclude-dir=dist`. Report only when the
+`(testsPass, todoCount, dirtyFiles)` triplet changed. Case study: [`repo-guardian.md`](repo-guardian.md).
+
 ## Lifecycle
 
 - `cron_pause` / `cron_resume` — pause keeps memory, resume recomputes `nextRunAt`

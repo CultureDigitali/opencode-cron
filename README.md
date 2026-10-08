@@ -59,7 +59,7 @@ BEFORE: you keep the tab open, refresh X/news, copy-paste, lose everything on co
 4. Tick 48: TUI closed overnight — launchd wakes it, no dupes via `seenHashes`
 5. Morning: `STATS.json` = `{news: 23, tweets: 41}`. You read. No babysitting.
 
-Template: [`templates/news-tweet-watch.md`](templates/news-tweet-watch.md) · Full guide: [`docs/quickstart.md`](docs/quickstart.md)
+Template: [`templates/news-tweet-watch.md`](templates/news-tweet-watch.md) · Self-contained starter (no browser/MCP/network): [`templates/repo-guardian.md`](templates/repo-guardian.md) · Full guide: [`docs/quickstart.md`](docs/quickstart.md)
 
 ## Why not plain cron?
 
@@ -121,6 +121,7 @@ Guards: min interval 60s, max 20 jobs/project, prompt caps, no catch-up by defau
 | CI / flaky test re-check | `10m` | Re-runs prompt, auto-pauses after 5 fails |
 | Docs / changelog digest | `1h` | Daily markdown summary, compact-safe |
 | Inbox / lead triage | `*/30 * * * *` | Top 10 new only, memory tracks `seenHashes` |
+| Repo health guardian | `30m` | git + tests + TODO snapshot only on change, zero deps ([template](templates/repo-guardian.md)) |
 
 More: [`docs/ai-agent-cron-jobs.md`](docs/ai-agent-cron-jobs.md) · vs ChatGPT: [`docs/chatgpt-scheduled-tasks-opencode.md`](docs/chatgpt-scheduled-tasks-opencode.md) · vs cron: [`docs/comparison.md`](docs/comparison.md)
 

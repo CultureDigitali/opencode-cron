@@ -27,6 +27,7 @@ npx @culturedigitali/opencode-cron check --dir /path/to/project
 - [docs/quickstart.md](docs/quickstart.md) — 30-second quickstart
 - [docs/how-it-works.md](docs/how-it-works.md) — scheduler, runner, guards
 - [docs/examples.md](docs/examples.md) — news watcher + variants
+- [docs/repo-guardian.md](docs/repo-guardian.md) — self-contained case study (no external deps)
 - [docs/chatgpt-scheduled-tasks-opencode.md](docs/chatgpt-scheduled-tasks-opencode.md) — parity notes
 - [docs/ai-agent-cron-jobs.md](docs/ai-agent-cron-jobs.md) — use cases
 - [docs/opencode-persistent-memory-cron.md](docs/opencode-persistent-memory-cron.md) — memory design
