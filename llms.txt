@@ -1,0 +1,35 @@
+# opencode-cron
+
+> ChatGPT Scheduled Tasks for opencode — session-bound cron + persistent memory for AI agents.
+
+## Install
+
+```jsonc
+// opencode.json
+{ "$schema": "https://opencode.ai/config.json", "plugin": ["@culturedigitali/opencode-cron"] }
+```
+
+## Chat quickstart
+
+- `/cron-add` → "Watch AI news, every 5m" (creates job bound to this session)
+- `cron_list` → verify id, enabled, next run
+- `cron_run_now` → test tick immediately
+
+## TUI-closed runs
+
+```bash
+npx @culturedigitali/opencode-cron os-install --dir /path/to/project
+npx @culturedigitali/opencode-cron check --dir /path/to/project
+```
+
+## Docs
+
+- [docs/quickstart.md](docs/quickstart.md) — 30-second quickstart
+- [docs/how-it-works.md](docs/how-it-works.md) — scheduler, runner, guards
+- [docs/examples.md](docs/examples.md) — news watcher + variants
+- [docs/chatgpt-scheduled-tasks-opencode.md](docs/chatgpt-scheduled-tasks-opencode.md) — parity notes
+- [docs/ai-agent-cron-jobs.md](docs/ai-agent-cron-jobs.md) — use cases
+- [docs/opencode-persistent-memory-cron.md](docs/opencode-persistent-memory-cron.md) — memory design
+- [docs/opencode-cron-launchd-systemd.md](docs/opencode-cron-launchd-systemd.md) — OS persistence
+- [docs/troubleshooting.md](docs/troubleshooting.md) — fixes
+- [docs/comparison.md](docs/comparison.md) — vs plain cron

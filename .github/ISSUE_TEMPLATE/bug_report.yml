@@ -1,0 +1,28 @@
+name: Bug report
+description: Report a broken tick, install, or memory issue
+labels: [bug]
+body:
+  - type: input
+    attributes: { label: Version, description: "Plugin version (e.g. 0.1.0)", placeholder: "0.1.0" }
+    validations: { required: true }
+  - type: input
+    attributes: { label: Runtime, description: "bun/node versions", placeholder: "bun 1.3.x, node 20" }
+  - type: dropdown
+    attributes:
+      label: OS / TUI state
+      options: ["macOS TUI open", "macOS TUI closed (launchd)", "Linux TUI open", "Linux TUI closed (systemd/cron)", "Windows"]
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: Repro, description: "Command or tool call (/cron-add, check, run <id>)" }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: Expected vs got }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: Logs (redacted — no secrets) }
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      options:
+        - label: I removed secrets from jobs.json / memory excerpts
+          required: true

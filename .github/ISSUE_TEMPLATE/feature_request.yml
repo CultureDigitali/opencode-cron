@@ -1,0 +1,19 @@
+name: Feature request
+description: Propose a tool, command, OS runner, or template
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes: { label: Problem / use case }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: Proposal }
+    validations: { required: true }
+  - type: dropdown
+    attributes:
+      label: Needs persistent memory?
+      options: ["yes", "no", "unsure"]
+  - type: checkboxes
+    attributes:
+      label: Contribution
+      options:
+        - label: I can open a PR with a test
