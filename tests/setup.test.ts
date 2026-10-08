@@ -79,4 +79,47 @@ describe("v2 plugin module", () => {
     expect(listOut.content).toContain(jobs[0].id);
     await cleanup();
   });
+
+  it("pause/resume/remove lifecycle works", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-v2-life-"));
+    const { ctx, tools } = mockCtx(dir);
+    const cleanup = await (CronModule as any).setup(ctx);
+    const byId = Object.fromEntries(tools.map((t: any) => [t.id, t]));
+    const tctx = { sessionID: "s1" };
+    await byId["cron_add"].execute({ title: "L", every: "30m", systemPrompt: "S", followupPrompt: "F" }, tctx);
+    const id = (await loadJobs(dir))[0].id;
+    expect((await byId["cron_pause"].execute({ id }, tctx)).content).toContain("Paused");
+    expect((await loadJobs(dir))[0].enabled).toBe(false);
+    expect((await byId["cron_resume"].execute({ id }, tctx)).content).toContain("Resumed");
+    expect((await loadJobs(dir))[0].enabled).toBe(true);
+    expect((await byId["cron_remove"].execute({ id }, tctx)).content).toContain("Removed");
+    expect(await loadJobs(dir)).toHaveLength(0);
+    await cleanup();
+  });
+
+  it("compaction hook injects job memory into messages", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-v2-compact-"));
+    const { ctx, tools, hooks } = mockCtx(dir);
+    const cleanup = await (CronModule as any).setup(ctx);
+    const byId = Object.fromEntries(tools.map((t: any) => [t.id, t]));
+    await byId["cron_add"].execute({ title: "C", every: "30m", systemPrompt: "SECRETSYS", followupPrompt: "F" }, { sessionID: "ses_c" });
+    // other session: nothing injected
+    const other: any[] = [];
+    await hooks["compaction"][0]({ sessionID: "ses_other", messages: other });
+    expect(other).toHaveLength(0);
+    // own session: memory injected
+    const mine: any[] = [];
+    await hooks["compaction"][0]({ sessionID: "ses_c", messages: mine });
+    expect(mine).toHaveLength(1);
+    expect(JSON.stringify(mine[0])).toContain("SECRETSYS");
+    await cleanup();
+  });
+
+  it("compaction hook never throws", async () => {
+    const { ctx, hooks } = mockCtx("/nonexistent-dir-xyz");
+    const cleanup = await (CronModule as any).setup(ctx);
+    await hooks["compaction"][0]({ sessionID: "s", messages: [] });
+    await hooks["compaction"][0]({});
+    await cleanup();
+  });
 });

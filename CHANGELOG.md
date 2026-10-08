@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — reliability fixes
+
+- Failure path advances `nextRunAt` to a full interval (was: overdue timestamp refired
+  every 5s until auto-pause).
+- `catchUp` flag now honored: past-due + `catchUp: false` skips the backlog with a fresh
+  `nextRunAt`; `catchUp: true` fires soon. Exposed as `cron_add(catchUp)`.
+- `checkDue` no longer reports maxed-out jobs as executed.
+- Headless runner extracted to testable `src/runner.ts` (atomic locks, `cwd` spawn, no `--dir`).
+- npm `files` now ships `docs/`, `llms.txt`, `SECURITY.md`, `CHANGELOG.md` so README links
+  resolve on the npm page too.
+
 ## Unreleased — opencode v2 migration (breaking)
 
 - Rewritten for the opencode **v2 plugin API** (`@opencode/plugin`, `Plugin.define({ id, setup })`).

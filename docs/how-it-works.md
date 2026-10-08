@@ -9,7 +9,7 @@ The in-process `CronScheduler` arms one timer per enabled job (10% jitter). On f
 1. skips if disabled / `maxRuns` reached / session busy (`skipIfRunning`)
 2. reads `memory/<id>.md` and builds the tick prompt: frozen system prompt + memory + mandatory 3-question self-check + followup
 3. calls `ctx.session.prompt({ sessionID, text })` — the same chat continues
-4. bumps `runCount`, recomputes `nextRunAt` (cron expression via `cron-parser` or interval), writes `runs/<id>.log`, shows a toast
+4. bumps `runCount`, recomputes `nextRunAt` (cron expression via `cron-parser` or interval), writes `runs/<id>.log`
 
 ## TUI closed
 

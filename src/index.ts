@@ -87,6 +87,7 @@ export const CronPlugin = Plugin.define({
             followupPrompt: strProp("What to do on each tick"),
             agent: optStrProp("Agent id (used by headless runner)"),
             model: optStrProp("provider/model (used by headless runner)"),
+            catchUp: { type: "boolean", description: "Fire missed ticks after downtime (default false: skip backlog)" } as const,
           },
           required: ["title", "systemPrompt", "followupPrompt"],
           additionalProperties: false,
@@ -107,7 +108,7 @@ export const CronPlugin = Plugin.define({
             title: input.title, systemPrompt: input.systemPrompt, followupPrompt: input.followupPrompt,
             schedule: { kind: norm.kind, everyMs: norm.everyMs, cron: norm.cron },
             agent: input.agent, model: input.model,
-            enabled: true, catchUp: false, skipIfRunning: true,
+            enabled: true, catchUp: input.catchUp === true, skipIfRunning: true,
             maxRuns: 0, maxConsecutiveFailures: 5, runCount: 0, consecutiveFailures: 0,
             createdAt: now, lastRunAt: null, nextRunAt: null,
           });

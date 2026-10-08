@@ -1,4 +1,4 @@
-import { loadJobs, saveJobs } from "./store.ts";
+import { loadJobs, saveJobs, computeNextRun, assertJobId } from "./store.ts";
 import { readMemory, buildTickPrompt } from "./memory.ts";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
@@ -20,7 +20,6 @@ export async function executeTick(
   jobId: string,
   prompt: PromptFn
 ): Promise<{ ok: boolean; skipped?: string }> {
-  const { assertJobId } = await import("./store.ts");
   assertJobId(jobId);
   const jobs = await loadJobs(directory);
   const job = jobs.find((j) => j.id === jobId);
@@ -48,7 +47,6 @@ export async function executeTick(
     job.runCount += 1;
     job.consecutiveFailures = 0;
     job.lastRunAt = now;
-    const { computeNextRun } = await import("./store.ts");
     job.nextRunAt = computeNextRun(job, new Date());
     await saveJobs(directory, jobs.map((j) => (j.id === job.id ? job : j)));
     await appendRunLog(directory, jobId, `OK run #${job.runCount} at ${now}\n`);
@@ -56,6 +54,9 @@ export async function executeTick(
   } catch (err: any) {
     job.consecutiveFailures += 1;
     if (job.consecutiveFailures >= job.maxConsecutiveFailures) job.enabled = false;
+    // Advance to a full interval even on failure — otherwise the overdue
+    // timestamp refires at the 5s scheduler min-delay until auto-pause.
+    job.nextRunAt = computeNextRun(job, new Date());
     await saveJobs(directory, jobs.map((j) => (j.id === job.id ? job : j)));
     await appendRunLog(directory, jobId, `ERR at ${new Date().toISOString()}: ${err?.message ?? err}\n`);
     return { ok: false, skipped: "error" };
@@ -65,7 +66,6 @@ export async function executeTick(
 }
 
 export async function appendRunLog(directory: string, jobId: string, line: string): Promise<void> {
-  const { assertJobId } = await import("./store.ts");
   assertJobId(jobId);
   const p = path.join(directory, ".opencode", "cron", "runs", `${jobId}.log`);
   await fs.mkdir(path.dirname(p), { recursive: true });

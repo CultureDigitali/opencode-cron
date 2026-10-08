@@ -69,4 +69,17 @@ describe("executor", () => {
     const jobs = await loadJobs(dir);
     expect(jobs[0].enabled).toBe(false);
   });
+  it("failure advances nextRunAt to a full interval (no 5s retry storm)", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-failnext-"));
+    await saveJobs(dir, [job("j4", dir, "s")]);
+    const before = Date.now();
+    await executeTick(dir, "j4", {
+      promptSession: async () => {
+        throw new Error("boom");
+      },
+    });
+    const jobs = await loadJobs(dir);
+    // everyMs 300s -> next run ~5min out, not seconds
+    expect(new Date(jobs[0].nextRunAt!).getTime() - before).toBeGreaterThan(60_000);
+  });
 });

@@ -1,4 +1,4 @@
-import { loadJobs } from "./store.ts";
+import { loadJobs, saveJobs, computeNextRun } from "./store.ts";
 import { executeTick, type PromptFn } from "./executor.ts";
 
 export class CronScheduler {
@@ -34,9 +34,22 @@ export class CronScheduler {
     for (const job of jobs) {
       if (!job.enabled) continue;
       if (this.timers.has(job.id)) continue;
-      const delay = job.nextRunAt
-        ? Math.max(5_000, new Date(job.nextRunAt).getTime() - now)
-        : (job.schedule.everyMs ?? 300_000);
+      let delay: number;
+      if (!job.nextRunAt) {
+        delay = job.schedule.everyMs ?? 300_000;
+      } else if (new Date(job.nextRunAt).getTime() <= now) {
+        if (job.catchUp) {
+          // Missed tick and catchUp requested: fire soon.
+          delay = 5_000;
+        } else {
+          // Missed tick and no catchUp: skip the backlog, schedule fresh.
+          job.nextRunAt = computeNextRun(job, new Date());
+          await saveJobs(directory, jobs.map((j) => (j.id === job.id ? job : j)));
+          delay = Math.max(5_000, new Date(job.nextRunAt!).getTime() - Date.now());
+        }
+      } else {
+        delay = Math.max(5_000, new Date(job.nextRunAt).getTime() - now);
+      }
       const jitter = Math.floor(Math.random() * 0.1 * delay);
       const timer = setTimeout(async () => {
         this.timers.delete(job.id);
