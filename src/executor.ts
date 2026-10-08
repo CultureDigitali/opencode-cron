@@ -1,39 +1,24 @@
-import { loadJobs, computeNextRun, saveJobs } from "./store.ts";
+import { loadJobs, saveJobs } from "./store.ts";
 import { readMemory, buildTickPrompt } from "./memory.ts";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
-export type OpencodeClientLike = {
-  session?: {
-    prompt?: (args: any) => Promise<any>;
-    status?: (args?: any) => Promise<any>;
-  };
-  tui?: {
-    showToast?: (args: any) => Promise<any>;
-  };
-  app?: {
-    log?: (args: any) => Promise<any>;
-  };
+export type PromptFn = {
+  promptSession: (sessionID: string, text: string) => Promise<unknown>;
+  /** Guard against overlapping ticks of the same job (in-process).
+   * NOTE: opencode v2 has no session.status API — cross-process overlap is
+   * handled by the headless runner's atomic lock files instead. */
+  inFlight?: Set<string>;
 };
 
-async function isSessionBusy(client: OpencodeClientLike, sessionID: string): Promise<boolean> {
-  try {
-    const status: any = await (client.session?.status as any)?.();
-    if (!status) return false;
-    const data = status.data ?? status;
-    const s = data?.[sessionID] ?? data?.sessions?.[sessionID];
-    if (!s) return false;
-    const v = (s.status ?? s.state ?? "").toString().toLowerCase();
-    return v === "busy" || v === "running" || v === "working";
-  } catch {
-    return false;
-  }
+function flightKey(directory: string, jobId: string): string {
+  return `${directory}::${jobId}`;
 }
 
 export async function executeTick(
   directory: string,
   jobId: string,
-  client: OpencodeClientLike
+  prompt: PromptFn
 ): Promise<{ ok: boolean; skipped?: string }> {
   const { assertJobId } = await import("./store.ts");
   assertJobId(jobId);
@@ -43,9 +28,10 @@ export async function executeTick(
   if (!job.enabled) return { ok: false, skipped: "disabled" };
   if (job.maxRuns > 0 && job.runCount >= job.maxRuns) return { ok: false, skipped: "max-runs" };
 
-  if (job.skipIfRunning && (await isSessionBusy(client, job.sessionID))) {
-    await appendRunLog(directory, jobId, `SKIP busy at ${new Date().toISOString()}\n`);
-    return { ok: false, skipped: "busy" };
+  const key = flightKey(directory, jobId);
+  if (prompt.inFlight?.has(key)) {
+    await appendRunLog(directory, jobId, `SKIP overlap at ${new Date().toISOString()}\n`);
+    return { ok: false, skipped: "in-flight" };
   }
 
   const { md } = await readMemory(directory, jobId);
@@ -55,24 +41,17 @@ export async function executeTick(
     memoryMd: md,
   });
 
+  prompt.inFlight?.add(key);
   try {
-    await client.session?.prompt?.({
-      path: { id: job.sessionID },
-      body: {
-        agent: job.agent,
-        model: job.model ? parseModel(job.model) : undefined,
-        parts: [{ type: "text", text }],
-      },
-    });
+    await prompt.promptSession(job.sessionID, text);
     const now = new Date().toISOString();
     job.runCount += 1;
     job.consecutiveFailures = 0;
     job.lastRunAt = now;
+    const { computeNextRun } = await import("./store.ts");
     job.nextRunAt = computeNextRun(job, new Date());
     await saveJobs(directory, jobs.map((j) => (j.id === job.id ? job : j)));
     await appendRunLog(directory, jobId, `OK run #${job.runCount} at ${now}\n`);
-    await client.tui?.showToast?.({ body: { message: `cron ${job.id}: tick #${job.runCount} done`, variant: "success" } }).catch(() => {});
-    await client.app?.log?.({ body: { service: "opencode-cron", level: "info", message: `tick ok ${job.id}` } }).catch(() => {});
     return { ok: true };
   } catch (err: any) {
     job.consecutiveFailures += 1;
@@ -80,13 +59,9 @@ export async function executeTick(
     await saveJobs(directory, jobs.map((j) => (j.id === job.id ? job : j)));
     await appendRunLog(directory, jobId, `ERR at ${new Date().toISOString()}: ${err?.message ?? err}\n`);
     return { ok: false, skipped: "error" };
+  } finally {
+    prompt.inFlight?.delete(key);
   }
-}
-
-function parseModel(m: string): { providerID: string; modelID: string } | undefined {
-  const i = m.indexOf("/");
-  if (i < 0) return undefined;
-  return { providerID: m.slice(0, i), modelID: m.slice(i + 1) };
 }
 
 export async function appendRunLog(directory: string, jobId: string, line: string): Promise<void> {

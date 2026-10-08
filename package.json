@@ -73,7 +73,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "^1.18.0",
+    "@opencode/plugin": "^2.0.0",
     "cron-parser": "^4.9.0",
     "zod": "^3.23.0"
   },

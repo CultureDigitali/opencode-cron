@@ -62,13 +62,15 @@ async function runJobHeadless(directory: string, jobId: string): Promise<number>
   try {
     const { md } = await readMemory(directory, jobId);
     const prompt = buildTickPrompt({ systemPrompt: job.systemPrompt, followupPrompt: job.followupPrompt, memoryMd: md });
-    const args = ["run", "--session", job.sessionID, "--dir", job.directory || directory];
+    // NOTE: `opencode run` has no --dir flag (v2.0.10) — run with cwd set to the job directory instead.
+    const cwd = job.directory || directory;
+    const args = ["run", "--session", job.sessionID];
     if (job.agent) args.push("--agent", job.agent);
     if (job.model) args.push("--model", job.model);
     args.push(prompt);
-    console.log(`opencode ${args.slice(0, 6).join(" ")} ...`);
+    console.log(`opencode ${args.slice(0, 6).join(" ")} ... (cwd=${cwd})`);
     const code: number = await new Promise((resolve) => {
-      const child = spawn("opencode", args, { stdio: "inherit" });
+      const child = spawn("opencode", args, { stdio: "inherit", cwd });
       child.on("close", (c) => resolve(c ?? 1));
       child.on("error", (e) => {
         console.error(`spawn opencode failed: ${e.message}`);

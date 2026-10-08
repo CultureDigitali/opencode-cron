@@ -30,7 +30,7 @@ If it saved you a tab, ⭐ star it — it helps a lot.
 
 ```jsonc
 // opencode.json
-{ "$schema": "https://opencode.ai/config.json", "plugin": ["@culturedigitali/opencode-cron"] }
+{ "$schema": "https://opencode.ai/config.json", "plugins": ["@culturedigitali/opencode-cron"] }
 ```
 
 In chat:

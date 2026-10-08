@@ -6,7 +6,7 @@ Install the plugin, create your first job, verify the tick, persist it past TUI 
 
 ```jsonc
 // opencode.json
-{ "$schema": "https://opencode.ai/config.json", "plugin": ["@culturedigitali/opencode-cron"] }
+{ "$schema": "https://opencode.ai/config.json", "plugins": ["@culturedigitali/opencode-cron"] }
 ```
 
 ## 2. First job (in chat)
