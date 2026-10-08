@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.tgz
+.opencode/cron/locks/
+.opencode/cron/runs/
+.DS_Store
+.env
+.env.*
+!.env.example

@@ -1,0 +1,75 @@
+{
+  "name": "opencode-cron",
+  "version": "0.1.0",
+  "description": "ChatGPT Scheduled Tasks for opencode — session-bound cron + persistent memory",
+  "license": "MIT",
+  "author": "opencode-cron contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CultureDigitali/opencode-cron.git"
+  },
+  "homepage": "https://github.com/CultureDigitali/opencode-cron#readme",
+  "bugs": {
+    "url": "https://github.com/CultureDigitali/opencode-cron/issues"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "cron",
+    "scheduler",
+    "scheduled-tasks",
+    "ai-agent",
+    "automation",
+    "launchd",
+    "systemd",
+    "crontab",
+    "persistent-memory",
+    "session-cron"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "opencode-cron-run": "./dist/bin/run.js"
+  },
+  "files": [
+    "dist",
+    "commands",
+    "templates",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20",
+    "bun": ">=1.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "bun run build:lib && bun run build:bin && bun run build:types",
+    "build:lib": "bun build src/index.ts --outdir dist --target node --format esm --packages external",
+    "build:bin": "bun build bin/run.ts --outdir dist/bin --target node --format esm --packages external && printf '#!/usr/bin/env node\\n%s' \"$(cat dist/bin/run.js)\" > dist/bin/run.js.tmp && mv dist/bin/run.js.tmp dist/bin/run.js && chmod +x dist/bin/run.js",
+    "build:types": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "bun run build && bun test",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.18.0",
+    "cron-parser": "^4.9.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/bun": "1.2.0",
+    "@types/node": "^20.0.0",
+    "publint": "^0.2.0"
+  }
+}
