@@ -1,8 +1,7 @@
 node_modules/
 dist/
 *.tgz
-.opencode/cron/locks/
-.opencode/cron/runs/
+.opencode/cron/
 .DS_Store
 .env
 .env.*
