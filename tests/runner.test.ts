@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { saveJobs } from "../src/store.ts";
 import { writeMemory } from "../src/memory.ts";
-import { acquireLock, releaseLock, checkDue, tickArgs, resolveOpencodeBin, readHttpPromptConfig, promptViaHttp } from "../src/runner.ts";
+import { acquireLock, releaseLock, checkDue, tickArgs, resolveOpencodeBin, readHttpPromptConfig, promptViaHttp, writeCredentialsFile } from "../src/runner.ts";
 
 const job = (id: string, dir: string, over: Record<string, any> = {}) => ({
   id,
@@ -100,6 +100,26 @@ describe("http prompt transport", () => {
     expect(JSON.parse(calls[0].init.body).prompt.text).toBe("hello");
     const bad: any = async () => ({ ok: false, status: 500, text: async () => "boom" });
     expect(promptViaHttp({ url: "http://127.0.0.1:1", username: "u", password: "p" }, "ses_1", "x", bad)).rejects.toThrow("500");
+  });
+});
+
+describe("credentials refresh", () => {
+  it("writes 0600 credentials file from env", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-creds-"));
+    const target = path.join(dir, "credentials");
+    const file = await writeCredentialsFile(
+      { OPENCODE_SERVER_USERNAME: "opencode", OPENCODE_SERVER_PASSWORD: "secret", HOME: dir } as NodeJS.ProcessEnv,
+      target
+    );
+    expect(file).toBe(target);
+    const content = await fs.readFile(target, "utf-8");
+    expect(content).toContain("CRON_UN=opencode");
+    expect(content).toContain("CRON_PW=secret");
+    const st = await fs.stat(target);
+    expect(st.mode & 0o777).toBe(0o600);
+  });
+  it("throws without env credentials", async () => {
+    expect(writeCredentialsFile({ HOME: "/tmp" } as NodeJS.ProcessEnv, "/tmp/x-creds-test")).rejects.toThrow("missing OPENCODE_SERVER");
   });
 });
 

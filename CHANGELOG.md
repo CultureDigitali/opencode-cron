@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — desktop GUI support
+
+- **HTTP prompt transport** for sessions served by a remote opencode server (e.g. the
+  desktop app's sidecar): `OPENCODE_PROMPT_HTTP=1` + `OPENCODE_SERVER_URL/USERNAME/PASSWORD`.
+  `opencode run --session` cannot reach desktop-app sessions (separate storage), so
+  ticks are admitted via `POST /api/session/:id/prompt` instead.
+- **`refresh-creds` command**: the desktop app rotates sidecar credentials on every
+  restart; `opencode-cron-run refresh-creds` (run from inside an agent session, where
+  fresh credentials are injected) rewrites `~/.config/opencode-cron/credentials` (0600).
+- `/cron-refresh` slash command + AGENTS.md note documenting the rotation flow.
+- Windows/Linux unaffected: plain spawn transport remains the default.
+
 ## Unreleased — reliability fixes
 
 - Failure path advances `nextRunAt` to a full interval (was: overdue timestamp refired

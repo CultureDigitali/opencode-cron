@@ -2,8 +2,23 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { loadJobs } from "../src/store.ts";
-import { runJobHeadless, checkDue } from "../src/runner.ts";
+import { runJobHeadless, checkDue, writeCredentialsFile } from "../src/runner.ts";
 import { detectOS, launchdPlist, systemdService, systemdTimer, crontabLine, schtasksCommand } from "../src/os.ts";
+
+const CREDS_FILE = path.join(process.env.HOME ?? "~", ".config", "opencode-cron", "credentials");
+
+/** refresh-creds: persist the current process's OPENCODE_SERVER_USERNAME/PASSWORD
+ * (injected by the desktop app into every agent turn) so the launchd ticker can
+ * authenticate after an app restart rotated the credentials. */
+async function refreshCreds(): Promise<void> {
+  try {
+    const target = await writeCredentialsFile();
+    console.log(`refresh-creds: written ${target} (0600)`);
+  } catch (e: any) {
+    console.error(`refresh-creds: ${e?.message ?? e}`);
+    process.exit(2);
+  }
+}
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -48,15 +63,16 @@ async function main(): Promise<void> {
     }
     process.exit(await runJobHeadless(dir, id));
   } else if (cmd === "os-install") await osInstall(dir);
+  else if (cmd === "refresh-creds") await refreshCreds();
   else if (cmd === "list") console.log(JSON.stringify(await loadJobs(dir), null, 2));
   else {
-    console.error(`Commands: check | run <id> | os-install | list [--dir ...]`);
+    console.error(`Commands: check | run <id> | os-install | refresh-creds | list [--dir ...]`);
     process.exit(2);
   }
 }
 
 if (has("--help") || has("-h")) {
-  console.log("opencode-cron-run check|run <id>|os-install|list [--dir ...]");
+  console.log("opencode-cron-run check|run <id>|os-install|refresh-creds|list [--dir ...]");
   process.exit(0);
 }
 await main();

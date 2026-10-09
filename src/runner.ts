@@ -65,6 +65,26 @@ export async function promptViaHttp(cfg: HttpPromptConfig, sessionID: string, te
   }
 }
 
+/** Persist the current process's sidecar credentials (the desktop app injects
+ * fresh OPENCODE_SERVER_USERNAME/PASSWORD into every agent turn) so the launchd
+ * ticker can authenticate after an app restart rotated them. File mode 0600. */
+export async function writeCredentialsFile(
+  env: NodeJS.ProcessEnv = process.env,
+  filePath?: string
+): Promise<string> {
+  const un = env.OPENCODE_SERVER_USERNAME;
+  const pw = env.OPENCODE_SERVER_PASSWORD;
+  if (!un || !pw) {
+    throw new Error("missing OPENCODE_SERVER_USERNAME/OPENCODE_SERVER_PASSWORD in environment — run this from inside an opencode agent session");
+  }
+  const home = env.HOME ?? process.env.HOME;
+  const target = filePath ?? path.join(home ?? "~", ".config", "opencode-cron", "credentials");
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  await fs.writeFile(target, `CRON_UN=${un}\nCRON_PW=${pw}\n`, { mode: 0o600, encoding: "utf-8" });
+  await fs.chmod(target, 0o600);
+  return target;
+}
+
 /** Resolve the opencode binary to an absolute path.
  * launchd/cron run with a minimal PATH, so a bare "opencode" dies with
  * ENOENT there even though it works in interactive shells. */
