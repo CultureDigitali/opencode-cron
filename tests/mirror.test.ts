@@ -57,7 +57,7 @@ describe("mirror v2->v1", () => {
     // idempotent: second run mirrors nothing
     const r2 = mirrorPairs(db, { dbPath: "", sessionId: sid, cwd: "/proj", statePath });
     expect(r2.mirrored).toBe(0);
-    expect(db.prepare(`SELECT count(*) c FROM message`).get().c).toBe(2);
+    expect((db.prepare(`SELECT count(*) c FROM message`).get() as any).c).toBe(2);
   });
 
   it("leaves incomplete trailing user rows for the next run", async () => {
@@ -69,7 +69,7 @@ describe("mirror v2->v1", () => {
     const statePath = path.join(dir, "state.json");
     const r = mirrorPairs(db, { dbPath: "", sessionId: sid, cwd: "/p", statePath });
     expect(r.mirrored).toBe(0);
-    expect(db.prepare(`SELECT count(*) c FROM message`).get().c).toBe(0);
+    expect((db.prepare(`SELECT count(*) c FROM message`).get() as any).c).toBe(0);
   });
 
   it("skips pairs the app already mirrored to v1 (steered dedup)", async () => {
@@ -89,6 +89,6 @@ describe("mirror v2->v1", () => {
     const r = mirrorPairs(db, { dbPath: "", sessionId: sid, cwd: "/p", statePath });
     expect(r.mirrored).toBe(0);
     expect(r.skipped).toBe(1);
-    expect(db.prepare(`SELECT count(*) c FROM message`).get().c).toBe(1); // only the app row
+    expect((db.prepare(`SELECT count(*) c FROM message`).get() as any).c).toBe(1); // only the app row
   });
 });
