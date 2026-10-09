@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { saveJobs } from "../src/store.ts";
 import { writeMemory } from "../src/memory.ts";
-import { acquireLock, releaseLock, checkDue, tickArgs } from "../src/runner.ts";
+import { acquireLock, releaseLock, checkDue, tickArgs, resolveOpencodeBin } from "../src/runner.ts";
 
 const job = (id: string, dir: string, over: Record<string, any> = {}) => ({
   id,
@@ -56,6 +56,18 @@ describe("runner tick args", () => {
     expect(args).toEqual(["run", "--session", "s", "--agent", "build", "--model", "a/b", "hello"]);
     expect(args).not.toContain("--dir");
   });
+  it("resolves opencode to an absolute executable (launchd-safe)", async () => {
+    const bin = await resolveOpencodeBin();
+    expect(bin.startsWith("/")).toBe(true);
+    await fs.access(bin, fs.constants.X_OK);
+  });
+  it("OPENCODE_BIN override wins", async () => {
+    const prev = process.env.OPENCODE_BIN;
+    process.env.OPENCODE_BIN = "/bin/echo";
+    expect(await resolveOpencodeBin()).toBe("/bin/echo");
+    if (prev === undefined) delete process.env.OPENCODE_BIN;
+    else process.env.OPENCODE_BIN = prev;
+  });
 });
 
 describe("checkDue", () => {
@@ -77,7 +89,7 @@ describe("checkDue", () => {
     });
     expect(ran).toEqual(["due"]);
     expect(calls).toHaveLength(1);
-    expect(calls[0].cmd).toBe("opencode");
+    expect(calls[0].cmd.endsWith("/opencode")).toBe(true);
     expect(calls[0].args).not.toContain("--dir");
     expect(calls[0].cwd).toBe(dir);
   });

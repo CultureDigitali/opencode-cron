@@ -34,6 +34,24 @@ export async function releaseLock(directory: string, jobId: string): Promise<voi
 
 export type SpawnFn = (cmd: string, args: string[], cwd: string) => Promise<number>;
 
+/** Resolve the opencode binary to an absolute path.
+ * launchd/cron run with a minimal PATH, so a bare "opencode" dies with
+ * ENOENT there even though it works in interactive shells. */
+export async function resolveOpencodeBin(): Promise<string> {
+  if (process.env.OPENCODE_BIN) return process.env.OPENCODE_BIN;
+  const pathEnv = process.env.PATH ?? "";
+  const dirs = [...pathEnv.split(":"), "/opt/homebrew/bin", "/usr/local/bin", `${process.env.HOME ?? ""}/bin`];
+  for (const d of dirs) {
+    if (!d) continue;
+    const cand = path.join(d, "opencode");
+    try {
+      await fs.access(cand, fs.constants.X_OK);
+      return cand;
+    } catch { /* next */ }
+  }
+  return "opencode";
+}
+
 export const defaultSpawn: SpawnFn = (cmd, args, cwd) =>
   new Promise((resolve) => {
     const child = spawn(cmd, args, { stdio: "inherit", cwd });
@@ -78,8 +96,9 @@ export async function runJobHeadless(
     const prompt = buildTickPrompt({ systemPrompt: job.systemPrompt, followupPrompt: job.followupPrompt, memoryMd: md });
     const cwd = job.directory || directory;
     const args = tickArgs(job, prompt);
+    const bin = await resolveOpencodeBin();
     console.log(`opencode ${args.slice(0, 6).join(" ")} ... (cwd=${cwd})`);
-    const code = await spawnFn("opencode", args, cwd);
+    const code = await spawnFn(bin, args, cwd);
     const now = new Date().toISOString();
     if (code === 0) {
       job.runCount += 1;
