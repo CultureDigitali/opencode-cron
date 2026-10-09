@@ -70,7 +70,7 @@
   "scripts": {
     "build": "bun run build:lib && bun run build:bin && bun run build:types",
     "build:lib": "bun build src/index.ts --outdir dist --target node --format esm --packages external",
-    "build:bin": "bun build bin/run.ts --outdir dist/bin --target node --format esm --packages external && printf '#!/usr/bin/env node\\n%s' \"$(cat dist/bin/run.js)\" > dist/bin/run.js.tmp && mv dist/bin/run.js.tmp dist/bin/run.js && chmod +x dist/bin/run.js",
+    "build:bin": "bun build bin/run.ts --outdir dist/bin --target node --format esm && head -1 dist/bin/run.js | grep -q '#!/usr/bin/env node' || { printf '#!/usr/bin/env node\\n%s' \"$(cat dist/bin/run.js)\" > dist/bin/run.js.tmp && mv dist/bin/run.js.tmp dist/bin/run.js; } && chmod +x dist/bin/run.js",
     "build:types": "tsc -p tsconfig.build.json",
     "prepublishOnly": "bun run build && bun test",
     "test": "bun test",
