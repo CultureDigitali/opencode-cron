@@ -65,6 +65,26 @@ export async function promptViaHttp(cfg: HttpPromptConfig, sessionID: string, te
   }
 }
 
+/** Best-effort session model override before a tick. The drain that processes
+ * admitted prompts uses the session's default model; GUI turns can re-assert
+ * a variant the drain-side resolver rejects, so each tick re-pins it. */
+export async function switchModelViaHttp(
+  cfg: HttpPromptConfig,
+  sessionID: string,
+  model: string,
+  fetchFn: typeof fetch = fetch
+): Promise<boolean> {
+  const sep = model.indexOf("/");
+  if (sep <= 0) return false;
+  const auth = "Basic " + btoa(cfg.username + ":" + cfg.password);
+  const res = await fetchFn(`${cfg.url}/api/session/${encodeURIComponent(sessionID)}/model`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: auth },
+    body: JSON.stringify({ model: { id: model.slice(sep + 1), providerID: model.slice(0, sep) } }),
+  }).catch(() => undefined);
+  return res?.ok === true;
+}
+
 /** Persist the current process's sidecar credentials (the desktop app injects
  * fresh OPENCODE_SERVER_USERNAME/PASSWORD into every agent turn) so the launchd
  * ticker can authenticate after an app restart rotated them. File mode 0600. */
@@ -155,6 +175,10 @@ export async function runJobHeadless(
     if (httpCfg) {
       console.log(`http prompt -> ${httpCfg.url} session=${job.sessionID} (cwd=${cwd})`);
       try {
+        if (job.model) {
+          const ok = await switchModelViaHttp(httpCfg, job.sessionID, job.model);
+          if (!ok) console.log(`model switch to ${job.model} not confirmed (continuing)`);
+        }
         await promptViaHttp(httpCfg, job.sessionID, prompt);
         code = 0;
       } catch (e: any) {

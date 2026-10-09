@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { saveJobs } from "../src/store.ts";
 import { writeMemory } from "../src/memory.ts";
-import { acquireLock, releaseLock, checkDue, tickArgs, resolveOpencodeBin, readHttpPromptConfig, promptViaHttp, writeCredentialsFile } from "../src/runner.ts";
+import { acquireLock, releaseLock, checkDue, tickArgs, resolveOpencodeBin, readHttpPromptConfig, promptViaHttp, writeCredentialsFile, switchModelViaHttp } from "../src/runner.ts";
 
 const job = (id: string, dir: string, over: Record<string, any> = {}) => ({
   id,
@@ -100,6 +100,20 @@ describe("http prompt transport", () => {
     expect(JSON.parse(calls[0].init.body).prompt.text).toBe("hello");
     const bad: any = async () => ({ ok: false, status: 500, text: async () => "boom" });
     expect(promptViaHttp({ url: "http://127.0.0.1:1", username: "u", password: "p" }, "ses_1", "x", bad)).rejects.toThrow("500");
+  });
+  it("switchModelViaHttp posts provider/id split, tolerant of failure", async () => {
+    const calls: any[] = [];
+    const ok: any = async (url: string, init: any) => {
+      calls.push({ url, init });
+      return { ok: true, status: 204 };
+    };
+    const done = await switchModelViaHttp({ url: "http://x", username: "u", password: "p" }, "ses_1", "nvidia/z-ai/glm-5.3", ok);
+    expect(done).toBe(true);
+    expect(calls[0].url).toContain("/api/session/ses_1/model");
+    expect(JSON.parse(calls[0].init.body)).toEqual({ model: { id: "z-ai/glm-5.3", providerID: "nvidia" } });
+    expect(await switchModelViaHttp({ url: "http://x", username: "u", password: "p" }, "s", "no-slash", ok)).toBe(false);
+    const failing: any = async () => { throw new Error("net"); };
+    expect(await switchModelViaHttp({ url: "http://x", username: "u", password: "p" }, "s", "a/b", failing)).toBe(false);
   });
 });
 
