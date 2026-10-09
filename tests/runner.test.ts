@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { saveJobs } from "../src/store.ts";
 import { writeMemory } from "../src/memory.ts";
-import { acquireLock, releaseLock, checkDue, tickArgs, resolveOpencodeBin } from "../src/runner.ts";
+import { acquireLock, releaseLock, checkDue, tickArgs, resolveOpencodeBin, readHttpPromptConfig, promptViaHttp } from "../src/runner.ts";
 
 const job = (id: string, dir: string, over: Record<string, any> = {}) => ({
   id,
@@ -77,6 +77,29 @@ describe("runner tick args", () => {
     expect(await resolveOpencodeBin()).toBe("/bin/echo");
     if (prev === undefined) delete process.env.OPENCODE_BIN;
     else process.env.OPENCODE_BIN = prev;
+  });
+});
+
+describe("http prompt transport", () => {
+  it("config requires the flag plus url/username/password", () => {
+    expect(readHttpPromptConfig({} as NodeJS.ProcessEnv)).toBeNull();
+    expect(readHttpPromptConfig({ OPENCODE_PROMPT_HTTP: "1" } as NodeJS.ProcessEnv)).toBeNull();
+    expect(readHttpPromptConfig({ OPENCODE_PROMPT_HTTP: "0", OPENCODE_SERVER_URL: "http://x", OPENCODE_SERVER_USERNAME: "u", OPENCODE_SERVER_PASSWORD: "p" } as NodeJS.ProcessEnv)).toBeNull();
+    const cfg = readHttpPromptConfig({ OPENCODE_PROMPT_HTTP: "1", OPENCODE_SERVER_URL: "http://127.0.0.1:1234/", OPENCODE_SERVER_USERNAME: "u", OPENCODE_SERVER_PASSWORD: "p" } as NodeJS.ProcessEnv);
+    expect(cfg).toEqual({ url: "http://127.0.0.1:1234", username: "u", password: "p" });
+  });
+  it("posts basic-auth prompt and succeeds on 2xx, throws on 500", async () => {
+    const calls: any[] = [];
+    const ok: any = async (url: string, init: any) => {
+      calls.push({ url, init });
+      return { ok: true, status: 200, text: async () => "{}" };
+    };
+    await promptViaHttp({ url: "http://127.0.0.1:1", username: "u", password: "p" }, "ses_1", "hello", ok);
+    expect(calls[0].url).toContain("/api/session/ses_1/prompt");
+    expect(calls[0].init.headers.Authorization).toContain("Basic ");
+    expect(JSON.parse(calls[0].init.body).prompt.text).toBe("hello");
+    const bad: any = async () => ({ ok: false, status: 500, text: async () => "boom" });
+    expect(promptViaHttp({ url: "http://127.0.0.1:1", username: "u", password: "p" }, "ses_1", "x", bad)).rejects.toThrow("500");
   });
 });
 

@@ -34,6 +34,37 @@ export async function releaseLock(directory: string, jobId: string): Promise<voi
 
 export type SpawnFn = (cmd: string, args: string[], cwd: string) => Promise<number>;
 
+export interface HttpPromptConfig {
+  url: string;
+  username: string;
+  password: string;
+}
+
+/** HTTP prompt-admission transport (for sessions served by a remote opencode
+ * server, e.g. the desktop app's sidecar, which `opencode run` cannot reach).
+ * Enabled with OPENCODE_PROMPT_HTTP=1 plus OPENCODE_SERVER_URL/USERNAME/PASSWORD. */
+export function readHttpPromptConfig(env: NodeJS.ProcessEnv = process.env): HttpPromptConfig | null {
+  if (env.OPENCODE_PROMPT_HTTP !== "1") return null;
+  const url = env.OPENCODE_SERVER_URL;
+  const username = env.OPENCODE_SERVER_USERNAME;
+  const password = env.OPENCODE_SERVER_PASSWORD;
+  if (!url || !username || !password) return null;
+  return { url: url.replace(/\/+$/, ""), username, password };
+}
+
+export async function promptViaHttp(cfg: HttpPromptConfig, sessionID: string, text: string, fetchFn: typeof fetch = fetch): Promise<void> {
+  const auth = "Basic " + btoa(cfg.username + ":" + cfg.password);
+  const res = await fetchFn(`${cfg.url}/api/session/${encodeURIComponent(sessionID)}/prompt`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: auth },
+    body: JSON.stringify({ prompt: { text } }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`HTTP prompt failed (${res.status}): ${body.slice(0, 200)}`);
+  }
+}
+
 /** Resolve the opencode binary to an absolute path.
  * launchd/cron run with a minimal PATH, so a bare "opencode" dies with
  * ENOENT there even though it works in interactive shells. */
@@ -99,10 +130,23 @@ export async function runJobHeadless(
     const { md } = await readMemory(directory, jobId);
     const prompt = buildTickPrompt({ systemPrompt: job.systemPrompt, followupPrompt: job.followupPrompt, memoryMd: md });
     const cwd = job.directory || directory;
-    const args = tickArgs(job, prompt);
-    const bin = await resolveOpencodeBin();
-    console.log(`opencode ${args.slice(0, 6).join(" ")} ... (cwd=${cwd})`);
-    const code = await spawnFn(bin, args, cwd);
+    const httpCfg = readHttpPromptConfig();
+    let code: number;
+    if (httpCfg) {
+      console.log(`http prompt -> ${httpCfg.url} session=${job.sessionID} (cwd=${cwd})`);
+      try {
+        await promptViaHttp(httpCfg, job.sessionID, prompt);
+        code = 0;
+      } catch (e: any) {
+        console.error(String(e?.message ?? e));
+        code = 1;
+      }
+    } else {
+      const args = tickArgs(job, prompt);
+      const bin = await resolveOpencodeBin();
+      console.log(`opencode ${args.slice(0, 6).join(" ")} ... (cwd=${cwd})`);
+      code = await spawnFn(bin, args, cwd);
+    }
     const now = new Date().toISOString();
     if (code === 0) {
       job.runCount += 1;
