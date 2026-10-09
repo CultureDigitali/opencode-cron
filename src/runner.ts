@@ -65,6 +65,10 @@ export const defaultSpawn: SpawnFn = (cmd, args, cwd) =>
 export function tickArgs(job: { sessionID: string; agent?: string; model?: string }, prompt: string): string[] {
   // NOTE: `opencode run` has no --dir flag (v2) — cwd carries the directory.
   const args = ["run", "--session", job.sessionID];
+  // Sessions can live in a different opencode server instance (e.g. the
+  // desktop app's service, not the CLI's background service). Point the
+  // runner at it when configured; credentials come from the environment.
+  if (process.env.OPENCODE_SERVER_URL) args.push("--server", process.env.OPENCODE_SERVER_URL);
   if (job.agent) args.push("--agent", job.agent);
   if (job.model) args.push("--model", job.model);
   args.push(prompt);

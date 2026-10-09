@@ -56,6 +56,16 @@ describe("runner tick args", () => {
     expect(args).toEqual(["run", "--session", "s", "--agent", "build", "--model", "a/b", "hello"]);
     expect(args).not.toContain("--dir");
   });
+  it("adds --server when OPENCODE_SERVER_URL is set (desktop-app sessions)", async () => {
+    const prev = process.env.OPENCODE_SERVER_URL;
+    process.env.OPENCODE_SERVER_URL = "http://127.0.0.1:49374";
+    const args = tickArgs({ sessionID: "s" }, "hello");
+    expect(args).toContain("--server");
+    expect(args[args.indexOf("--server") + 1]).toBe("http://127.0.0.1:49374");
+    if (prev === undefined) delete process.env.OPENCODE_SERVER_URL;
+    else process.env.OPENCODE_SERVER_URL = prev;
+    expect(tickArgs({ sessionID: "s" }, "hello")).not.toContain("--server");
+  });
   it("resolves opencode to an absolute executable (launchd-safe)", async () => {
     const bin = await resolveOpencodeBin();
     expect(bin.startsWith("/")).toBe(true);
