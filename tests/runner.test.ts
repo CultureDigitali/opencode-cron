@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { saveJobs } from "../src/store.ts";
 import { writeMemory } from "../src/memory.ts";
-import { acquireLock, releaseLock, checkDue, tickArgs, resolveOpencodeBin, readHttpPromptConfig, promptViaHttp, writeCredentialsFile, switchModelViaHttp } from "../src/runner.ts";
+import { acquireLock, releaseLock, checkDue, tickArgs, resolveOpencodeBin, readHttpPromptConfig, promptViaHttp, writeCredentialsFile, switchModelViaHttp, repinSessionModel } from "../src/runner.ts";
 
 const job = (id: string, dir: string, over: Record<string, any> = {}) => ({
   id,
@@ -114,6 +114,20 @@ describe("http prompt transport", () => {
     expect(await switchModelViaHttp({ url: "http://x", username: "u", password: "p" }, "s", "no-slash", ok)).toBe(false);
     const failing: any = async () => { throw new Error("net"); };
     expect(await switchModelViaHttp({ url: "http://x", username: "u", password: "p" }, "s", "a/b", failing)).toBe(false);
+  });
+  it("repinSessionModel strips the variant from the session model", async () => {
+    const posts: any[] = [];
+    const fake: any = async (url: string, init?: any) => {
+      if (!init?.method) return { ok: true, status: 200, json: async () => ({ data: { model: { id: "z-ai/glm-5.3", providerID: "nvidia", variant: "max" } } }) };
+      posts.push({ url, body: JSON.parse(init.body) });
+      return { ok: true, status: 204 };
+    };
+    const ok = await repinSessionModel({ url: "http://x", username: "u", password: "p" }, "ses_1", fake);
+    expect(ok).toBe(true);
+    expect(posts).toHaveLength(1);
+    expect(posts[0].body).toEqual({ model: { id: "z-ai/glm-5.3", providerID: "nvidia" } }); // variant stripped
+    const badFetch: any = async () => ({ ok: false, status: 500, json: async () => ({}) });
+    expect(await repinSessionModel({ url: "http://x", username: "u", password: "p" }, "s", badFetch)).toBe(false);
   });
 });
 

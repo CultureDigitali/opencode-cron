@@ -85,6 +85,32 @@ export async function switchModelViaHttp(
   return res?.ok === true;
 }
 
+/** Variant-less model re-pin: reads the session's current model and re-asserts
+ * it WITHOUT the variant, so jobs don't need an explicit model and the drain
+ * resolver never sees a variant it can't resolve. */
+export async function repinSessionModel(
+  cfg: HttpPromptConfig,
+  sessionID: string,
+  fetchFn: typeof fetch = fetch
+): Promise<boolean> {
+  const auth = "Basic " + btoa(cfg.username + ":" + cfg.password);
+  const res = await fetchFn(`${cfg.url}/api/session/${encodeURIComponent(sessionID)}`, {
+    headers: { Authorization: auth },
+  }).catch(() => undefined);
+  if (!res?.ok) return false;
+  const body: any = await res.json().catch(() => undefined);
+  const model = body?.data?.model ?? body?.model;
+  const id: string | undefined = model?.id ?? model?.modelID;
+  const providerID: string | undefined = model?.providerID;
+  if (!id || !providerID) return false;
+  const post = await fetchFn(`${cfg.url}/api/session/${encodeURIComponent(sessionID)}/model`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: auth },
+    body: JSON.stringify({ model: { id, providerID } }),
+  }).catch(() => undefined);
+  return post?.ok === true;
+}
+
 /** Persist the current process's sidecar credentials (the desktop app injects
  * fresh OPENCODE_SERVER_USERNAME/PASSWORD into every agent turn) so the launchd
  * ticker can authenticate after an app restart rotated them. File mode 0600. */
@@ -175,10 +201,10 @@ export async function runJobHeadless(
     if (httpCfg) {
       console.log(`http prompt -> ${httpCfg.url} session=${job.sessionID} (cwd=${cwd})`);
       try {
-        if (job.model) {
-          const ok = await switchModelViaHttp(httpCfg, job.sessionID, job.model);
-          if (!ok) console.log(`model switch to ${job.model} not confirmed (continuing)`);
-        }
+        let pinned = false;
+        if (job.model) pinned = await switchModelViaHttp(httpCfg, job.sessionID, job.model);
+        else pinned = await repinSessionModel(httpCfg, job.sessionID);
+        if (!pinned) console.log("model re-pin not confirmed (continuing)");
         await promptViaHttp(httpCfg, job.sessionID, prompt);
         code = 0;
       } catch (e: any) {
