@@ -201,10 +201,17 @@ export async function runJobHeadless(
     if (httpCfg) {
       console.log(`http prompt -> ${httpCfg.url} session=${job.sessionID} (cwd=${cwd})`);
       try {
+        // OPENCODE_NO_REPIN=1: skip the variant-less model re-pin. The drain
+        // then fails to resolve the session model and leaves the prompt
+        // pending — it steers into the session's next ACTIVE turn instead
+        // (deferred/live mode for desktop GUIs whose chat view renders
+        // only event-driven writes).
         let pinned = false;
-        if (job.model) pinned = await switchModelViaHttp(httpCfg, job.sessionID, job.model);
-        else pinned = await repinSessionModel(httpCfg, job.sessionID);
-        if (!pinned) console.log("model re-pin not confirmed (continuing)");
+        if (process.env.OPENCODE_NO_REPIN !== "1") {
+          if (job.model) pinned = await switchModelViaHttp(httpCfg, job.sessionID, job.model);
+          else pinned = await repinSessionModel(httpCfg, job.sessionID);
+          if (!pinned) console.log("model re-pin not confirmed (continuing)");
+        }
         await promptViaHttp(httpCfg, job.sessionID, prompt);
         code = 0;
       } catch (e: any) {

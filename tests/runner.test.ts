@@ -2,9 +2,9 @@ import { describe, it, expect } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { saveJobs } from "../src/store.ts";
+import { saveJobs, loadJobs } from "../src/store.ts";
 import { writeMemory } from "../src/memory.ts";
-import { acquireLock, releaseLock, checkDue, tickArgs, resolveOpencodeBin, readHttpPromptConfig, promptViaHttp, writeCredentialsFile, switchModelViaHttp, repinSessionModel } from "../src/runner.ts";
+import { acquireLock, releaseLock, checkDue, runJobHeadless, tickArgs, resolveOpencodeBin, readHttpPromptConfig, promptViaHttp, writeCredentialsFile, switchModelViaHttp, repinSessionModel } from "../src/runner.ts";
 
 const job = (id: string, dir: string, over: Record<string, any> = {}) => ({
   id,
@@ -158,6 +158,39 @@ describe("credentials refresh", () => {
   });
   it("throws without env credentials", async () => {
     expect(writeCredentialsFile({ HOME: "/tmp" } as NodeJS.ProcessEnv, "/tmp/x-creds-test")).rejects.toThrow("missing OPENCODE_SERVER");
+  });
+  it("OPENCODE_NO_REPIN=1 admits the prompt without any model pin (deferred mode)", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-norepin-"));
+    const past = new Date(Date.now() - 60_000).toISOString();
+    const j = job("np", dir, { nextRunAt: past });
+    delete (j as any).model;
+    await saveJobs(dir, [j]);
+    await writeMemory(dir, "np", "# mem", { seenHashes: [], counts: { news: 0, tweets: 0 }, lastRunAt: null, consecutiveFailures: 0 });
+    const calls: any[] = [];
+    const prev = { url: process.env.OPENCODE_SERVER_URL, http: process.env.OPENCODE_PROMPT_HTTP, un: process.env.OPENCODE_SERVER_USERNAME, pw: process.env.OPENCODE_SERVER_PASSWORD, norepin: process.env.OPENCODE_NO_REPIN };
+    process.env.OPENCODE_SERVER_URL = "http://127.0.0.1:9";
+    process.env.OPENCODE_PROMPT_HTTP = "1";
+    process.env.OPENCODE_SERVER_USERNAME = "u";
+    process.env.OPENCODE_SERVER_PASSWORD = "p";
+    process.env.OPENCODE_NO_REPIN = "1";
+    const realFetch = globalThis.fetch;
+    (globalThis as any).fetch = async (url: string, init?: any) => {
+      calls.push({ url: String(url), method: init?.method ?? "GET" });
+      return { ok: true, status: 200, json: async () => ({}), text: async () => "{}" };
+    };
+    const code = await runJobHeadless(dir, "np", async () => 0);
+    (globalThis as any).fetch = realFetch;
+    process.env.OPENCODE_SERVER_URL = prev.url;
+    process.env.OPENCODE_PROMPT_HTTP = prev.http;
+    process.env.OPENCODE_SERVER_USERNAME = prev.un;
+    process.env.OPENCODE_SERVER_PASSWORD = prev.pw;
+    if (prev.norepin === undefined) delete process.env.OPENCODE_NO_REPIN;
+    else process.env.OPENCODE_NO_REPIN = prev.norepin;
+    expect(code).toBe(0);
+    const posts = calls.filter((c: any) => c.method === "POST");
+    expect(posts.some((c: any) => c.url.includes("/prompt"))).toBe(true);
+    expect(posts.some((c: any) => c.url.includes("/model"))).toBe(false);
+    expect((await loadJobs(dir))[0].runCount).toBe(1);
   });
 });
 
