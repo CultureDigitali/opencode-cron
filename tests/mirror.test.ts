@@ -72,6 +72,30 @@ describe("mirror v2->v1", () => {
     expect((db.prepare(`SELECT count(*) c FROM message`).get() as any).c).toBe(0);
   });
 
+  it("mirrors a multi-step turn (empty first assistant row, text in later rows)", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-mirror4-"));
+    const db = makeDb(path.join(dir, "test.db"));
+    const sid = "ses_test";
+    const t0 = 1791570000000;
+    insertV2(db, sid, "user", { time: { created: t0 }, text: "tick news" }, t0);
+    insertV2(db, sid, "assistant", { time: { created: t0 + 100 }, content: [] }, t0 + 100); // step-start row
+    insertV2(db, sid, "assistant", { time: { created: t0 + 200 }, content: [{ type: "text", text: "" }] }, t0 + 200); // empty text
+    insertV2(db, sid, "assistant", {
+      time: { created: t0 + 300, completed: t0 + 5000 },
+      model: { id: "z-ai/glm-5.3", providerID: "nvidia" },
+      content: [{ type: "text", text: "Riepilogo news: 3 articoli trovati." }],
+    }, t0 + 300);
+    const statePath = path.join(dir, "state.json");
+    const r = mirrorPairs(db, { dbPath: "", sessionId: sid, cwd: "/p", statePath });
+    expect(r.mirrored).toBe(1);
+    const msgs = db.prepare(`SELECT id, data FROM message ORDER BY time_created`).all() as any[];
+    expect(msgs).toHaveLength(2);
+    const aParts = db.prepare(`SELECT data FROM part WHERE message_id = ? AND json_extract(data,'$.type')='text'`).all(msgs[1].id) as any[];
+    expect(JSON.parse(aParts[0].data).text).toContain("Riepilogo news: 3 articoli");
+    // idempotent
+    expect(mirrorPairs(db, { dbPath: "", sessionId: sid, cwd: "/p", statePath }).mirrored).toBe(0);
+  });
+
   it("skips pairs the app already mirrored to v1 (steered dedup)", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-mirror3-"));
     const db = makeDb(path.join(dir, "test.db"));

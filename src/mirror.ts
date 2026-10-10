@@ -58,12 +58,18 @@ export function mirrorPairs(db: Database, opts: MirrorOpts): MirrorResult {
     snapshot = snapRow?.s ?? "";
   } catch { /* optional */ }
 
-  const pairs: Array<[V2Row, V2Row]> = [];
-  for (let i = 0; i < rows.length - 1; i++) {
-    if (rows[i].type === "user" && rows[i + 1].type === "assistant") {
-      pairs.push([rows[i], rows[i + 1]]);
+  // Group into turns: a user row followed by all consecutive non-user rows
+  // (assistant steps have content:[] on the first row; real text spans
+  // multiple assistant rows — one per step — until the next user row).
+  const turns: Array<{ user: V2Row; assistants: V2Row[] }> = [];
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].type !== "user") continue;
+    const turn = { user: rows[i], assistants: [] as V2Row[] };
+    while (i + 1 < rows.length && rows[i + 1].type !== "user") {
       i++;
+      if (rows[i].type === "assistant") turn.assistants.push(rows[i]);
     }
+    if (turn.assistants.length) turns.push(turn);
   }
 
   let mirrored = 0;
@@ -71,14 +77,15 @@ export function mirrorPairs(db: Database, opts: MirrorOpts): MirrorResult {
   let lastSeq = state.lastSeq;
 
   const tx = db.transaction(() => {
-    for (const [user, assistant] of pairs) {
+    for (const { user, assistants } of turns) {
       const uData = safeJson(user.data);
-      const aData = safeJson(assistant.data);
       const uText = uData?.text;
-      const aText = extractAssistantText(aData);
+      const aText = extractTurnText(assistants);
+      const aData = safeJson(assistants[assistants.length - 1].data);
+      const lastTime = assistants[assistants.length - 1].time_created;
       if (typeof uText !== "string" || aText === null) {
         skipped++;
-        lastSeq = Math.max(lastSeq, assistant.seq);
+        lastSeq = Math.max(lastSeq, lastTime ? safeJson(assistants[assistants.length - 1].data)?.time?.created ?? lastTime : user.seq);
         continue;
       }
       // dedup: steered pairs are also written to v1 by the app itself —
@@ -92,44 +99,44 @@ export function mirrorPairs(db: Database, opts: MirrorOpts): MirrorResult {
         .get(uText, user.time_created - 30_000, user.time_created + 30_000) as { c: number };
       if (dup.c > 0) {
         skipped++;
-        lastSeq = Math.max(lastSeq, assistant.seq);
+        lastSeq = Math.max(lastSeq, user.seq);
         continue;
       }
-      const now = Date.now();
       const userMsgId = genId("msg_");
       const assistantMsgId = genId("msg_");
+      const firstA = safeJson(assistants[0].data);
+      const lastA = aData;
+      const createdA = firstA?.time?.created ?? assistants[0].time_created;
+      const completedA = lastA?.time?.completed ?? lastA?.time?.created ?? lastTime;
       const uDataOut = JSON.stringify({
         role: "user",
         time: { created: user.time_created },
         agent: "build",
-        model: { providerID: aData?.model?.providerID ?? "nvidia", modelID: aData?.model?.id ?? "z-ai/glm-5.3" },
+        model: { providerID: lastA?.model?.providerID ?? "nvidia", modelID: lastA?.model?.id ?? "z-ai/glm-5.3" },
         summary: { diffs: [] },
       });
-      const tokens = aData?.tokens ?? { total: 0, input: 0, output: 0, reasoning: 0, cache: { write: 0, read: 0 } };
+      const tokens = lastA?.tokens ?? { total: 0, input: 0, output: 0, reasoning: 0, cache: { write: 0, read: 0 } };
       const aDataOut = JSON.stringify({
         parentID: userMsgId,
         role: "assistant",
         mode: "build",
         agent: "build",
         path: { cwd: opts.cwd, root: opts.cwd },
-        cost: aData?.cost ?? 0,
+        cost: lastA?.cost ?? 0,
         tokens,
-        modelID: aData?.model?.id ?? "z-ai/glm-5.3",
-        providerID: aData?.model?.providerID ?? "nvidia",
-        time: {
-          created: aData?.time?.created ?? assistant.time_created,
-          completed: aData?.time?.completed ?? assistant.time_created + 1000,
-        },
+        modelID: lastA?.model?.id ?? "z-ai/glm-5.3",
+        providerID: lastA?.model?.providerID ?? "nvidia",
+        time: { created: createdA, completed: completedA },
         finish: "stop",
       });
       insertMessage(db, userMsgId, opts.sessionId, user.time_created, user.time_created, uDataOut);
-      insertMessage(db, assistantMsgId, opts.sessionId, assistant.time_created, assistant.time_created, aDataOut);
+      insertMessage(db, assistantMsgId, opts.sessionId, completedA, completedA, aDataOut);
       insertPart(db, genId("prt_"), userMsgId, opts.sessionId, user.time_created, JSON.stringify({ type: "text", text: uText }));
-      insertPart(db, genId("prt_"), assistantMsgId, opts.sessionId, assistant.time_created, JSON.stringify({ snapshot, type: "step-start" }));
-      insertPart(db, genId("prt_"), assistantMsgId, opts.sessionId, assistant.time_created, JSON.stringify({ type: "text", text: aText }));
-      insertPart(db, genId("prt_"), assistantMsgId, opts.sessionId, assistant.time_created, JSON.stringify({ reason: "stop", snapshot, type: "step-finish", tokens, cost: aData?.cost ?? 0 }));
+      insertPart(db, genId("prt_"), assistantMsgId, opts.sessionId, createdA, JSON.stringify({ snapshot, type: "step-start" }));
+      insertPart(db, genId("prt_"), assistantMsgId, opts.sessionId, completedA, JSON.stringify({ type: "text", text: aText }));
+      insertPart(db, genId("prt_"), assistantMsgId, opts.sessionId, completedA, JSON.stringify({ reason: "stop", snapshot, type: "step-finish", tokens, cost: lastA?.cost ?? 0 }));
       mirrored++;
-      lastSeq = Math.max(lastSeq, assistant.seq);
+      lastSeq = Math.max(lastSeq, assistants[assistants.length - 1].seq);
     }
   });
   tx();
@@ -138,12 +145,17 @@ export function mirrorPairs(db: Database, opts: MirrorOpts): MirrorResult {
   return { mirrored, skipped, lastSeq };
 }
 
-function extractAssistantText(aData: any): string | null {
-  const content = aData?.content;
-  if (!Array.isArray(content)) return null;
-  const texts = content.filter((c: any) => c?.type === "text" && typeof c.text === "string").map((c: any) => c.text);
-  if (!texts.length) return null;
-  return texts.join("\n\n");
+function extractTurnText(assistants: V2Row[]): string | null {
+  const texts: string[] = [];
+  for (const row of assistants) {
+    const data = safeJson(row.data);
+    const content = data?.content;
+    if (!Array.isArray(content)) continue;
+    for (const c of content) {
+      if (c?.type === "text" && typeof c.text === "string" && c.text.length > 0) texts.push(c.text);
+    }
+  }
+  return texts.length ? texts.join("\n\n") : null;
 }
 
 function safeJson(s: string): any {
