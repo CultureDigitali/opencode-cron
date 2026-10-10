@@ -67,9 +67,19 @@ describe("runner tick args", () => {
     expect(tickArgs({ sessionID: "s" }, "hello")).not.toContain("--server");
   });
   it("resolves opencode to an absolute executable (launchd-safe)", async () => {
-    const bin = await resolveOpencodeBin();
-    expect(bin.startsWith("/")).toBe(true);
-    await fs.access(bin, fs.constants.X_OK);
+    // controlled PATH with a fake executable — deterministic on any machine
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-bin-"));
+    const fake = path.join(dir, "opencode");
+    await fs.writeFile(fake, "#!/bin/sh\nexit 0\n", "utf-8");
+    await fs.chmod(fake, 0o755);
+    const prevPath = process.env.PATH;
+    const prevBin = process.env.OPENCODE_BIN;
+    delete process.env.OPENCODE_BIN;
+    process.env.PATH = dir;
+    expect(await resolveOpencodeBin()).toBe(fake);
+    process.env.PATH = prevPath;
+    if (prevBin === undefined) delete process.env.OPENCODE_BIN;
+    else process.env.OPENCODE_BIN = prevBin;
   });
   it("OPENCODE_BIN override wins", async () => {
     const prev = process.env.OPENCODE_BIN;
@@ -164,13 +174,17 @@ describe("checkDue", () => {
     ]);
     await writeMemory(dir, "due", "# mem", { seenHashes: [], counts: { news: 0, tweets: 0 }, lastRunAt: null, consecutiveFailures: 0 });
     const calls: any[] = [];
+    const prevBin = process.env.OPENCODE_BIN;
+    process.env.OPENCODE_BIN = "/opt/test/opencode";
     const ran = await checkDue(dir, async (cmd, args, cwd) => {
       calls.push({ cmd, args, cwd });
       return 0;
     });
+    if (prevBin === undefined) delete process.env.OPENCODE_BIN;
+    else process.env.OPENCODE_BIN = prevBin;
     expect(ran).toEqual(["due"]);
     expect(calls).toHaveLength(1);
-    expect(calls[0].cmd.endsWith("/opencode")).toBe(true);
+    expect(calls[0].cmd).toBe("/opt/test/opencode");
     expect(calls[0].args).not.toContain("--dir");
     expect(calls[0].cwd).toBe(dir);
   });
