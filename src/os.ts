@@ -19,8 +19,16 @@ export function assertLabel(label: string): void {
   if (!/^[A-Za-z0-9._-]{1,64}$/.test(label)) throw new Error(`Invalid label "${label}"`);
 }
 
+function assertNoNewlines(s: string, fieldName: string): void {
+  if (/[\r\n]/.test(s)) {
+    throw new Error(`Invalid ${fieldName}: newlines not permitted in OS service adapters`);
+  }
+}
+
 export function launchdPlist(opts: { label: string; runnerPath: string; directory: string; intervalSec: number }): string {
   assertLabel(opts.label);
+  assertNoNewlines(opts.runnerPath, "runnerPath");
+  assertNoNewlines(opts.directory, "directory");
   const home = process.env.HOME ?? process.env.USERPROFILE ?? "/tmp";
   const logBase = `${home}/Library/Logs/opencode-cron`;
   const defaultPath = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin";
@@ -29,6 +37,8 @@ export function launchdPlist(opts: { label: string; runnerPath: string; director
 }
 
 export function systemdService(opts: { runnerPath: string; directory: string }): string {
+  assertNoNewlines(opts.runnerPath, "runnerPath");
+  assertNoNewlines(opts.directory, "directory");
   const safeRunner = opts.runnerPath.replace(/"/g, '\\"');
   const safeDir = opts.directory.replace(/"/g, '\\"');
   return `[Unit]\nDescription=opencode-cron tick\n[Service]\nType=oneshot\nExecStart="${safeRunner}" check --dir "${safeDir}"\n`;
@@ -39,9 +49,15 @@ export function systemdTimer(opts: { intervalSec: number }): string {
 }
 
 export function crontabLine(opts: { runnerPath: string; directory: string }): string {
+  assertNoNewlines(opts.runnerPath, "runnerPath");
+  assertNoNewlines(opts.directory, "directory");
   return `* * * * * ${shQuote(opts.runnerPath)} check --dir ${shQuote(opts.directory)} >> ${shQuote(`${process.env.HOME ?? "/tmp"}/.opencode-cron.log`)} 2>&1`;
 }
 
 export function schtasksCommand(opts: { taskName: string; runnerPath: string; directory: string }): string {
+  assertNoNewlines(opts.taskName, "taskName");
+  assertNoNewlines(opts.runnerPath, "runnerPath");
+  assertNoNewlines(opts.directory, "directory");
   return `schtasks /Create /TN "${opts.taskName}" /TR "\\"${opts.runnerPath}\\" check --dir \\"${opts.directory}\\"" /SC MINUTE /MO 1 /F`;
 }
+

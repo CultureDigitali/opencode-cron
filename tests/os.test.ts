@@ -17,4 +17,8 @@ describe("os adapters", () => {
     expect(schtasksCommand({ taskName: "opencode-cron", runnerPath: "C:\\x", directory: "C:\\p" })).toContain("schtasks");
     expect(systemdTimer({ intervalSec: 60 })).toContain("OnUnitActiveSec=60");
   });
+  it("rejects paths with newlines to prevent directive injection", () => {
+    expect(() => launchdPlist({ label: "test", runnerPath: "/bin\n/sh", directory: "/p", intervalSec: 60 })).toThrow("newlines not permitted");
+    expect(() => crontabLine({ runnerPath: "/x", directory: "/p\n* * * * * evil" })).toThrow("newlines not permitted");
+  });
 });

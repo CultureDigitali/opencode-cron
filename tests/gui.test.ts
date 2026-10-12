@@ -292,6 +292,19 @@ describe("GUI Server API", () => {
     expect(html).toContain("seenHashes");
     expect(html).toContain("launchd");
   });
+
+  it("blocks cross-site mutating requests with 403 (CSRF defense)", async () => {
+    const res = await fetch(`${baseUrl}/api/check`, {
+      method: "POST",
+      headers: {
+        "Origin": "https://malicious-site.com",
+      },
+    });
+    expect(res.status).toBe(403);
+    const body: any = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.error).toContain("Cross-site mutation rejected");
+  });
 });
 
 

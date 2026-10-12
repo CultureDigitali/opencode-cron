@@ -9,3 +9,4 @@ Informa l'utente su come visualizzare e avviare la Dashboard Web:
   - `/` — Mission Control, sessioni SQLite, editor memoria e 1-Click "Imposta Cron"
   - `/runs` — Cron Execution Timeline con log dettagliati di successi/fallimenti
   - `/instructions` — Guida interattiva multilingua completa con tour guidato
+

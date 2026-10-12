@@ -83,6 +83,17 @@ export function startGuiServer(opts: ServerOpts = {}) {
         return new Response(null, { headers });
       }
 
+      // Reject cross-site mutating requests (CSRF protection)
+      if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
+        if (origin && !isLoopback) {
+          return new Response(JSON.stringify({ ok: false, error: "Cross-site mutation rejected (forbidden origin)" }), { status: 403, headers });
+        }
+        const referer = req.headers.get("referer") || "";
+        if (referer && !referer.startsWith("http://localhost:") && !referer.startsWith("http://127.0.0.1:")) {
+          return new Response(JSON.stringify({ ok: false, error: "Cross-site mutation rejected (forbidden referer)" }), { status: 403, headers });
+        }
+      }
+
       // 1. Root: Web Dashboard HTML
       if (pathname === "/" && (method === "GET" || method === "HEAD")) {
         return new Response(method === "HEAD" ? null : getHtml(`OpenCode Cron — ${path.basename(directory)}`), {
@@ -448,30 +459,61 @@ export function startGuiServer(opts: ServerOpts = {}) {
           }
 
           const opencodeBin = process.env.OPENCODE_BIN || "opencode";
+          let stdout = "";
+          let stderr = "";
+          let exitCode: number | null = null;
 
-          const proc = Bun.spawn([opencodeBin, "run", "--session", sessionId, prompt], {
-            cwd: directory,
-            stdout: "pipe",
-            stderr: "pipe",
-          });
-
-          let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-          try {
-            const timeoutPromise = new Promise<never>((_, reject) => {
-              timeoutHandle = setTimeout(() => {
-                try { proc.kill(); } catch { /* ignore */ }
-                reject(new Error("Prompt execution timed out after 60s"));
-              }, 60000);
+          if (typeof (globalThis as any).Bun !== "undefined") {
+            const proc = Bun.spawn([opencodeBin, "run", "--session", sessionId, prompt], {
+              cwd: directory,
+              stdout: "pipe",
+              stderr: "pipe",
             });
 
-            const exitCode = await Promise.race([proc.exited, timeoutPromise]);
-            const stdout = await new Response(proc.stdout).text();
-            const stderr = await new Response(proc.stderr).text();
+            let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+            try {
+              const timeoutPromise = new Promise<never>((_, reject) => {
+                timeoutHandle = setTimeout(() => {
+                  try { proc.kill(); } catch { /* ignore */ }
+                  reject(new Error("Prompt execution timed out after 60s"));
+                }, 60000);
+              });
 
-            return new Response(JSON.stringify({ ok: exitCode === 0, exitCode, stdout, stderr }), { headers });
-          } finally {
-            if (timeoutHandle) clearTimeout(timeoutHandle);
+              exitCode = await Promise.race([proc.exited, timeoutPromise]);
+              stdout = await new Response(proc.stdout).text();
+              stderr = await new Response(proc.stderr).text();
+            } finally {
+              if (timeoutHandle) clearTimeout(timeoutHandle);
+            }
+          } else {
+            const { spawn } = await import("node:child_process");
+            const cp = spawn(opencodeBin, ["run", "--session", sessionId, prompt], {
+              cwd: directory,
+              stdio: ["ignore", "pipe", "pipe"],
+            });
+            const outChunks: Buffer[] = [];
+            const errChunks: Buffer[] = [];
+            cp.stdout?.on("data", (c: Buffer) => outChunks.push(c));
+            cp.stderr?.on("data", (c: Buffer) => errChunks.push(c));
+
+            let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+            try {
+              exitCode = await new Promise<number>((resolve, reject) => {
+                timeoutHandle = setTimeout(() => {
+                  try { cp.kill(); } catch { /* ignore */ }
+                  reject(new Error("Prompt execution timed out after 60s"));
+                }, 60000);
+                cp.on("close", (code: number | null) => resolve(code ?? 0));
+                cp.on("error", reject);
+              });
+              stdout = Buffer.concat(outChunks).toString("utf-8");
+              stderr = Buffer.concat(errChunks).toString("utf-8");
+            } finally {
+              if (timeoutHandle) clearTimeout(timeoutHandle);
+            }
           }
+
+          return new Response(JSON.stringify({ ok: exitCode === 0, exitCode, stdout, stderr }), { headers });
         } catch (e: any) {
           const status = e.message?.includes("timed out") ? 504 : e.message?.includes("Invalid") ? 400 : 500;
           return new Response(JSON.stringify({ ok: false, error: e.message }), { status, headers });
