@@ -138,56 +138,109 @@ export function getUiEnhancementsBodyHtml(): string {
     </div>
   </aside>
 
-  <!-- Interactive Guided Demo Tour Modal (Shared Across All Pages) -->
-  <div id="oc-tour-modal" role="dialog" aria-modal="true" aria-labelledby="tour-modal-title" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
-    <div class="bg-darkcard border border-indigo-500/40 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl relative space-y-6">
-      <!-- Tour Header -->
-      <div class="flex items-center justify-between pb-3 border-b border-darkborder">
-        <div class="flex items-center gap-2.5">
-          <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-indigo-500/30">
-            <i class="fa-solid fa-wand-magic-sparkles"></i>
-          </span>
-          <div>
-            <h3 id="tour-modal-title" class="text-base font-bold text-white">Demo & Tour Guidato</h3>
-            <span id="tour-step-indicator" class="text-[11px] font-mono text-indigo-400">Passo 1 di 5</span>
-          </div>
-        </div>
-        <button onclick="closeTourModal()" aria-label="Chiudi demo" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 cursor-pointer">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+  <!-- Spotlight Guided Walkthrough Backdrop & Highlight Ring -->
+  <style>
+    #oc-spotlight-ring {
+      animation: oc-spotlight-pulse 2s infinite ease-in-out;
+    }
+    @keyframes oc-spotlight-pulse {
+      0%, 100% {
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.4), 0 0 25px rgba(99, 102, 241, 0.65);
+        border-color: #818cf8;
+      }
+      50% {
+        box-shadow: 0 0 0 8px rgba(99, 102, 241, 0.2), 0 0 45px rgba(129, 140, 248, 0.9);
+        border-color: #a5b4fc;
+      }
+    }
+    .oc-tour-highlight-el {
+      position: relative !important;
+      z-index: 9993 !important;
+      outline: 2px solid #818cf8 !important;
+      outline-offset: 4px !important;
+      border-radius: 8px !important;
+    }
+  </style>
+
+  <div id="oc-spotlight-backdrop" onclick="stopGuidedDemo()" class="fixed inset-0 bg-black/75 backdrop-blur-[2px] transition-all duration-300 hidden" style="z-index: 9990;"></div>
+  <div id="oc-spotlight-ring" class="fixed rounded-xl border-2 border-indigo-400 pointer-events-none transition-all duration-300 hidden" style="z-index: 9992;"></div>
+
+  <!-- Interactive Guided Spotlight Tour Popover Card -->
+  <div
+    id="oc-spotlight-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="oc-spotlight-title"
+    class="fixed bg-gray-950/95 border-2 border-indigo-500/50 rounded-2xl shadow-2xl p-4 sm:p-5 text-gray-200 max-w-[92vw] sm:max-w-md backdrop-blur-xl hidden flex flex-col space-y-3.5 transition-all duration-300"
+    style="z-index: 9995;"
+  >
+    <!-- Card Header -->
+    <div class="flex items-center justify-between pb-2.5 border-b border-darkborder/80">
+      <div class="flex items-center gap-2">
+        <span class="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </span>
+        <span id="oc-spotlight-badge" class="text-[10px] font-bold tracking-wider uppercase text-indigo-300">GUIDA CRONJOB</span>
+        <span class="text-gray-600">•</span>
+        <span id="oc-spotlight-step-text" class="text-[11px] font-mono text-gray-400">Passo 1 di 7</span>
+      </div>
+      <button
+        type="button"
+        onclick="stopGuidedDemo()"
+        class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 text-xs transition-colors cursor-pointer"
+        aria-label="Esci dal tour guidato"
+      >
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Card Content -->
+    <div class="space-y-1.5">
+      <h4 id="oc-spotlight-title" class="text-sm sm:text-base font-bold text-white tracking-tight"></h4>
+      <p id="oc-spotlight-desc" class="text-xs text-gray-300 leading-relaxed"></p>
+    </div>
+
+    <!-- Action Helper (Demo Fill) -->
+    <div id="oc-spotlight-helper-container" class="pt-1">
+      <button
+        type="button"
+        id="oc-spotlight-demo-fill-btn"
+        onclick="demoFillStepData()"
+        class="w-full py-1.5 px-3 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+      >
+        <i class="fa-solid fa-wand-magic-sparkles text-amber-400 text-xs"></i>
+        <span id="oc-spotlight-demo-fill-label">Compila Dati Esempio</span>
+      </button>
+    </div>
+
+    <!-- Card Footer -->
+    <div class="flex items-center justify-between pt-2.5 border-t border-darkborder/80 text-xs">
+      <button
+        type="button"
+        id="oc-spotlight-prev-btn"
+        onclick="prevSpotlightStep()"
+        class="px-3 py-1.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 font-semibold border border-darkborder transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        <i class="fa-solid fa-arrow-left mr-1"></i> <span id="oc-spotlight-prev-label">Indietro</span>
+      </button>
+
+      <div class="flex items-center gap-1.5" id="oc-spotlight-dots">
+        <!-- 7 dots -->
       </div>
 
-      <!-- Tour Content Slides -->
-      <div id="tour-slide-container" class="min-h-[190px] flex flex-col justify-center">
-        <!-- Rendered dynamically by JS -->
-      </div>
-
-      <!-- Tour Navigation Footer -->
-      <div class="flex items-center justify-between pt-4 border-t border-darkborder text-xs">
-        <button
-          type="button"
-          id="tour-prev-btn"
-          onclick="prevTourStep()"
-          class="px-3.5 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 font-semibold border border-darkborder transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <i class="fa-solid fa-arrow-left mr-1"></i> Indietro
-        </button>
-
-        <div class="flex items-center gap-1.5" id="tour-dots">
-          <!-- Dots rendered by JS -->
-        </div>
-
-        <button
-          type="button"
-          id="tour-next-btn"
-          onclick="nextTourStep()"
-          class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md shadow-indigo-600/30 transition-all cursor-pointer"
-        >
-          Avanti <i class="fa-solid fa-arrow-right ml-1"></i>
-        </button>
-      </div>
+      <button
+        type="button"
+        id="oc-spotlight-next-btn"
+        onclick="nextSpotlightStep()"
+        class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md shadow-indigo-600/30 transition-all cursor-pointer flex items-center gap-1"
+      >
+        <span id="oc-spotlight-next-label">Avanti</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
+      </button>
     </div>
   </div>
+
+  <!-- Backward-compatibility stub for tour modal -->
+  <div id="oc-tour-modal" class="hidden"></div>
   `;
 }
 
@@ -1599,130 +1652,666 @@ export function getUiEnhancementsScript(): string {
     }
 
     // ============================================================================
-    // INTERACTIVE GUIDED DEMO TOUR ENGINE (FIRST VISIT ONBOARDING)
+    // INTERACTIVE SPOTLIGHT GUIDED DEMO TOUR ENGINE (CREAZIONE CRONJOB STEP-BY-STEP)
     // ============================================================================
-    const OC_TOUR_STEPS = [
-      {
-        title: "1. Benvenuto in OpenCode Cron",
-        desc: "Esegui task autonomi stile ChatGPT programmando turni ricorrenti direttamente nelle tue sessioni OpenCode.",
-        icon: "fa-rocket",
-        color: "text-indigo-400",
-        highlight: "La cronologia della conversazione viene preservata ad ogni tick."
+    const TOUR_I18N = {
+      it: {
+        badge: "GUIDA CREAZIONE CRONJOB",
+        stepOf: "Passo {cur} di {tot}",
+        btnNext: "Avanti",
+        btnPrev: "Indietro",
+        btnFinish: "Ho Capito! Inizia Ora",
+        btnFillDemo: "✨ Compila Dati Esempio",
+        filledToast: "Dati Esempio Inseriti!",
+        finishToast: "🎉 Perfetto! Ora sai come creare le tue automazioni.",
+        steps: [
+          {
+            title: "1. Avvia la Creazione del Cronjob",
+            desc: "Clicca su '+ Nuovo Job' qui in alto (oppure su '⚡ Imposta Cron' all'interno di una sessione in Live Chat) per aprire il costruttore guidato."
+          },
+          {
+            title: "2. Dai un Titolo al tuo Job",
+            desc: "Inserisci un nome descrittivo per identificare l'attività automatica (es. 'Monitor Novità AI' o 'Guardiano Repo'). Clicca su 'Compila Dati Esempio' per vedere un caso reale!"
+          },
+          {
+            title: "3. Scegli la Frequenza (Intervallo o Cron)",
+            desc: "Usa i preset veloci ('⚡ 5m', '⏰ 1h') oppure scrivi un'espressione cron a 5 campi. Il Visual Builder mostrerà la spiegazione in linguaggio naturale e le prossime 3 esecuzioni previste!"
+          },
+          {
+            title: "4. Collega la Sessione OpenCode",
+            desc: "Seleziona la conversazione di chat a cui legare l'automazione. L'agente lavorerà dentro quella specifica chat mantenendo tutta la cronologia e i file aperti."
+          },
+          {
+            title: "5. Istruisci l'Agente con i Prompt",
+            desc: "Il Prompt di Sistema fissa l'obiettivo immutabile. Il Followup Prompt è l'azione che l'agente compie ad ogni tick. La memoria Markdown salverà lo stato e preverrà duplicati con seenHashes."
+          },
+          {
+            title: "6. Durata & Attivazione",
+            desc: "Imposta Max Runs: lascia 0 per farlo durare all'infinito, oppure specifica un numero per arrestarsi da solo. Clicca su 'Salva Job' per attivare l'automazione in background!"
+          },
+          {
+            title: "7. Traccia gli Esiti su 'Timeline Runs'",
+            desc: "Tutte le esecuzioni, durate ed eventuali errori sono tracciati in tempo reale nella pagina 'Timeline Runs': verifichi a colpo d'occhio successi (verdi) ed errori (rossi) con i log completi!"
+          }
+        ]
       },
-      {
-        title: "2. Imposta Cron con 1 Clic su Qualsiasi Conversazione",
-        desc: "Nella scheda Live Chat puoi cliccare su '⚡ Imposta Cron' nel banner della sessione per pre-selezionarla istantaneamente nel configuratore.",
-        icon: "fa-bolt",
-        color: "text-amber-400",
-        highlight: "Nessun bisogno di cercare manualmente l'ID: binding immediato."
+      en: {
+        badge: "CRONJOB CREATION GUIDE",
+        stepOf: "Step {cur} of {tot}",
+        btnNext: "Next",
+        btnPrev: "Previous",
+        btnFinish: "Got It! Start Now",
+        btnFillDemo: "✨ Fill Sample Data",
+        filledToast: "Sample Data Inserted!",
+        finishToast: "🎉 Great! You are ready to automate with OpenCode Cron.",
+        steps: [
+          {
+            title: "1. Start Cron Job Creation",
+            desc: "Click '+ New Job' in the top bar (or '⚡ Set Cron' inside any chat session in Live Chat) to launch the guided builder."
+          },
+          {
+            title: "2. Name Your Cron Job",
+            desc: "Enter a clear title to identify your automated background task (e.g. 'AI News Monitor' or 'Repo Guardian'). Click 'Fill Sample Data' to test quickly!"
+          },
+          {
+            title: "3. Choose Schedule (Interval or Cron)",
+            desc: "Use quick presets ('⚡ 5m', '⏰ 1h') or standard 5-field cron. The Visual Builder shows instant human explanations and the next 3 scheduled run timestamps!"
+          },
+          {
+            title: "4. Link OpenCode Chat Session",
+            desc: "Select the chat conversation to attach. Unlike isolated shell cron, opencode-cron prompts the exact session selected, keeping conversational context intact."
+          },
+          {
+            title: "5. Instruct the AI Agent via Prompts",
+            desc: "System Prompt locks the objective. Followup Prompt specifies the task for each tick. Persistent memory preserves facts and dedupes via seenHashes."
+          },
+          {
+            title: "6. Duration & Launch",
+            desc: "Set Max Runs: leave 0 to run indefinitely, or enter a number to auto-complete. Click 'Save Job' to register and activate background automation!"
+          },
+          {
+            title: "7. Track Telemetry on 'Timeline Runs'",
+            desc: "Every background tick is logged in real time: inspect successes (green), failures (red), run latency, and full execution traces on the Runs page!"
+          }
+        ]
       },
-      {
-        title: "3. Builder Visuale di Pianificazione & Durata",
-        desc: "Usa intervalli semplici (5m, 1h) o espressioni Cron a 5 campi (0 9 * * *). Imposta Max Runs a 0 per durata infinita o fissa un limite numerico.",
-        icon: "fa-clock",
-        color: "text-purple-400",
-        highlight: "Anteprima predittiva in tempo reale con data e ora dei prossimi 3 tick."
+      es: {
+        badge: "GUÍA CREACIÓN CRONJOB",
+        stepOf: "Paso {cur} de {tot}",
+        btnNext: "Siguiente",
+        btnPrev: "Anterior",
+        btnFinish: "¡Entendido! Empezar",
+        btnFillDemo: "✨ Rellenar Datos Ejemplo",
+        filledToast: "¡Datos de ejemplo insertados!",
+        finishToast: "🎉 ¡Genial! Ya puedes crear tus tareas automatizadas.",
+        steps: [
+          {
+            title: "1. Iniciar Creación de Cron Job",
+            desc: "Haz clic en '+ Nuevo Job' arriba (o en '⚡ Imposta Cron' en una sesión de Live Chat) para abrir el configurador."
+          },
+          {
+            title: "2. Asigna un Título al Job",
+            desc: "Introduce un título descriptivo para la tarea (ej. 'Monitor Noticias IA'). ¡Usa 'Rellenar Datos Ejemplo' para probar!"
+          },
+          {
+            title: "3. Elige la Frecuencia (Intervalo o Cron)",
+            desc: "Usa presets rápidos ('⚡ 5m', '⏰ 1h') o cron de 5 campos. ¡El Visual Builder traduce el horario y muestra las 3 próximas ejecuciones!"
+          },
+          {
+            title: "4. Conectar Sesión de OpenCode",
+            desc: "Selecciona la conversación de chat. A diferencia del cron tradicional, opencode-cron actúa en la misma sesión manteniendo todo el contexto."
+          },
+          {
+            title: "5. Instruye al Agente con Prompts",
+            desc: "El System Prompt fija el objetivo. El Followup Prompt es la acción recurrente. La memoria evita duplicados con seenHashes."
+          },
+          {
+            title: "6. Duración y Activación",
+            desc: "Deja Max Runs en 0 para infinito, o define un límite numérico. ¡Haz clic en 'Guardar' para activar la automatización!"
+          },
+          {
+            title: "7. Monitorea los Resultados en 'Timeline Runs'",
+            desc: "Cada tick se registra en tiempo real: revisa éxitos (verde), errores (rojo), latencias y logs completos."
+          }
+        ]
       },
-      {
-        title: "4. Memoria Persistente Markdown (seenHashes)",
-        desc: "Anche dopo la compattazione di chat lunghe centinaia di messaggi, il file .opencode/cron/memory/<id>.md preserva i fatti chiave e deduplica i risultati.",
-        icon: "fa-brain",
-        color: "text-emerald-400",
-        highlight: "Nessuna duplicazione di notizie o alert già visti in precedenza."
+      fr: {
+        badge: "GUIDE CRÉATION CRONJOB",
+        stepOf: "Étape {cur} sur {tot}",
+        btnNext: "Suivant",
+        btnPrev: "Précédent",
+        btnFinish: "Compris ! Démarrer",
+        btnFillDemo: "✨ Remplir Exemple",
+        filledToast: "Données d'exemple insérées !",
+        finishToast: "🎉 Parfait ! Vous êtes prêt à automatiser avec OpenCode Cron.",
+        steps: [
+          {
+            title: "1. Démarrer la Création du Job",
+            desc: "Cliquez sur '+ Nouveau Job' en haut (ou '⚡ Configurer Cron' dans un chat) pour ouvrir l'assistant."
+          },
+          {
+            title: "2. Nommez votre Job",
+            desc: "Indiquez un titre clair pour identifier la tâche (ex. 'Veille Actualités IA')."
+          },
+          {
+            title: "3. Choisissez la Fréquence",
+            desc: "Utilisez les raccourcis ('⚡ 5m', '⏰ 1h') ou du cron standard. Le générateur visuel affiche les 3 prochaines exécutions !"
+          },
+          {
+            title: "4. Associer la Session OpenCode",
+            desc: "Sélectionnez le chat cible : opencode-cron réinjecte ses ticks dans cette session avec tout son historique."
+          },
+          {
+            title: "5. Définissez les Prompts de l'Agent",
+            desc: "Le System Prompt fige l'objectif. Le Followup Prompt définit l'action récurrente. La mémoire déduplique via seenHashes."
+          },
+          {
+            title: "6. Durée et Activation",
+            desc: "Laissez Max Runs à 0 pour l'infini ou fixez une limite. Cliquez sur 'Sauvegarder' pour activer le job en arrière-plan !"
+          },
+          {
+            title: "7. Suivez les Résultats dans 'Runs'",
+            desc: "Chaque exécution est enregistrée en direct : succès (vert), erreurs (rouge), temps de réponse et logs complets !"
+          }
+        ]
       },
-      {
-        title: "5. Verifica Esiti delle Runs & Demone launchd 60s",
-        desc: "Il demone macOS esegue i compiti in background ogni 60 secondi anche a browser chiuso. Nella pagina /runs verifichi a colpo d'occhio successi ed errori.",
-        icon: "fa-chart-line",
-        color: "text-cyan-400",
-        highlight: "Con un clic passi dalla scheda dell'errore al messaggio esatto in Live Chat."
+      de: {
+        badge: "CRONJOB ERSTELLUNGSGUIDE",
+        stepOf: "Schritt {cur} von {tot}",
+        btnNext: "Weiter",
+        btnPrev: "Zurück",
+        btnFinish: "Verstanden! Starten",
+        btnFillDemo: "✨ Beispieldaten Ausfüllen",
+        filledToast: "Beispieldaten eingefügt!",
+        finishToast: "🎉 Perfekt! Sie sind bereit für automatisierte Aufgaben.",
+        steps: [
+          {
+            title: "1. Cronjob-Erstellung Starten",
+            desc: "Klicken Sie oben auf '+ Neuer Job' (oder '⚡ Cron Einrichten' in einem Chat), um den Assistenten zu öffnen."
+          },
+          {
+            title: "2. Job-Titel Festlegen",
+            desc: "Geben Sie einen klaren Titel ein (z. B. 'KI-News Monitor' oder 'Repo Guardian')."
+          },
+          {
+            title: "3. Intervall oder Cron Wählen",
+            desc: "Wählen Sie Schnell-Presets ('⚡ 5m', '⏰ 1h') oder 5-Feld-Cron. Der Visual Builder zeigt die nächsten 3 Ausführungen an!"
+          },
+          {
+            title: "4. OpenCode-Chatsitzung Verknüpfen",
+            desc: "Wählen Sie die Sitzung aus: opencode-cron führt Ticks in dieser Sitzung mit vollem Kontextverlauf aus."
+          },
+          {
+            title: "5. Agenten-Prompts Definieren",
+            desc: "Der System-Prompt legt das Ziel fest. Der Followup-Prompt bestimmt die Aktion pro Tick. Der Speicher dedupliziert via seenHashes."
+          },
+          {
+            title: "6. Laufzeit & Aktivierung",
+            desc: "Setzen Sie Max Runs auf 0 (unbegrenzt) oder ein Limit. Klicken Sie auf 'Job Speichern' zur Aktivierung!"
+          },
+          {
+            title: "7. Ausführungen auf 'Timeline Runs' Verfolgen",
+            desc: "Jeder Tick wird live protokolliert: Erfolge (grün), Fehler (rot), Ausführungszeiten und Traces auf einen Blick!"
+          }
+        ]
+      },
+      pt: {
+        badge: "GUIA CRIAÇÃO CRONJOB",
+        stepOf: "Passo {cur} de {tot}",
+        btnNext: "Avançar",
+        btnPrev: "Voltar",
+        btnFinish: "Entendi! Começar",
+        btnFillDemo: "✨ Preencher Exemplo",
+        filledToast: "Dados de exemplo inseridos!",
+        finishToast: "🎉 Pronto! Você já sabe como criar automações.",
+        steps: [
+          {
+            title: "1. Iniciar Criação do Cron Job",
+            desc: "Clique em '+ Novo Job' no topo (ou '⚡ Configurar Cron' no chat) para abrir o configurador."
+          },
+          {
+            title: "2. Dê um Título ao Job",
+            desc: "Insira um título descritivo para identificar a tarefa (ex. 'Monitor Notícias IA')."
+          },
+          {
+            title: "3. Escolha a Frequência (Intervalo ou Cron)",
+            desc: "Use atalhos rápidos ('⚡ 5m', '⏰ 1h') ou cron padrão. O Visual Builder mostra as próximas 3 execuções em tempo real!"
+          },
+          {
+            title: "4. Conectar Sessão do OpenCode",
+            desc: "Selecione a conversa: o opencode-cron atua na sessão escolhida preservando todo o histórico."
+          },
+          {
+            title: "5. Instrua o Agente com Prompts",
+            desc: "O System Prompt define o objetivo. O Followup Prompt é a ação do tick. A memória evita duplicatas com seenHashes."
+          },
+          {
+            title: "6. Duração e Ativação",
+            desc: "Deixe Max Runs em 0 para infinito ou defina um limite. Clique em 'Salvar' para ativar a automação em segundo plano!"
+          },
+          {
+            title: "7. Acompanhe os Resultados em 'Timeline Runs'",
+            desc: "Cada tick é registrado em tempo real: sucessos (verde), falhas (vermelho), tempo de resposta e logs detalhados!"
+          }
+        ]
+      },
+      zh: {
+        badge: "CRON 任务创建指南",
+        stepOf: "第 {cur} 步，共 {tot} 步",
+        btnNext: "下一步",
+        btnPrev: "上一步",
+        btnFinish: "明白了！立即开始",
+        btnFillDemo: "✨ 填入示例数据",
+        filledToast: "示例数据已填入！",
+        finishToast: "🎉 太棒了！您已准备好使用 OpenCode Cron 进行自动化。",
+        steps: [
+          {
+            title: "1. 开始创建 Cron 任务",
+            desc: "点击顶部的“+ 新建任务”（或在实时会话中点击“⚡ 设置 Cron”）打开向导。"
+          },
+          {
+            title: "2. 为任务命名",
+            desc: "输入一个清晰的标题来标识后台任务（例如“AI 新闻监控”或“代码库守卫”）。"
+          },
+          {
+            title: "3. 选择周期（简单间隔或 Cron）",
+            desc: "使用快捷按钮（“⚡ 5m”，“⏰ 1h”）或标准 5 字段 Cron。可视化构建器实时显示自然语言解释和未来 3 次执行时间！"
+          },
+          {
+            title: "4. 绑定 OpenCode 会话",
+            desc: "选择目标对话会话：每次运行都会继承完整的对话历史和上下文。"
+          },
+          {
+            title: "5. 设置提示词指导 AI 智能体",
+            desc: "系统提示词固定目标，后续提示词是每次执行的动作。持久化内存通过 seenHashes 自动去重。"
+          },
+          {
+            title: "6. 运行次数与保存激活",
+            desc: "Max Runs 设为 0 表示无限循环，或设定次数自动停止。点击“保存任务”即刻在后台激活自动化！"
+          },
+          {
+            title: "7. 在“运行记录”中追踪执行结果",
+            desc: "后台执行实时记录：绿色成功、红色失败、耗时毫秒数与完整日志一目了然！"
+          }
+        ]
+      },
+      ja: {
+        badge: "CRONジョブ作成ガイド",
+        stepOf: "ステップ {cur} / {tot}",
+        btnNext: "次へ",
+        btnPrev: "前へ",
+        btnFinish: "理解しました！今すぐ開始",
+        btnFillDemo: "✨ サンプルデータを入力",
+        filledToast: "サンプルデータを入力しました！",
+        finishToast: "🎉 準備完了！OpenCode Cronで自動化を開始できます。",
+        steps: [
+          {
+            title: "1. Cronジョブ作成を開始",
+            desc: "上部の「+ 新規ジョブ」（またはチャット内の「⚡ Cron設定」）をクリックしてビルダーを開きます。"
+          },
+          {
+            title: "2. ジョブに名前を付ける",
+            desc: "自動化タスクを識別する名前を入力します（例：「AIニュース監視」や「リポジトリ監視」）。"
+          },
+          {
+            title: "3. スケジュールを選択（間隔またはCron）",
+            desc: "クイックプリセット（「⚡ 5m」「⏰ 1h」）または5フィールドCronを使用。次回の実行時刻3件が即座にプレビューされます！"
+          },
+          {
+            title: "4. OpenCodeチャットセッションを紐付け",
+            desc: "対象セッションを選択：会話の文脈と履歴がすべて引き継がれます。"
+          },
+          {
+            title: "5. プロンプトでエージェントに指示",
+            desc: "システムプロンプトで目的を固定し、フォローアップで各実行のアクションを指定。seenHashesで重複を防ぎます。"
+          },
+          {
+            title: "6. 実行回数と有効化",
+            desc: "Max Runsを0（無期限）または指定回数に設定。「ジョブを保存」をクリックしてバックグラウンドで開始します！"
+          },
+          {
+            title: "7. 「Runs（実行履歴）」で結果を追跡",
+            desc: "バックグラウンドの実行がリアルタイムで記録されます：成功（緑）、エラー（赤）、所要時間、ログを一覧確認！"
+          }
+        ]
+      },
+      ar: {
+        badge: "دليل إنشاء مهمة CRON",
+        stepOf: "خطوة {cur} من {tot}",
+        btnNext: "التالي",
+        btnPrev: "السابق",
+        btnFinish: "فهمت! ابدأ الآن",
+        btnFillDemo: "✨ ملء بيانات تجريبية",
+        filledToast: "تم إدراج بيانات تجريبية بنجاح!",
+        finishToast: "🎉 رائع! أنت جاهز الآن للتشغيل التلقائي عبر OpenCode Cron.",
+        steps: [
+          {
+            title: "1. بدء إنشاء مهمة Cron",
+            desc: "انقر على '+ مهمة جديدة' في الأعلى (أو '⚡ ضبط Cron' داخل أي محادثة) لفتح المعالج."
+          },
+          {
+            title: "2. تسمية المهمة",
+            desc: "أدخل عنواناً واضحاً لوصف المهمة التلقائية (مثل 'مراقب أخبار الذكاء الاصطناعي')."
+          },
+          {
+            title: "3. اختيار جدول التشغيل (فترة زمنية أو Cron)",
+            desc: "استخدم الإعدادات السريعة ('⚡ 5m'، '⏰ 1h') أو تعبير cron. يعرض منشئ الجداول معاينة لمرات التشغيل القادمة!"
+          },
+          {
+            title: "4. ربط جلسة محادثة OpenCode",
+            desc: "اختر جلسة المحادثة: يعمل opencode-cron داخلها محتفظاً بكامل السياق والتاريخ."
+          },
+          {
+            title: "5. توجيه العميل الذكي بالتعليمات",
+            desc: "الهدف الثابت يُحدد عبر System Prompt، بينما يحدد Followup Prompt مهمة كل تشغيل مع منع التكرار عبر seenHashes."
+          },
+          {
+            title: "6. المدة والتفعيل",
+            desc: "اجعل Max Runs صفراً للتشغيل الدائم أو حدد رقماً. انقر على 'حفظ المهمة' لتفعيل التشغيل في الخلفية!"
+          },
+          {
+            title: "7. متابعة النتائج في 'جدول التشغيل Runs'",
+            desc: "يتم تسجيل كل تشغيل تلقائي في الوقت الفعلي: النجاحات (أخضر)، والأخطاء (أحمر)، وسرعة الاستجابة والسجلات!"
+          }
+        ]
+      },
+      ru: {
+        badge: "РУКОВОДСТВО ПО CRON",
+        stepOf: "Шаг {cur} из {tot}",
+        btnNext: "Далее",
+        btnPrev: "Назад",
+        btnFinish: "Понятно! Начать",
+        btnFillDemo: "✨ Заполнить Пример",
+        filledToast: "Пример данных успешно вставлен!",
+        finishToast: "🎉 Отлично! Теперь вы готовы запускать фоновые задачи.",
+        steps: [
+          {
+            title: "1. Начать Создание Cron-задачи",
+            desc: "Нажмите «+ Новая Задача» вверху (или «⚡ Настроить Cron» в живом чате) для открытия конструктора."
+          },
+          {
+            title: "2. Задайте Название Задачи",
+            desc: "Введите понятное название задачи (напр., «Мониторинг AI новостей» или «Страж Репозитория»)."
+          },
+          {
+            title: "3. Выберите Расписание (Интервал или Cron)",
+            desc: "Используйте быстрые кнопки ('⚡ 5m', '⏰ 1h') или 5 полей cron. Конструктор сразу покажет 3 следующих запуска!"
+          },
+          {
+            title: "4. Привяжите Сессию OpenCode",
+            desc: "Выберите сессию диалога: в отличие от обычного cron, opencode-cron работает прямо в ней, сохраняя контекст."
+          },
+          {
+            title: "5. Задайте Промпты для Агента",
+            desc: "System Prompt задает цель. Followup Prompt — действие каждого тика. Память сохраняет факты и дедуплицирует через seenHashes."
+          },
+          {
+            title: "6. Лимит Запусков и Активация",
+            desc: "Оставьте Max Runs равным 0 для бесконечного режима или укажите число. Нажмите «Сохранить» для активации!"
+          },
+          {
+            title: "7. Отслеживайте Итоги на 'Timeline Runs'",
+            desc: "Каждый фоновый тик логируется в реальном времени: успехи (зеленый), сбои (красный), задержка и полные логи!"
+          }
+        ]
       }
+    };
+
+    const SPOTLIGHT_STEPS = [
+      { selector: "#btn-header-new-job", showHelper: false, modalState: "close" },
+      { selector: "#form-title", showHelper: true, modalState: "open" },
+      { selector: "#modal-presets-container", showHelper: true, modalState: "open" },
+      { selector: "#form-session-id", showHelper: false, modalState: "open" },
+      { selector: "#form-followup-prompt", showHelper: true, modalState: "open" },
+      { selector: "#modal-submit-btn", showHelper: true, modalState: "open" },
+      { selector: "#nav-link-runs", showHelper: false, modalState: "close" }
     ];
 
-    let ocCurrentTourStep = 0;
+    let currentSpotlightStep = 0;
+    let isSpotlightActive = false;
+    let currentHighlightEl = null;
 
-    function renderTourStep(index) {
-      const step = OC_TOUR_STEPS[index];
-      const container = document.getElementById('tour-slide-container');
-      const ind = document.getElementById('tour-step-indicator');
-      const prevBtn = document.getElementById('tour-prev-btn');
-      const nextBtn = document.getElementById('tour-next-btn');
-      const dots = document.getElementById('tour-dots');
+    function getTourDict() {
+      return TOUR_I18N[currentLang] || TOUR_I18N.it;
+    }
 
-      if (!step || !container) return;
+    function positionCardAndRing(targetEl) {
+      const ring = document.getElementById('oc-spotlight-ring');
+      const card = document.getElementById('oc-spotlight-card');
+      if (!targetEl || !ring || !card) return;
 
-      if (ind) ind.textContent = 'Passo ' + (index + 1) + ' di ' + OC_TOUR_STEPS.length;
-      if (prevBtn) prevBtn.disabled = (index === 0);
-      if (nextBtn) {
-        if (index === OC_TOUR_STEPS.length - 1) {
-          nextBtn.innerHTML = 'Concludi Demo <i class="fa-solid fa-check ml-1"></i>';
-          nextBtn.className = 'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-md shadow-emerald-600/30 transition-all cursor-pointer';
-        } else {
-          nextBtn.innerHTML = 'Avanti <i class="fa-solid fa-arrow-right ml-1"></i>';
-          nextBtn.className = 'px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md shadow-indigo-600/30 transition-all cursor-pointer';
+      const rect = targetEl.getBoundingClientRect();
+      const pad = 8;
+
+      ring.style.top = Math.max(0, rect.top - pad) + 'px';
+      ring.style.left = Math.max(0, rect.left - pad) + 'px';
+      ring.style.width = (rect.width + pad * 2) + 'px';
+      ring.style.height = (rect.height + pad * 2) + 'px';
+      ring.style.display = 'block';
+
+      card.style.display = 'flex';
+      const cardRect = card.getBoundingClientRect();
+      const margin = 14;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      let top = 0;
+      let left = 0;
+
+      if (rect.bottom + cardRect.height + margin <= vh) {
+        top = rect.bottom + margin;
+        left = Math.max(margin, Math.min(rect.left + (rect.width / 2) - (cardRect.width / 2), vw - cardRect.width - margin));
+      } else if (rect.top - cardRect.height - margin >= 0) {
+        top = rect.top - cardRect.height - margin;
+        left = Math.max(margin, Math.min(rect.left + (rect.width / 2) - (cardRect.width / 2), vw - cardRect.width - margin));
+      } else if (rect.right + cardRect.width + margin <= vw) {
+        top = Math.max(margin, Math.min(rect.top, vh - cardRect.height - margin));
+        left = rect.right + margin;
+      } else if (rect.left - cardRect.width - margin >= 0) {
+        top = Math.max(margin, Math.min(rect.top, vh - cardRect.height - margin));
+        left = rect.left - cardRect.width - margin;
+      } else {
+        top = Math.max(margin, (vh - cardRect.height) / 2);
+        left = Math.max(margin, (vw - cardRect.width) / 2);
+      }
+
+      card.style.top = Math.round(top) + 'px';
+      card.style.left = Math.round(left) + 'px';
+    }
+
+    function repositionCurrentStep() {
+      if (!isSpotlightActive) return;
+      const stepDef = SPOTLIGHT_STEPS[currentSpotlightStep];
+      if (!stepDef) return;
+      const targetEl = document.querySelector(stepDef.selector);
+      if (targetEl) positionCardAndRing(targetEl);
+    }
+
+    function demoFillStepData() {
+      const title = document.getElementById('form-title');
+      const sched = document.getElementById('form-schedule');
+      const sys = document.getElementById('form-system-prompt');
+      const fup = document.getElementById('form-followup-prompt');
+      const maxr = document.getElementById('form-max-runs');
+      const dict = getTourDict();
+
+      if (title && !title.value) title.value = "Monitor Novità AI (5m)";
+      if (sched) {
+        sched.value = "5m";
+        if (typeof debounceSchedulePreview === 'function') debounceSchedulePreview('5m');
+      }
+      if (sys && !sys.value) sys.value = "Sei un assistente di monitoraggio autonomo. Obiettivo: scansiona novità e aggiorna la memoria.";
+      if (fup && !fup.value) fup.value = "Cerca aggiornamenti recenti, verifica seenHashes per evitare duplicati e salva i nuovi fatti con cron_memory_save.";
+      if (maxr) maxr.value = "0";
+
+      const btn = document.getElementById('oc-spotlight-demo-fill-btn');
+      if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-check text-emerald-400"></i> ' + dict.filledToast;
+        setTimeout(() => {
+          btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles text-amber-400 text-xs"></i> <span id="oc-spotlight-demo-fill-label">' + dict.btnFillDemo + '</span>';
+        }, 1500);
+      }
+    }
+
+    function renderSpotlightStep(index) {
+      if (index < 0 || index >= SPOTLIGHT_STEPS.length) return;
+      currentSpotlightStep = index;
+      const stepDef = SPOTLIGHT_STEPS[index];
+      const dict = getTourDict();
+      const stepText = dict.steps[index] || dict.steps[0];
+
+      // Handle Modal visibility according to step
+      if (stepDef.modalState === "open") {
+        const modal = document.getElementById('job-modal');
+        if (modal && modal.classList.contains('hidden')) {
+          if (typeof openNewJobModal === 'function') openNewJobModal();
+        }
+      } else if (stepDef.modalState === "close") {
+        const modal = document.getElementById('job-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+          if (typeof closeModal === 'function') closeModal();
         }
       }
 
-      if (dots) {
-        dots.innerHTML = OC_TOUR_STEPS.map((_, i) => \`
-          <span class="w-2.5 h-2.5 rounded-full transition-all \${i === index ? 'bg-indigo-500 w-5' : 'bg-gray-700'}"></span>
-        \`).join('');
-      }
+      setTimeout(() => {
+        const targetEl = document.querySelector(stepDef.selector);
+        if (currentHighlightEl) {
+          currentHighlightEl.classList.remove('oc-tour-highlight-el');
+        }
 
-      container.innerHTML = \`
-        <div class="space-y-4 animate-fadeIn">
-          <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-2xl bg-gray-900 border border-darkborder flex items-center justify-center shrink-0">
-              <i class="fa-solid \${step.icon} text-xl \${step.color}"></i>
-            </div>
-            <h4 class="text-base sm:text-lg font-bold text-white tracking-tight">\${step.title}</h4>
-          </div>
-          <p class="text-xs sm:text-sm text-gray-300 leading-relaxed">\${step.desc}</p>
-          <div class="p-3 bg-gray-950/80 rounded-xl border border-indigo-500/20 text-xs text-indigo-300 flex items-center gap-2">
-            <i class="fa-solid fa-lightbulb text-amber-400 shrink-0"></i>
-            <span>\${step.highlight}</span>
-          </div>
-        </div>
-      \`;
+        if (targetEl) {
+          currentHighlightEl = targetEl;
+          targetEl.classList.add('oc-tour-highlight-el');
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          positionCardAndRing(targetEl);
+        }
+
+        // Update Card UI
+        const badgeEl = document.getElementById('oc-spotlight-badge');
+        const stepIndEl = document.getElementById('oc-spotlight-step-text');
+        const titleEl = document.getElementById('oc-spotlight-title');
+        const descEl = document.getElementById('oc-spotlight-desc');
+        const helperContainer = document.getElementById('oc-spotlight-helper-container');
+        const fillLabel = document.getElementById('oc-spotlight-demo-fill-label');
+        const prevBtn = document.getElementById('oc-spotlight-prev-btn');
+        const prevLabel = document.getElementById('oc-spotlight-prev-label');
+        const nextBtn = document.getElementById('oc-spotlight-next-btn');
+        const nextLabel = document.getElementById('oc-spotlight-next-label');
+        const dotsContainer = document.getElementById('oc-spotlight-dots');
+
+        if (badgeEl) badgeEl.textContent = dict.badge;
+        if (stepIndEl) stepIndEl.textContent = dict.stepOf.replace('{cur}', index + 1).replace('{tot}', SPOTLIGHT_STEPS.length);
+        if (titleEl) titleEl.textContent = stepText.title;
+        if (descEl) descEl.textContent = stepText.desc;
+
+        if (helperContainer) {
+          helperContainer.style.display = stepDef.showHelper ? 'block' : 'none';
+        }
+        if (fillLabel) fillLabel.textContent = dict.btnFillDemo;
+
+        if (prevBtn) {
+          prevBtn.disabled = (index === 0);
+        }
+        if (prevLabel) prevLabel.textContent = dict.btnPrev;
+
+        if (nextLabel) {
+          nextLabel.textContent = (index === SPOTLIGHT_STEPS.length - 1) ? dict.btnFinish : dict.btnNext;
+        }
+
+        if (dotsContainer) {
+          dotsContainer.innerHTML = SPOTLIGHT_STEPS.map((_, i) => \`
+            <span class="w-2 h-2 rounded-full transition-all \${i === index ? 'bg-indigo-400 w-4.5' : 'bg-gray-700'}"></span>
+          \`).join('');
+        }
+      }, 50);
     }
 
     function startGuidedDemo() {
-      ocCurrentTourStep = 0;
-      renderTourStep(0);
-      const modal = document.getElementById('oc-tour-modal');
-      if (modal) modal.classList.remove('hidden');
+      if (window.location.pathname !== '/' && !window.location.pathname.endsWith('/index.html')) {
+        window.location.href = '/?startDemo=1';
+        return;
+      }
+
+      isSpotlightActive = true;
+      const backdrop = document.getElementById('oc-spotlight-backdrop');
+      const ring = document.getElementById('oc-spotlight-ring');
+      const card = document.getElementById('oc-spotlight-card');
+
+      if (backdrop) backdrop.classList.remove('hidden');
+      if (ring) ring.classList.remove('hidden');
+      if (card) card.classList.remove('hidden');
+
+      renderSpotlightStep(0);
     }
 
-    function closeTourModal() {
-      const modal = document.getElementById('oc-tour-modal');
-      if (modal) modal.classList.add('hidden');
+    function stopGuidedDemo() {
+      isSpotlightActive = false;
+      const backdrop = document.getElementById('oc-spotlight-backdrop');
+      const ring = document.getElementById('oc-spotlight-ring');
+      const card = document.getElementById('oc-spotlight-card');
+
+      if (backdrop) backdrop.classList.add('hidden');
+      if (ring) ring.classList.add('hidden');
+      if (card) card.classList.add('hidden');
+
+      if (currentHighlightEl) {
+        currentHighlightEl.classList.remove('oc-tour-highlight-el');
+        currentHighlightEl = null;
+      }
+
+      if (typeof closeModal === 'function') closeModal();
       localStorage.setItem('oc_cron_tour_seen', '1');
     }
 
-    function nextTourStep() {
-      if (ocCurrentTourStep < OC_TOUR_STEPS.length - 1) {
-        ocCurrentTourStep++;
-        renderTourStep(ocCurrentTourStep);
+    function nextSpotlightStep() {
+      if (currentSpotlightStep < SPOTLIGHT_STEPS.length - 1) {
+        renderSpotlightStep(currentSpotlightStep + 1);
       } else {
-        closeTourModal();
+        const dict = getTourDict();
+        if (typeof showToast === 'function') {
+          showToast(dict.finishToast, 'success');
+        }
+        stopGuidedDemo();
       }
     }
 
-    function prevTourStep() {
-      if (ocCurrentTourStep > 0) {
-        ocCurrentTourStep--;
-        renderTourStep(ocCurrentTourStep);
+    function prevSpotlightStep() {
+      if (currentSpotlightStep > 0) {
+        renderSpotlightStep(currentSpotlightStep - 1);
       }
     }
+
+    // Backward-compatible alias functions
+    function closeTourModal() { stopGuidedDemo(); }
+    function nextTourStep() { nextSpotlightStep(); }
+    function prevTourStep() { prevSpotlightStep(); }
 
     function initOcUiEnhancements() {
       initAccessibleTooltips();
       initOnboardingBanner();
       setLanguage(currentLang);
 
-      // Auto-trigger demo on very first visit
-      if (!localStorage.getItem('oc_cron_tour_seen')) {
-        setTimeout(() => startGuidedDemo(), 700);
+      window.addEventListener('resize', repositionCurrentStep);
+      window.addEventListener('scroll', repositionCurrentStep, true);
+
+      document.addEventListener('keydown', (e) => {
+        if (!isSpotlightActive) return;
+        if (e.key === 'Escape') {
+          stopGuidedDemo();
+        } else if (e.key === 'ArrowRight' && !['INPUT', 'TEXTAREA'].includes((document.activeElement && document.activeElement.tagName) || '')) {
+          nextSpotlightStep();
+        } else if (e.key === 'ArrowLeft' && !['INPUT', 'TEXTAREA'].includes((document.activeElement && document.activeElement.tagName) || '')) {
+          prevSpotlightStep();
+        }
+      });
+
+      // Auto-trigger demo on very first visit or when redirected with ?startDemo=1
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('startDemo') === '1') {
+        window.history.replaceState({}, '', window.location.pathname);
+        setTimeout(() => startGuidedDemo(), 400);
+      } else if (!localStorage.getItem('oc_cron_tour_seen')) {
+        setTimeout(() => startGuidedDemo(), 800);
       }
     }
 

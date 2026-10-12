@@ -97,7 +97,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         <button role="tab" aria-selected="false" aria-controls="view-logs" onclick="switchTab('logs')" id="tab-btn-logs" data-tooltip="tt.tabLogs" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all text-gray-400 hover:text-white cursor-pointer">
           <i class="fa-solid fa-terminal"></i> <span data-i18n="nav.logs">Logs</span>
         </button>
-        <a href="/runs" data-tooltip="tt.tabRuns" class="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 shadow-sm">
+        <a href="/runs" id="nav-link-runs" data-tooltip="tt.tabRuns" class="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 shadow-sm">
           <i class="fa-solid fa-chart-line"></i> <span data-i18n="nav.runs">Esiti Runs</span>
         </a>
       </nav>
@@ -105,10 +105,10 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       <!-- Action buttons + Language + Guide -->
       <div class="flex items-center gap-2">
         ${getHeaderControlsHtml()}
-        <button onclick="openNewJobModal()" data-tooltip="tt.tabJobs" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition-all">
+        <button id="btn-header-new-job" onclick="openNewJobModal()" data-tooltip="tt.tabJobs" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition-all cursor-pointer">
           <i class="fa-solid fa-plus text-[10px]"></i> <span class="hidden sm:inline" data-i18n="nav.newJob">Nuovo Job</span>
         </button>
-        <button onclick="refreshAll()" data-tooltip="tt.liveBadge" aria-label="Ricarica stato" class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-xl transition-colors border border-darkborder">
+        <button onclick="refreshAll()" data-tooltip="tt.liveBadge" aria-label="Ricarica stato" class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-xl transition-colors border border-darkborder cursor-pointer">
           <i class="fa-solid fa-arrows-rotate text-xs" id="refresh-spinner"></i>
         </button>
       </div>
@@ -581,7 +581,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           </div>
 
           <!-- Preset Pills -->
-          <div class="flex flex-wrap gap-1.5">
+          <div id="modal-presets-container" class="flex flex-wrap gap-1.5">
             <button type="button" onclick="applySchedulePreset('5m')" class="px-2 py-0.5 rounded-md bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder text-[10px] font-medium transition-colors cursor-pointer">⚡ 5m</button>
             <button type="button" onclick="applySchedulePreset('15m')" class="px-2 py-0.5 rounded-md bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder text-[10px] font-medium transition-colors cursor-pointer">⚡ 15m</button>
             <button type="button" onclick="applySchedulePreset('30m')" class="px-2 py-0.5 rounded-md bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder text-[10px] font-medium transition-colors cursor-pointer">⚡ 30m</button>
@@ -638,8 +638,8 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         </div>
 
         <div class="flex items-center justify-end space-x-2 pt-3 border-t border-darkborder">
-          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700" data-i18n="modal.cancel">Annulla</button>
-          <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-500" data-i18n="modal.save">Salva Job</button>
+          <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 cursor-pointer" data-i18n="modal.cancel">Annulla</button>
+          <button type="submit" id="modal-submit-btn" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-500 cursor-pointer" data-i18n="modal.save">Salva Job</button>
         </div>
       </form>
     </div>

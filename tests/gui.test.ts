@@ -273,6 +273,10 @@ describe("GUI Server API", () => {
       expect(html).toContain('id="oc-tooltip"');
       expect(html).toContain('role="tooltip"');
       expect(html).toContain('id="oc-tour-modal"');
+      expect(html).toContain('id="oc-spotlight-backdrop"');
+      expect(html).toContain('id="oc-spotlight-ring"');
+      expect(html).toContain('id="oc-spotlight-card"');
+      expect(html).toContain('demoFillStepData');
       expect(html).toContain("data-tooltip=");
       for (const code of expectedLangs) {
         expect(html).toContain(`<option value="${code}">`);
