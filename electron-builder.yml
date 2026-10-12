@@ -1,0 +1,80 @@
+appId: ai.opencode.cron
+productName: OpenCode Cron
+copyright: Copyright © 2026 Culture Digitali
+
+directories:
+  output: release
+  buildResources: assets
+
+files:
+  - dist/**/*
+  - assets/**/*
+  - package.json
+  - "!**/*.ts"
+  - "!tests/**/*"
+  - "!src/**/*"
+  - "!research/**/*"
+  - "!.opencode/cron/**/*"
+
+extraMetadata:
+  main: dist/desktop/main.js
+
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
+  icon: assets/icons/icon.png
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  darkModeSupport: true
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - arm64
+    - target: portable
+      arch:
+        - x64
+  icon: assets/icons/icon.png
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: OpenCode Cron
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+        - arm64
+    - target: deb
+      arch:
+        - x64
+  category: Development
+  icon: assets/icons/icon.png
+  desktop:
+    Name: OpenCode Cron
+    Comment: Scheduled Tasks & Persistent Memory for OpenCode AI Agents
+    Categories: Development;Utility;
+

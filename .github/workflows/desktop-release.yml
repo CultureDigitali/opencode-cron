@@ -1,0 +1,80 @@
+name: Desktop Release Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-desktop:
+    name: Build Desktop Installer (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: mac
+            artifacts: "release/*.dmg, release/*.zip"
+          - os: windows-latest
+            target: win
+            artifacts: "release/*.exe"
+          - os: ubuntu-latest
+            target: linux
+            artifacts: "release/*.AppImage, release/*.deb"
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Run Test Suite & Typecheck
+        run: |
+          bun run typecheck
+          bun test
+
+      - name: Build Core Application
+        run: bun run build
+
+      - name: Build Electron Desktop Packages (${{ matrix.target }})
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ matrix.target }}" = "mac" ]; then
+            npx electron-builder --mac
+          elif [ "${{ matrix.target }}" = "win" ]; then
+            npx electron-builder --win
+          else
+            npx electron-builder --linux
+          fi
+        shell: bash
+
+      - name: Upload Desktop Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencode-cron-${{ matrix.target }}
+          path: release/*.*
+          if-no-files-found: warn
+
+      - name: Publish Release Assets to GitHub
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

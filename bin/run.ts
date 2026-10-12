@@ -114,14 +114,32 @@ async function main(): Promise<void> {
       console.error(`Failed to launch GUI: ${err.message}.`);
       process.exit(1);
     });
+  } else if (cmd === "desktop" || cmd === "tray") {
+    const { spawn } = await import("node:child_process");
+    const desktopEntry = path.join(__dirname, "..", "desktop", "main.js");
+    const electronBinary = path.join(__dirname, "..", "..", "node_modules", ".bin", process.platform === "win32" ? "electron.cmd" : "electron");
+
+    let exe = electronBinary;
+    try {
+      await fs.access(exe);
+    } catch {
+      exe = "electron";
+    }
+
+    const child = spawn(exe, [desktopEntry, ...process.argv.slice(3)], { stdio: "inherit" });
+    child.on("close", (c) => process.exit(c ?? 0));
+    child.on("error", (err) => {
+      console.error(`Failed to launch Desktop Tray app: ${err.message}. Ensure electron is installed.`);
+      process.exit(1);
+    });
   } else {
-    console.error(`Commands: check | run <id> | os-install | refresh-creds | list | gui [--port <port>] [--dir ...]`);
+    console.error(`Commands: check | run <id> | os-install | refresh-creds | list | gui | desktop | tray [--port <port>] [--dir ...]`);
     process.exit(2);
   }
 }
 
 if (has("--help") || has("-h")) {
-  console.log("opencode-cron-run check|run <id>|os-install|refresh-creds|list|gui [--port <port>] [--dir ...]");
+  console.log("opencode-cron check|run <id>|os-install|refresh-creds|list|gui|desktop|tray [--port <port>] [--dir ...]");
   process.exit(0);
 }
 await main();

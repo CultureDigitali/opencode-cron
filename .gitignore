@@ -1,5 +1,10 @@
 node_modules/
 dist/
+release/
+*.dmg
+*.exe
+*.AppImage
+*.deb
 *.tgz
 .opencode/cron/
 .DS_Store

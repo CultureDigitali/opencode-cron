@@ -32,6 +32,7 @@ Traditional cron is **blind** — it runs an isolated shell script, forgets prev
 * 🔄 **Same Conversation, Every Tick:** It re-prompts the **same `sessionID`** with full conversation history — not a detached CLI call.
 * 🧠 **Persistent Markdown Memory:** Survives context compaction, restarts, and reboots. Tracks `seenHashes` to prevent repetitive notifications.
 * 🖥️ **Mission Control Web GUI:** Sleek dark-mode dashboard at `http://localhost:4488` with live SQLite chat streaming, active job monitors, and instant controls.
+* 🪟 **Cross-Platform Desktop App & System Tray:** Native installable packages for **macOS (.dmg)**, **Windows (.exe)**, and **Linux (.AppImage, .deb)** with a live system tray icon showing real-time OpenCode connection and active cron status.
 * ⚡ **1-Click "Imposta Cron" Binding:** Bind an automated recurring schedule directly to any conversation session with visual schedule previews.
 * 📊 **Execution Timeline & Diagnostics (`/runs`):** Real-time visibility into every tick: duration, status, exit codes, trigger source, and error logs.
 * 🌍 **Global 10-Language i18n Suite:** English, Italiano, Español, Français, Deutsch, Português, 中文, 日本語, Русский, العربية (RTL).
@@ -124,6 +125,32 @@ Localized experience with zero-latency client-side switching:
 
 ### 🎓 Interactive Onboarding Tour
 First time in Mission Control? An automatic 5-step guided tour highlights key features (Session selector, Imposta Cron modal, Execution Timeline, Memory editor, and Language switcher). Click **"Demo"** anytime in the navigation bar to replay it.
+
+### 🪟 Native Desktop App & System Tray Monitor (macOS, Windows, Linux)
+Run OpenCode Cron as an elegant, native desktop application that lives quietly in your system tray / menu bar:
+* **Live System Tray / Menu Bar Icon:**
+  - Dynamic status indicator (🟢 Connected / 🔴 Disconnected) with OpenCode daemon heartbeat.
+  - **Live Cron Matrix Submenu:** Hover over the tray icon to see all active cronjobs, their frequencies, and exact countdowns to the next execution (e.g. `• AI News Watcher (5m) — Prossimo: tra 4m`).
+  - **1-Click Quick Actions:** Run due jobs immediately (`⚡ Esegui Job Scaduti Ora`), reload rotated desktop sidecar credentials (`🔑 Ricarica Credenziali Desktop`), or open the external browser.
+  - **Run on Startup:** Built-in auto-start toggle (`Avvia all'avvio del computer`) ensures your automations resume seamlessly across system reboots.
+* **Frameless Dark Architecture:** Designed with sleek macOS `hiddenInset` traffic lights, ultra-clean `#030712` dark styling, and automatic **minimize-to-tray on window close** (never terminates your scheduled jobs by mistake).
+* **Cross-Platform Installers:**
+  - **macOS:** Universal `.dmg` installer & `.zip` (Apple Silicon & Intel).
+  - **Windows:** NSIS Installer `.exe` & standalone Portable `.exe`.
+  - **Linux:** Standalone `.AppImage` & Debian package `.deb`.
+* **Launch or Package locally:**
+  ```bash
+  # Launch desktop tray app:
+  bun run desktop
+  # Or via CLI:
+  npx @culturedigitali/opencode-cron desktop
+
+  # Build standalone packages for your OS:
+  bun run dist:mac    # Builds release/*.dmg
+  bun run dist:win    # Builds release/*.exe
+  bun run dist:linux  # Builds release/*.AppImage
+  bun run dist:all    # Matrix package for all platforms
+  ```
 
 ---
 

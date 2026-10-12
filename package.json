@@ -91,10 +91,16 @@
   },
   "scripts": {
     "build": "bun run build:lib && bun run build:bin && bun run build:types",
-    "build:lib": "bun build src/*.ts src/gui/server.ts --outdir dist --root src --target node --format esm --packages external",
+    "build:lib": "bun build src/*.ts src/gui/server.ts src/desktop/main.ts --outdir dist --root src --target node --format esm --packages external",
     "build:bin": "bun build bin/run.ts --outdir dist/bin --target node --format esm --packages external && head -1 dist/bin/run.js | grep -q '#!/usr/bin/env node' || { printf '#!/usr/bin/env node\\n%s' \"$(cat dist/bin/run.js)\" > dist/bin/run.js.tmp && mv dist/bin/run.js.tmp dist/bin/run.js; } && chmod +x dist/bin/run.js",
     "build:types": "tsc -p tsconfig.build.json",
     "gui": "bun src/gui/server.ts",
+    "desktop": "bun run build:lib && electron dist/desktop/main.js",
+    "dist": "bun run build && electron-builder",
+    "dist:mac": "bun run build && electron-builder --mac",
+    "dist:win": "bun run build && electron-builder --win",
+    "dist:linux": "bun run build && electron-builder --linux",
+    "dist:all": "bun run build && electron-builder -mwl",
     "prepublishOnly": "bun run build && bun test",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
@@ -105,9 +111,11 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "typescript": "^5.6.0",
     "@types/bun": "1.2.0",
     "@types/node": "^20.0.0",
-    "publint": "^0.2.0"
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.0",
+    "publint": "^0.2.0",
+    "typescript": "^5.6.0"
   }
 }
