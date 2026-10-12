@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadJobs } from "../src/store.ts";
 import { runJobHeadless, checkDue, writeCredentialsFile } from "../src/runner.ts";
 import { detectOS, launchdPlist, systemdService, systemdTimer, crontabLine, schtasksCommand } from "../src/os.ts";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const CREDS_FILE = path.join(process.env.HOME ?? "~", ".config", "opencode-cron", "credentials");
 
 /** refresh-creds: persist the current process's OPENCODE_SERVER_USERNAME/PASSWORD
@@ -65,14 +68,60 @@ async function main(): Promise<void> {
   } else if (cmd === "os-install") await osInstall(dir);
   else if (cmd === "refresh-creds") await refreshCreds();
   else if (cmd === "list") console.log(JSON.stringify(await loadJobs(dir), null, 2));
-  else {
-    console.error(`Commands: check | run <id> | os-install | refresh-creds | list [--dir ...]`);
+  else if (cmd === "gui") {
+    const { spawn, execSync } = await import("node:child_process");
+    let bunPath = process.env.BUN_BIN;
+    if (!bunPath) {
+      try {
+        const which = execSync("which bun", { encoding: "utf-8" }).trim();
+        if (which) bunPath = which;
+      } catch { /* ignore */ }
+    }
+    let bunFound = false;
+    if (bunPath) {
+      try {
+        await fs.access(bunPath);
+        bunFound = true;
+      } catch { /* not at bunPath */ }
+    }
+
+    const candidates = [
+      path.join(__dirname, "..", "gui", "server.js"),
+      path.join(__dirname, "..", "src", "gui", "server.ts"),
+      path.join(__dirname, "..", "gui", "server.ts"),
+    ];
+    let guiScript = candidates[0];
+    for (const c of candidates) {
+      try {
+        await fs.access(c);
+        guiScript = c;
+        break;
+      } catch { /* continue */ }
+    }
+
+    let runnerExe = bunFound ? bunPath! : process.execPath;
+    if (!bunFound && guiScript.endsWith(".ts")) {
+      const jsCandidate = path.join(__dirname, "..", "gui", "server.js");
+      try {
+        await fs.access(jsCandidate);
+        guiScript = jsCandidate;
+      } catch { /* ignore */ }
+    }
+
+    const child = spawn(runnerExe, [guiScript, ...process.argv.slice(3)], { stdio: "inherit" });
+    child.on("close", (c) => process.exit(c ?? 0));
+    child.on("error", (err) => {
+      console.error(`Failed to launch GUI: ${err.message}.`);
+      process.exit(1);
+    });
+  } else {
+    console.error(`Commands: check | run <id> | os-install | refresh-creds | list | gui [--port <port>] [--dir ...]`);
     process.exit(2);
   }
 }
 
 if (has("--help") || has("-h")) {
-  console.log("opencode-cron-run check|run <id>|os-install|refresh-creds|list [--dir ...]");
+  console.log("opencode-cron-run check|run <id>|os-install|refresh-creds|list|gui [--port <port>] [--dir ...]");
   process.exit(0);
 }
 await main();

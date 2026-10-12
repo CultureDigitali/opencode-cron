@@ -24,26 +24,44 @@ export async function ensureCronDir(directory: string): Promise<void> {
 }
 
 export async function loadJobs(directory: string): Promise<CronJob[]> {
+  const file = jobsFile(directory);
+  let raw: string;
   try {
-    const raw = await fs.readFile(jobsFile(directory), "utf-8");
-    const arr = JSON.parse(raw);
-    if (!Array.isArray(arr)) return [];
-    const out: CronJob[] = [];
-    for (const item of arr) {
-      const parsed = CronJobSchema.safeParse(item);
-      if (parsed.success) out.push(parsed.data);
-    }
-    return out;
-  } catch {
-    return [];
+    raw = await fs.readFile(file, "utf-8");
+  } catch (err: any) {
+    if (err?.code === "ENOENT") return [];
+    throw err;
   }
+
+  let arr: unknown;
+  try {
+    arr = JSON.parse(raw);
+  } catch (parseErr: any) {
+    // Preserve corrupted file before throwing to prevent permanent data loss
+    const corruptBackup = `${file}.corrupt.${Date.now()}`;
+    await fs.writeFile(corruptBackup, raw, "utf-8").catch(() => {});
+    throw new Error(`Corrupted jobs.json in "${directory}": ${parseErr.message}. Backed up to ${corruptBackup}`);
+  }
+
+  if (!Array.isArray(arr)) return [];
+  const out: CronJob[] = [];
+  for (const item of arr) {
+    const parsed = CronJobSchema.safeParse(item);
+    if (parsed.success) out.push(parsed.data);
+  }
+  return out;
 }
 
 export async function saveJobs(directory: string, jobs: CronJob[]): Promise<void> {
   await ensureCronDir(directory);
-  const tmp = jobsFile(directory) + ".tmp";
-  await fs.writeFile(tmp, JSON.stringify(jobs, null, 2), "utf-8");
-  await fs.rename(tmp, jobsFile(directory));
+  const tmp = `${jobsFile(directory)}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+  try {
+    await fs.writeFile(tmp, JSON.stringify(jobs, null, 2), "utf-8");
+    await fs.rename(tmp, jobsFile(directory));
+  } catch (err) {
+    await fs.unlink(tmp).catch(() => {});
+    throw err;
+  }
 }
 
 export function computeNextRun(job: CronJob, from: Date = new Date()): string {
@@ -51,10 +69,13 @@ export function computeNextRun(job: CronJob, from: Date = new Date()): string {
     try {
       return nextCronOccurrence(job.schedule.cron, from, job.schedule.timezone);
     } catch {
-      // fallback to interval if cron unparseable (should not happen after validation)
+      // fallback to interval if cron unparseable
     }
   }
-  const ms = job.schedule.everyMs ?? (job.schedule.every ? parseEveryToMs(job.schedule.every) : 300_000);
+  let ms = job.schedule.everyMs ?? (job.schedule.every ? parseEveryToMs(job.schedule.every) : 300_000);
+  if (!Number.isFinite(ms) || ms < 60_000) {
+    ms = 300_000;
+  }
   return new Date(from.getTime() + ms).toISOString();
 }
 

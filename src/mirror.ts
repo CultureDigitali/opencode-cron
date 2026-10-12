@@ -39,22 +39,29 @@ interface V2Row {
  */
 export function mirrorPairs(db: Database, opts: MirrorOpts): MirrorResult {
   const state = readState(opts.statePath);
+  const maxSeqRow = db
+    .prepare(`SELECT COALESCE(MAX(seq), 0) AS m FROM session_message WHERE session_id = ?`)
+    .get(opts.sessionId) as { m: number } | undefined;
+  const maxSeq = maxSeqRow?.m ?? 0;
+  // Self-heal if state.lastSeq was corrupted (e.g. by a millisecond timestamp > maxSeq)
+  const effectiveLastSeq = state.lastSeq > maxSeq ? Math.max(0, maxSeq - 20) : state.lastSeq;
+
   const rows = db
     .prepare(
       `SELECT id, type, seq, time_created, data FROM session_message
        WHERE session_id = ? AND seq > ? ORDER BY seq ASC`
     )
-    .all(opts.sessionId, state.lastSeq) as unknown as V2Row[];
+    .all(opts.sessionId, effectiveLastSeq) as unknown as V2Row[];
 
-  // latest real snapshot hash for step-start/step-finish parts
+  // latest real snapshot hash for step-start/step-finish parts (scoped to session_id index)
   let snapshot = "";
   try {
     const snapRow = db
       .prepare(
         `SELECT json_extract(data, '$.snapshot') AS s FROM part
-         WHERE json_extract(data, '$.snapshot') IS NOT NULL ORDER BY time_created DESC LIMIT 1`
+         WHERE session_id = ? AND json_extract(data, '$.snapshot') IS NOT NULL ORDER BY time_created DESC LIMIT 1`
       )
-      .get() as { s: string } | undefined;
+      .get(opts.sessionId) as { s: string } | undefined;
     snapshot = snapRow?.s ?? "";
   } catch { /* optional */ }
 
@@ -74,32 +81,34 @@ export function mirrorPairs(db: Database, opts: MirrorOpts): MirrorResult {
 
   let mirrored = 0;
   let skipped = 0;
-  let lastSeq = state.lastSeq;
+  let lastSeq = effectiveLastSeq;
 
   const tx = db.transaction(() => {
     for (const { user, assistants } of turns) {
       const uData = safeJson(user.data);
       const uText = uData?.text;
       const aText = extractTurnText(assistants);
-      const aData = safeJson(assistants[assistants.length - 1].data);
-      const lastTime = assistants[assistants.length - 1].time_created;
+      const lastAssistant = assistants[assistants.length - 1];
+      const aData = safeJson(lastAssistant.data);
+      const lastTime = lastAssistant.time_created;
       if (typeof uText !== "string" || aText === null) {
         skipped++;
-        lastSeq = Math.max(lastSeq, lastTime ? safeJson(assistants[assistants.length - 1].data)?.time?.created ?? lastTime : user.seq);
+        lastSeq = Math.max(lastSeq, lastAssistant.seq, user.seq);
         continue;
       }
       // dedup: steered pairs are also written to v1 by the app itself —
       // skip when an equivalent user text already exists in v1 near this time.
       const dup = db
         .prepare(
-          `SELECT count(*) c FROM part WHERE json_extract(data, '$.type') = 'text'
+          `SELECT count(*) c FROM part WHERE session_id = ?
+           AND json_extract(data, '$.type') = 'text'
            AND json_extract(data, '$.text') = ?
            AND time_created BETWEEN ? AND ? LIMIT 1`
         )
-        .get(uText, user.time_created - 30_000, user.time_created + 30_000) as { c: number };
+        .get(opts.sessionId, uText, user.time_created - 30_000, user.time_created + 30_000) as { c: number };
       if (dup.c > 0) {
         skipped++;
-        lastSeq = Math.max(lastSeq, user.seq);
+        lastSeq = Math.max(lastSeq, lastAssistant.seq, user.seq);
         continue;
       }
       const userMsgId = genId("msg_");

@@ -48,12 +48,19 @@ export async function writeMemory(directory: string, jobId: string, md: string, 
 }
 
 export function buildTickPrompt(opts: { systemPrompt: string; followupPrompt: string; memoryMd: string | null }): string {
+  const MAX_PROMPT_MEMORY = 16_000;
+  let mem = opts.memoryMd ?? `(memoria vuota — primo run)`;
+  if (mem.length > MAX_PROMPT_MEMORY) {
+    const head = mem.slice(0, 6_000);
+    const tail = mem.slice(-10_000);
+    mem = `${head}\n\n... [MEMORIA TRONCATA NEL PROMPT (${mem.length} chars > ${MAX_PROMPT_MEMORY}): usa cron_memory_save per sintetizzare] ...\n\n${tail}`;
+  }
   return [
     `[CRON SYSTEM — frozen, non modificare l'obiettivo]`,
     opts.systemPrompt,
     ``,
     `[MEMORIA PERSISTENTE — fonte di verità se la chat è stata compattata]`,
-    opts.memoryMd ?? `(memoria vuota — primo run)`,
+    mem,
     ``,
     `[SELF-CHECK obbligatorio prima di agire]`,
     `1. Cosa so per certo dalla memoria?`,

@@ -115,4 +115,28 @@ describe("mirror v2->v1", () => {
     expect(r.skipped).toBe(1);
     expect((db.prepare(`SELECT count(*) c FROM message`).get() as any).c).toBe(1); // only the app row
   });
+
+  it("advances lastSeq by seq (never timestamp) on skipped empty turns and self-heals corrupted lastSeq", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-mirror5-"));
+    const db = makeDb(path.join(dir, "test.db"));
+    const sid = "ses_test";
+    const t0 = 1791571000000;
+    // Turn 1: empty assistant text (should be skipped, advancing lastSeq to 2, NOT t0+100)
+    insertV2(db, sid, "user", { time: { created: t0 }, text: "empty turn" }, t0);
+    insertV2(db, sid, "assistant", { time: { created: t0 + 100 }, content: [] }, t0 + 100);
+    const statePath = path.join(dir, "state.json");
+    const r1 = mirrorPairs(db, { dbPath: "", sessionId: sid, cwd: "/p", statePath });
+    expect(r1.skipped).toBe(1);
+    expect(r1.lastSeq).toBe(2);
+
+    // Turn 2: valid assistant text (must be mirrored because lastSeq is 2, not a timestamp)
+    insertV2(db, sid, "user", { time: { created: t0 + 1000 }, text: "valid turn" }, t0 + 1000);
+    insertV2(db, sid, "assistant", {
+      time: { created: t0 + 1100, completed: t0 + 1500 },
+      content: [{ type: "text", text: "Risposta valida" }],
+    }, t0 + 1100);
+    const r2 = mirrorPairs(db, { dbPath: "", sessionId: sid, cwd: "/p", statePath });
+    expect(r2.mirrored).toBe(1);
+    expect(r2.lastSeq).toBe(4);
+  });
 });

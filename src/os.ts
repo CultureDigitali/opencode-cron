@@ -23,11 +23,15 @@ export function launchdPlist(opts: { label: string; runnerPath: string; director
   assertLabel(opts.label);
   const home = process.env.HOME ?? process.env.USERPROFILE ?? "/tmp";
   const logBase = `${home}/Library/Logs/opencode-cron`;
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict>\n  <key>Label</key><string>${xmlEscape(opts.label)}</string>\n  <key>ProgramArguments</key><array><string>${xmlEscape(opts.runnerPath)}</string><string>check</string><string>--dir</string><string>${xmlEscape(opts.directory)}</string></array>\n  <key>StartInterval</key><integer>${opts.intervalSec}</integer>\n  <key>RunAtLoad</key><false/>\n  <key>StandardOutPath</key><string>${xmlEscape(logBase)}.log</string>\n  <key>StandardErrorPath</key><string>${xmlEscape(logBase)}.err</string>\n</dict></plist>\n`;
+  const defaultPath = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin";
+  const envPath = process.env.PATH || defaultPath;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict>\n  <key>Label</key><string>${xmlEscape(opts.label)}</string>\n  <key>EnvironmentVariables</key><dict><key>PATH</key><string>${xmlEscape(envPath)}</string></dict>\n  <key>ProgramArguments</key><array><string>${xmlEscape(opts.runnerPath)}</string><string>check</string><string>--dir</string><string>${xmlEscape(opts.directory)}</string></array>\n  <key>StartInterval</key><integer>${opts.intervalSec}</integer>\n  <key>RunAtLoad</key><false/>\n  <key>StandardOutPath</key><string>${xmlEscape(logBase)}.log</string>\n  <key>StandardErrorPath</key><string>${xmlEscape(logBase)}.err</string>\n</dict></plist>\n`;
 }
 
 export function systemdService(opts: { runnerPath: string; directory: string }): string {
-  return `[Unit]\nDescription=opencode-cron tick\n[Service]\nType=oneshot\nExecStart=${opts.runnerPath} check --dir ${shQuote(opts.directory)}\n`;
+  const safeRunner = opts.runnerPath.replace(/"/g, '\\"');
+  const safeDir = opts.directory.replace(/"/g, '\\"');
+  return `[Unit]\nDescription=opencode-cron tick\n[Service]\nType=oneshot\nExecStart="${safeRunner}" check --dir "${safeDir}"\n`;
 }
 
 export function systemdTimer(opts: { intervalSec: number }): string {

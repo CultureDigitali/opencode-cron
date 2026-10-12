@@ -1,8 +1,10 @@
 import * as fs from "node:fs/promises";
+import { existsSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { spawn } from "node:child_process";
 import { loadJobs, saveJobs, computeNextRun, assertJobId } from "./store.ts";
 import { readMemory, buildTickPrompt } from "./memory.ts";
+import { recordRunEntry } from "./history.ts";
 
 export async function acquireLock(directory: string, jobId: string): Promise<boolean> {
   assertJobId(jobId);
@@ -16,8 +18,25 @@ export async function acquireLock(directory: string, jobId: string): Promise<boo
     if (e?.code !== "EEXIST") return false;
     try {
       const st = await fs.stat(lock);
-      if (Date.now() - st.mtimeMs < 10 * 60_000) return false;
-      await fs.unlink(lock);
+      const isOlderThan10Min = Date.now() - st.mtimeMs >= 10 * 60_000;
+
+      let isHolderAlive = false;
+      try {
+        const content = await fs.readFile(lock, "utf-8");
+        const pid = parseInt(content.split(" ")[0], 10);
+        if (Number.isFinite(pid) && pid > 0) {
+          process.kill(pid, 0);
+          isHolderAlive = true;
+        }
+      } catch {
+        isHolderAlive = false;
+      }
+
+      if (isHolderAlive) {
+        return false;
+      }
+
+      await fs.unlink(lock).catch(() => {});
       await fs.writeFile(lock, `${process.pid} ${new Date().toISOString()}`, { flag: "wx", encoding: "utf-8" });
       return true;
     } catch {
@@ -46,8 +65,25 @@ export interface HttpPromptConfig {
 export function readHttpPromptConfig(env: NodeJS.ProcessEnv = process.env): HttpPromptConfig | null {
   if (env.OPENCODE_PROMPT_HTTP !== "1") return null;
   const url = env.OPENCODE_SERVER_URL;
-  const username = env.OPENCODE_SERVER_USERNAME;
-  const password = env.OPENCODE_SERVER_PASSWORD;
+  let username = env.OPENCODE_SERVER_USERNAME;
+  let password = env.OPENCODE_SERVER_PASSWORD;
+
+  if (!username || !password) {
+    try {
+      const home = env.HOME ?? process.env.HOME ?? "";
+      const credPath = path.join(home, ".config", "opencode-cron", "credentials");
+      if (existsSync(credPath)) {
+        const raw = readFileSync(credPath, "utf-8");
+        const unMatch = raw.match(/CRON_UN=(.*)/);
+        const pwMatch = raw.match(/CRON_PW=(.*)/);
+        if (unMatch && pwMatch) {
+          username = username || unMatch[1].trim();
+          password = password || pwMatch[1].trim();
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
   if (!url || !username || !password) return null;
   return { url: url.replace(/\/+$/, ""), username, password };
 }
@@ -152,8 +188,21 @@ export async function resolveOpencodeBin(): Promise<string> {
 export const defaultSpawn: SpawnFn = (cmd, args, cwd) =>
   new Promise((resolve) => {
     const child = spawn(cmd, args, { stdio: "inherit", cwd });
-    child.on("close", (c) => resolve(c ?? 1));
+    const timer = setTimeout(() => {
+      try {
+        child.kill("SIGTERM");
+        setTimeout(() => { try { child.kill("SIGKILL"); } catch {} }, 5000);
+      } catch {}
+      console.error(`Process ${cmd} timed out after 10m`);
+      resolve(124);
+    }, 600_000);
+
+    child.on("close", (c) => {
+      clearTimeout(timer);
+      resolve(c ?? 1);
+    });
     child.on("error", (e) => {
+      clearTimeout(timer);
       console.error(`spawn ${cmd} failed: ${(e as Error).message}`);
       resolve(1);
     });
@@ -192,12 +241,15 @@ export async function runJobHeadless(
     console.log(`skip ${jobId}: locked (already running)`);
     return 0;
   }
+  const startedAtMs = Date.now();
+  const startedAt = new Date(startedAtMs).toISOString();
   try {
     const { md } = await readMemory(directory, jobId);
     const prompt = buildTickPrompt({ systemPrompt: job.systemPrompt, followupPrompt: job.followupPrompt, memoryMd: md });
     const cwd = job.directory || directory;
     const httpCfg = readHttpPromptConfig();
     let code: number;
+    let errMsg: string | null = null;
     if (httpCfg) {
       console.log(`http prompt -> ${httpCfg.url} session=${job.sessionID} (cwd=${cwd})`);
       try {
@@ -215,7 +267,8 @@ export async function runJobHeadless(
         await promptViaHttp(httpCfg, job.sessionID, prompt);
         code = 0;
       } catch (e: any) {
-        console.error(String(e?.message ?? e));
+        errMsg = String(e?.message ?? e);
+        console.error(errMsg);
         code = 1;
       }
     } else {
@@ -223,8 +276,12 @@ export async function runJobHeadless(
       const bin = await resolveOpencodeBin();
       console.log(`opencode ${args.slice(0, 6).join(" ")} ... (cwd=${cwd})`);
       code = await spawnFn(bin, args, cwd);
+      if (code !== 0) {
+        errMsg = code === 124 ? "Timeout esecuzione (10m superati)" : `Processo opencode terminato con exit code ${code}`;
+      }
     }
-    const now = new Date().toISOString();
+    const finishedAtMs = Date.now();
+    const now = new Date(finishedAtMs).toISOString();
     if (code === 0) {
       job.runCount += 1;
       job.consecutiveFailures = 0;
@@ -236,8 +293,31 @@ export async function runJobHeadless(
         console.log(`auto-paused ${jobId} after ${job.consecutiveFailures} failures`);
       }
     }
-    job.nextRunAt = computeNextRun(job, new Date());
-    await saveJobs(directory, jobs.map((j) => (j.id === job.id ? job : j)));
+    const candidateNext = computeNextRun(job, new Date(startedAtMs));
+    job.nextRunAt = new Date(candidateNext).getTime() > finishedAtMs
+      ? candidateNext
+      : computeNextRun(job, new Date(finishedAtMs));
+    const latest = await loadJobs(directory);
+    const updated = latest.some((j) => j.id === job.id)
+      ? latest.map((j) => (j.id === job.id ? job : j))
+      : [...latest, job];
+    await saveJobs(directory, updated);
+    await recordRunEntry(directory, {
+      id: `run_${job.id}_${startedAtMs}`,
+      jobId: job.id,
+      jobTitle: job.title,
+      sessionID: job.sessionID,
+      status: code === 0 ? "success" : "failed",
+      startedAt,
+      finishedAt: now,
+      durationMs: Math.max(0, finishedAtMs - startedAtMs),
+      exitCode: code,
+      runNumber: job.runCount,
+      model: job.model ?? null,
+      outputPreview: null,
+      error: errMsg,
+      source: "recorded",
+    }).catch(() => {});
     return code;
   } finally {
     await releaseLock(directory, jobId);

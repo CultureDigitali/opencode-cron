@@ -6,7 +6,10 @@ export const ScheduleSchema = z.object({
   every: z.string().optional(),
   cron: z.string().optional(),
   timezone: z.string().optional(),
-});
+}).refine(
+  (data) => data.everyMs !== undefined || data.every !== undefined || data.cron !== undefined,
+  { message: "Schedule must specify everyMs, every, or cron" }
+);
 
 export const CronJobSchema = z.object({
   id: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/),
@@ -35,9 +38,10 @@ export type CronJob = z.infer<typeof CronJobSchema>;
 
 export const MemoryStateSchema = z.object({
   seenHashes: z.array(z.string()).default([]),
-  counts: z.object({ news: z.number().default(0), tweets: z.number().default(0) }).default({ news: 0, tweets: 0 }),
+  counts: z.record(z.string(), z.number()).default({ news: 0, tweets: 0 }),
   lastRunAt: z.string().nullable().default(null),
   consecutiveFailures: z.number().default(0),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type MemoryState = z.infer<typeof MemoryStateSchema>;

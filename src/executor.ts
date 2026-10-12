@@ -1,5 +1,7 @@
 import { loadJobs, saveJobs, computeNextRun, assertJobId } from "./store.ts";
 import { readMemory, buildTickPrompt } from "./memory.ts";
+import { acquireLock, releaseLock } from "./runner.ts";
+import { recordRunEntry } from "./history.ts";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
@@ -29,8 +31,14 @@ export async function executeTick(
 
   const key = flightKey(directory, jobId);
   if (prompt.inFlight?.has(key)) {
-    await appendRunLog(directory, jobId, `SKIP overlap at ${new Date().toISOString()}\n`);
+    await appendRunLog(directory, jobId, `SKIP in-flight overlap at ${new Date().toISOString()}\n`);
     return { ok: false, skipped: "in-flight" };
+  }
+
+  // Cross-process filesystem lock guard
+  if (!(await acquireLock(directory, jobId))) {
+    await appendRunLog(directory, jobId, `SKIP cross-process locked at ${new Date().toISOString()}\n`);
+    return { ok: false, skipped: "locked" };
   }
 
   const { md } = await readMemory(directory, jobId);
@@ -40,28 +48,73 @@ export async function executeTick(
     memoryMd: md,
   });
 
+  const startedAtMs = Date.now();
+  const startedAt = new Date(startedAtMs).toISOString();
   prompt.inFlight?.add(key);
   try {
     await prompt.promptSession(job.sessionID, text);
-    const now = new Date().toISOString();
+    const finishedAtMs = Date.now();
+    const now = new Date(finishedAtMs).toISOString();
     job.runCount += 1;
     job.consecutiveFailures = 0;
     job.lastRunAt = now;
     job.nextRunAt = computeNextRun(job, new Date());
-    await saveJobs(directory, jobs.map((j) => (j.id === job.id ? job : j)));
+    const latest = await loadJobs(directory);
+    const updated = latest.some((j) => j.id === job.id)
+      ? latest.map((j) => (j.id === job.id ? job : j))
+      : [...latest, job];
+    await saveJobs(directory, updated);
     await appendRunLog(directory, jobId, `OK run #${job.runCount} at ${now}\n`);
+    await recordRunEntry(directory, {
+      id: `exec_${job.id}_${startedAtMs}`,
+      jobId: job.id,
+      jobTitle: job.title,
+      sessionID: job.sessionID,
+      status: "success",
+      startedAt,
+      finishedAt: now,
+      durationMs: Math.max(0, finishedAtMs - startedAtMs),
+      exitCode: 0,
+      runNumber: job.runCount,
+      model: job.model ?? null,
+      outputPreview: null,
+      error: null,
+      source: "recorded",
+    }).catch(() => {});
     return { ok: true };
   } catch (err: any) {
+    const finishedAtMs = Date.now();
+    const now = new Date(finishedAtMs).toISOString();
     job.consecutiveFailures += 1;
     if (job.consecutiveFailures >= job.maxConsecutiveFailures) job.enabled = false;
-    // Advance to a full interval even on failure — otherwise the overdue
-    // timestamp refires at the 5s scheduler min-delay until auto-pause.
     job.nextRunAt = computeNextRun(job, new Date());
-    await saveJobs(directory, jobs.map((j) => (j.id === job.id ? job : j)));
-    await appendRunLog(directory, jobId, `ERR at ${new Date().toISOString()}: ${err?.message ?? err}\n`);
+    const latest = await loadJobs(directory);
+    const updated = latest.some((j) => j.id === job.id)
+      ? latest.map((j) => (j.id === job.id ? job : j))
+      : [...latest, job];
+    await saveJobs(directory, updated);
+    const errMsg = String(err?.message ?? err);
+    await appendRunLog(directory, jobId, `ERR at ${now}: ${errMsg}\n`);
+    await recordRunEntry(directory, {
+      id: `exec_${job.id}_${startedAtMs}`,
+      jobId: job.id,
+      jobTitle: job.title,
+      sessionID: job.sessionID,
+      status: "failed",
+      startedAt,
+      finishedAt: now,
+      durationMs: Math.max(0, finishedAtMs - startedAtMs),
+      exitCode: 1,
+      runNumber: job.runCount,
+      model: job.model ?? null,
+      outputPreview: null,
+      error: errMsg,
+      source: "recorded",
+    }).catch(() => {});
     return { ok: false, skipped: "error" };
   } finally {
     prompt.inFlight?.delete(key);
+    await releaseLock(directory, jobId).catch(() => {});
   }
 }
 

@@ -44,13 +44,35 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    },
+    "./store": {
+      "types": "./dist/store.d.ts",
+      "import": "./dist/store.js"
+    },
+    "./runner": {
+      "types": "./dist/runner.d.ts",
+      "import": "./dist/runner.js"
+    },
+    "./scheduler": {
+      "types": "./dist/scheduler.d.ts",
+      "import": "./dist/scheduler.js"
+    },
+    "./schedule": {
+      "types": "./dist/schedule.d.ts",
+      "import": "./dist/schedule.js"
     }
   },
   "bin": {
+    "opencode-cron": "./dist/bin/run.js",
     "opencode-cron-run": "./dist/bin/run.js"
   },
   "files": [
     "dist",
+    "src",
     "commands",
     "templates",
     "docs",
@@ -69,9 +91,10 @@
   },
   "scripts": {
     "build": "bun run build:lib && bun run build:bin && bun run build:types",
-    "build:lib": "bun build src/index.ts --outdir dist --target node --format esm --packages external",
-    "build:bin": "bun build bin/run.ts --outdir dist/bin --target node --format esm && head -1 dist/bin/run.js | grep -q '#!/usr/bin/env node' || { printf '#!/usr/bin/env node\\n%s' \"$(cat dist/bin/run.js)\" > dist/bin/run.js.tmp && mv dist/bin/run.js.tmp dist/bin/run.js; } && chmod +x dist/bin/run.js",
+    "build:lib": "bun build src/*.ts src/gui/server.ts --outdir dist --root src --target node --format esm --packages external",
+    "build:bin": "bun build bin/run.ts --outdir dist/bin --target node --format esm --packages external && head -1 dist/bin/run.js | grep -q '#!/usr/bin/env node' || { printf '#!/usr/bin/env node\\n%s' \"$(cat dist/bin/run.js)\" > dist/bin/run.js.tmp && mv dist/bin/run.js.tmp dist/bin/run.js; } && chmod +x dist/bin/run.js",
     "build:types": "tsc -p tsconfig.build.json",
+    "gui": "bun src/gui/server.ts",
     "prepublishOnly": "bun run build && bun test",
     "test": "bun test",
     "typecheck": "tsc --noEmit"

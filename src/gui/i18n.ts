@@ -1,0 +1,1833 @@
+/**
+ * Shared UI/UX Enhancement Suite for OpenCode Cron GUI (/ and /runs):
+ * 1. 10-Language i18n Dictionary (it, en, es, fr, de, pt, zh, ja, ar [RTL], ru)
+ * 2. Universal Accessible Tooltip Engine (WCAG 2.1 AA, role="tooltip", keyboard + pointer)
+ * 3. Interactive In-App Guide & Documentation Drawer (5 sections + keyboard shortcut '?')
+ * 4. Dismissible Quick-Start Onboarding Banner
+ */
+
+export function getUiEnhancementsHeadStyle(): string {
+  return `
+    /* Universal Accessible Tooltip (#oc-tooltip) */
+    #oc-tooltip {
+      position: fixed;
+      z-index: 9999;
+      max-width: 21rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 0.75rem;
+      background: rgba(15, 23, 42, 0.98);
+      color: #f8fafc;
+      border: 1px solid rgba(99, 102, 241, 0.45);
+      box-shadow: 0 14px 30px -5px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
+      font-size: 0.75rem;
+      line-height: 1.45;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.14s ease, transform 0.14s ease;
+      backdrop-filter: blur(8px);
+    }
+    #oc-tooltip[data-visible="true"] {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    #oc-tooltip .oc-tt-title {
+      font-weight: 700;
+      color: #a5b4fc;
+      margin-bottom: 0.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    [data-tooltip], [data-tooltip-raw] {
+      position: relative;
+    }
+    .oc-help-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 9999px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: rgba(99, 102, 241, 0.16);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      cursor: help;
+      margin-inline-start: 0.35rem;
+      vertical-align: middle;
+      transition: all 0.15s ease;
+    }
+    .oc-help-badge:hover, .oc-help-badge:focus-visible {
+      background: rgba(99, 102, 241, 0.35);
+      color: #ffffff;
+      outline: 2px solid #818cf8;
+      outline-offset: 1px;
+    }
+    /* RTL support adjustments */
+    html[dir="rtl"] .space-x-1 > :not([hidden]) ~ :not([hidden]),
+    html[dir="rtl"] .space-x-2 > :not([hidden]) ~ :not([hidden]),
+    html[dir="rtl"] .space-x-2\\.5 > :not([hidden]) ~ :not([hidden]),
+    html[dir="rtl"] .space-x-3 > :not([hidden]) ~ :not([hidden]) {
+      --tw-space-x-reverse: 1;
+    }
+    @media (forced-colors: active) {
+      #oc-tooltip {
+        border: 2px solid CanvasText !important;
+        background: Canvas !important;
+        color: CanvasText !important;
+      }
+    }
+  `;
+}
+
+export function getUiEnhancementsBodyHtml(): string {
+  return `
+  <!-- Universal Accessible Floating Tooltip -->
+  <div id="oc-tooltip" role="tooltip" aria-hidden="true"></div>
+
+  <!-- Interactive In-App Guide & Instructions Drawer -->
+  <div id="oc-guide-backdrop" onclick="closeGuideDrawer()" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden transition-opacity"></div>
+  <aside
+    id="oc-guide-drawer"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="oc-guide-title"
+    tabindex="-1"
+    class="fixed top-0 right-0 rtl:right-auto rtl:left-0 h-full w-full max-w-xl bg-darkcard border-l rtl:border-l-0 rtl:border-r border-darkborder z-50 shadow-2xl transform translate-x-full rtl:-translate-x-full transition-transform duration-200 flex flex-col"
+  >
+    <!-- Drawer Header -->
+    <div class="px-6 py-4 border-b border-darkborder flex items-center justify-between bg-gray-900/80">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 flex items-center justify-center">
+          <i class="fa-solid fa-book-open text-sm"></i>
+        </div>
+        <div>
+          <h2 id="oc-guide-title" class="text-base font-bold text-white" data-i18n="guide.title">Guida & Istruzioni OpenCode Cron</h2>
+          <p class="text-xs text-gray-400" data-i18n="guide.subtitle">Manuale interattivo, architettura e risoluzione problemi</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onclick="closeGuideDrawer()"
+        aria-label="Chiudi guida"
+        class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 border border-gray-700/70 transition-colors"
+      >
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Drawer Content -->
+    <div class="flex-1 overflow-y-auto p-6 space-y-5 text-xs leading-relaxed text-gray-300" id="oc-guide-body">
+      <!-- Populated dynamically by renderGuideDrawerContent() in active language -->
+    </div>
+
+    <!-- Drawer Footer -->
+    <div class="px-6 py-3.5 border-t border-darkborder bg-gray-900/80 flex items-center justify-between text-xs">
+      <span class="text-gray-400">
+        <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded text-[10px] font-mono text-gray-200">?</kbd>
+        <span class="ml-1" data-i18n="guide.shortcutHint">Premi ? in qualsiasi momento per aprire la guida</span>
+      </span>
+      <button
+        type="button"
+        onclick="closeGuideDrawer()"
+        class="px-4 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold transition-colors"
+        data-i18n="guide.closeBtn"
+      >Ho capito</button>
+    </div>
+  </aside>
+
+  <!-- Interactive Guided Demo Tour Modal (Shared Across All Pages) -->
+  <div id="oc-tour-modal" role="dialog" aria-modal="true" aria-labelledby="tour-modal-title" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-darkcard border border-indigo-500/40 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl relative space-y-6">
+      <!-- Tour Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-darkborder">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-indigo-500/30">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </span>
+          <div>
+            <h3 id="tour-modal-title" class="text-base font-bold text-white">Demo & Tour Guidato</h3>
+            <span id="tour-step-indicator" class="text-[11px] font-mono text-indigo-400">Passo 1 di 5</span>
+          </div>
+        </div>
+        <button onclick="closeTourModal()" aria-label="Chiudi demo" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 cursor-pointer">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Tour Content Slides -->
+      <div id="tour-slide-container" class="min-h-[190px] flex flex-col justify-center">
+        <!-- Rendered dynamically by JS -->
+      </div>
+
+      <!-- Tour Navigation Footer -->
+      <div class="flex items-center justify-between pt-4 border-t border-darkborder text-xs">
+        <button
+          type="button"
+          id="tour-prev-btn"
+          onclick="prevTourStep()"
+          class="px-3.5 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 font-semibold border border-darkborder transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <i class="fa-solid fa-arrow-left mr-1"></i> Indietro
+        </button>
+
+        <div class="flex items-center gap-1.5" id="tour-dots">
+          <!-- Dots rendered by JS -->
+        </div>
+
+        <button
+          type="button"
+          id="tour-next-btn"
+          onclick="nextTourStep()"
+          class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md shadow-indigo-600/30 transition-all cursor-pointer"
+        >
+          Avanti <i class="fa-solid fa-arrow-right ml-1"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+export function getUiEnhancementsScript(): string {
+  return `
+    // ============================================================================
+    // 10-LANGUAGE INTERNATIONALIZATION (i18n) + ACCESSIBLE TOOLTIPS + GUIDE DRAWER
+    // Languages: it, en, es, fr, de, pt, zh, ja, ar (RTL), ru
+    // ============================================================================
+    const OC_SUPPORTED_LANGS = [
+      { code: 'it', flag: '🇮🇹', label: 'Italiano' },
+      { code: 'en', flag: '🇬🇧', label: 'English' },
+      { code: 'es', flag: '🇪🇸', label: 'Español' },
+      { code: 'fr', flag: '🇫🇷', label: 'Français' },
+      { code: 'de', flag: '🇩🇪', label: 'Deutsch' },
+      { code: 'pt', flag: '🇵🇹', label: 'Português' },
+      { code: 'zh', flag: '🇨🇳', label: '简体中文' },
+      { code: 'ja', flag: '🇯🇵', label: '日本語' },
+      { code: 'ar', flag: '🇸🇦', label: 'العربية', rtl: true },
+      { code: 'ru', flag: '🇷🇺', label: 'Русский' }
+    ];
+
+    const OC_I18N = {
+      it: {
+        "app.liveBadge": "Web GUI Live",
+        "nav.jobs": "Jobs & Cron",
+        "nav.chat": "Live Chat",
+        "nav.memory": "Memoria",
+        "nav.diff": "Git Diff",
+        "nav.logs": "Logs",
+        "nav.runs": "Esiti Runs",
+        "nav.historyRuns": "Storico Runs",
+        "nav.newJob": "Nuovo Job",
+        "nav.guide": "Guida",
+        "nav.dashboard": "Dashboard",
+        "kpi.activeTasks": "Task Attivi",
+        "kpi.totalRuns": "Totale Esecuzioni (Vedi Esiti →)",
+        "kpi.launchd": "Launchd Daemon",
+        "kpi.nextTick": "Prossimo Tick",
+        "jobs.heading": "Cron Jobs Registrati",
+        "jobs.subheading": "Task ricorrenti che scrivono direttamente nelle sessioni di OpenCode",
+        "jobs.runDueNow": "Esegui Scaduti Ora",
+        "jobs.emptyTitle": "Nessun Cron Job Configurato",
+        "jobs.emptyDesc": "Crea il tuo primo task programmato per automatizzare ricerche, monitoraggio o report direttamente dentro una sessione di OpenCode.",
+        "jobs.createFirst": "Crea il Primo Cron Job",
+        "job.active": "ATTIVO",
+        "job.paused": "IN PAUSA",
+        "job.completed": "COMPLETATO",
+        "job.schedule": "Pianificazione",
+        "job.executions": "Esecuzioni",
+        "job.lastRun": "Ultimo Run",
+        "job.nextRun": "Prossimo",
+        "job.viewChat": "Vedi Chat Live",
+        "job.memoryBtn": "Memoria",
+        "job.editBtn": "Modifica",
+        "job.runNowTitle": "Esegui Tick Subito",
+        "job.pauseTitle": "Metti in Pausa",
+        "job.resumeTitle": "Riattiva",
+        "job.deleteTitle": "Elimina Job",
+        "chat.sessionsTitle": "Sessioni OpenCode",
+        "chat.title": "Live Chat & Feed Sessione",
+        "chat.subtitle": "Visualizza e aggiorna in tempo reale i prompt e le risposte generate dai tick automatici",
+        "chat.sessionLabel": "Sessione:",
+        "chat.searchPlaceholder": "Cerca sessione, cron job o ID...",
+        "chat.filterAll": "Tutte",
+        "chat.filterCron": "⚡ Con Cron",
+        "chat.filterMain": "💬 Principali",
+        "chat.filterRoot": "💬 Principali",
+        "chat.filterSub": "🤖 Subagenti",
+        "chat.onlyRepo": "Solo Questo Repo",
+        "chat.autoRefresh": "Auto-Aggiorna (3s)",
+        "chat.promptPlaceholder": "Invia un prompt o istruzione manuale a questa sessione (Invio invia, Shift+Invio a capo)...",
+        "chat.send": "Invia",
+        "chat.sendBtn": "Invia",
+        "memory.title": "Memoria Persistente Cron",
+        "memory.subtitle": "File markdown salvati in .opencode/cron/memory/",
+        "memory.save": "Salva Modifiche",
+        "memory.saveBtn": "Salva Modifiche",
+        "memory.editor": "Editor Markdown",
+        "memory.preview": "Anteprima Renderizzata",
+        "diff.title": "Git Diff & File Changes",
+        "diff.subtitle": "Verifica in tempo reale tutti i file creati, modificati o eliminati nel workspace locale.",
+        "diff.reload": "Ricarica Diff",
+        "diff.refreshBtn": "Aggiorna Diff",
+        "diff.filesInvolved": "File Coinvolti",
+        "diff.all": "Tutto",
+        "logs.title": "Logs & Diagnostica Ticker",
+        "logs.subtitle": "Output da ~/Library/Logs/opencode-cron.log e .err",
+        "logs.reload": "Ricarica Logs",
+        "modal.newTitle": "Nuovo Cron Job",
+        "modal.editTitle": "Modifica Cron Job",
+        "modal.fieldTitle": "Titolo del Job",
+        "modal.fieldSchedule": "Intervallo o Espressione Cron",
+        "modal.fieldMaxRuns": "Max Esecuzioni (0 = infinito)",
+        "modal.fieldSession": "Sessione Target OpenCode",
+        "modal.fieldModel": "Modello LLM (Opzionale)",
+        "modal.fieldSystem": "System Prompt (Obiettivo Fisso / Frozen)",
+        "modal.fieldFollowup": "Followup Prompt (Istruzione per singolo Tick)",
+        "modal.cancel": "Annulla",
+        "modal.save": "Salva Cron Job",
+        "runs.pageTitle": "Storico Esecuzioni Cron (Runs)",
+        "runs.pageSubtitle": "Verifica immediata di quali cron job sono partiti con successo e quali sono falliti",
+        "runs.autoRefresh": "Auto-aggiorna (5s)",
+        "runs.refreshNow": "Aggiorna Ora",
+        "runs.kpiTotal": "Totale Esecuzioni",
+        "runs.kpiTotalSub": "runs registrate",
+        "runs.kpiClickAll": "Clicca per mostrare tutte",
+        "runs.kpiSuccess": "Partite con Successo",
+        "runs.kpiSuccessSub": "completate OK",
+        "runs.kpiFailed": "Runs Fallite / Errori",
+        "runs.kpiFailedSub": "errori rilevati",
+        "runs.kpiFilterFailed": "Filtra solo le runs fallite",
+        "runs.kpiLastRun": "Ultima Esecuzione",
+        "runs.kpiAvgDuration": "Durata media risposta:",
+        "runs.timelineTitle": "Sequenza Temporale Ultime Esecuzioni (Cronologia Recente)",
+        "runs.timelineSub": "Ogni barra rappresenta una run (da sinistra = meno recente, a destra = più recente). Clicca su una barra per saltare al dettaglio.",
+        "runs.legendSuccess": "✓ Successo",
+        "runs.legendFailed": "✕ Fallita",
+        "runs.byJobTitle": "Esiti per Singolo Cron Job",
+        "runs.byJobSub": "Clicca su una card per filtrare le esecuzioni di quello specifico job",
+        "runs.showAllJobs": "Mostra tutti i Job",
+        "runs.filterAll": "Tutte",
+        "runs.filterSuccess": "Partite con Successo",
+        "runs.filterFailed": "Fallite",
+        "runs.allJobsOption": "Tutti i Cron Job",
+        "runs.searchPlaceholder": "Cerca per nome job, testo output, errore o ID sessione...",
+        "runs.listHeading": "Elenco Esecuzioni Recenti",
+        "runs.statusSuccess": "✓ PARTITA CON SUCCESSO",
+        "runs.statusFailed": "✕ ESECUZIONE FALLITA",
+        "runs.statusSkipped": "⏭ SALTATA",
+        "runs.openInChat": "Apri in Chat",
+        "runs.outputLabel": "Risposta del Cron Job:",
+        "runs.errorLabel": "Dettaglio Errore / Fallimento:",
+        "runs.expandMore": "Espandi tutto ▼",
+        "runs.expandLess": "Mostra meno ▲",
+        "onboard.title": "Benvenuto in OpenCode Cron — Guida Rapida",
+        "onboard.subtitle": "Automatizza task ricorrenti, monitoraggio notizie e controlli codice direttamente nelle sessioni OpenCode.",
+        "onboard.step1Title": "1. Pianifica un Job",
+        "onboard.step1Desc": "Scegli una sessione principale, imposta l'intervallo (es. 5m o 0 9 * * *) e definisci System + Followup Prompt.",
+        "onboard.step2Title": "2. Esecuzione Autonoma 60s",
+        "onboard.step2Desc": "Il demone macOS launchd esegue i job scaduti in background anche a browser chiuso e sincronizza il DB SQLite.",
+        "onboard.step3Title": "3. Controlla Esiti & Chat",
+        "onboard.step3Desc": "Segui le risposte in tempo reale in Live Chat oppure apri la pagina Esiti Runs per vedere successi ed errori.",
+        "onboard.dismiss": "Nascondi suggerimenti",
+        "guide.title": "Guida & Istruzioni OpenCode Cron",
+        "guide.subtitle": "Manuale interattivo, architettura e risoluzione problemi",
+        "guide.shortcutHint": "Premi ? in qualsiasi momento per aprire la guida",
+        "guide.closeBtn": "Ho capito",
+        "guide.sec1Title": "⚡ 1. Come Funziona OpenCode Cron (Architettura)",
+        "guide.sec1Body": "OpenCode Cron esegue task programmati stile ChatGPT direttamente dentro le tue sessioni OpenCode. Un demone di sistema (macOS launchd 'ai.opencode.cron') controlla ogni 60 secondi il file .opencode/cron/jobs.json. Quando un job è in scadenza, avvia il turno nella sessione scelta, aggiorna la memoria persistente Markdown e sincronizza le tabelle SQLite (v2 -> v1 mirror) affinché i messaggi appaiano sia nella Web GUI sia nell'app desktop.",
+        "guide.sec2Title": "🚀 2. Creare o Modificare un Cron Job",
+        "guide.sec2Body": "• Titolo & Pianificazione: usa intervalli semplici (es. 1m, 5m, 1h) oppure espressioni Cron a 5 campi (es. '0 9 * * *' per ogni mattina alle 09:00).\\n• Sessione Target: scegli una sessione '💬 Principale' (consigliato) per mantenere tutto lo storico nella stessa chat.\\n• System Prompt (Frozen): definisce l'identità e le regole fisse dell'agente.\\n• Followup Prompt: è l'istruzione operativa eseguita ad ogni singolo tick.\\n• Max Esecuzioni: imposta 0 per esecuzione continua, oppure un limite (es. 50) per fermare automaticamente il job dopo N cicli.",
+        "guide.sec3Title": "🧠 3. Memoria Persistente & Deduplicazione (seenHashes)",
+        "guide.sec3Body": "Anche se la chat OpenCode viene compattata dopo centinaia di messaggi, il file .opencode/cron/memory/<jobId>.md preserva fatti chiave, stato e lista degli URL/elementi già visti (seenHashes). Viene iniettato automaticamente prima di ogni tick.",
+        "guide.sec4Title": "📊 4. Pagina Dedicata 'Esiti Runs' (/runs)",
+        "guide.sec4Body": "Nella pagina /runs puoi verificare a colpo d'occhio quali esecuzioni sono partite con successo (badge verde ✓) e quali sono fallite (badge rosso ✕). Clicca sulle card KPI o sulla barra temporale per filtrare gli errori, leggere lo stack d'errore o aprire il messaggio esatto in Live Chat.",
+        "guide.sec5Title": "🛠️ 5. Sicurezza & Risoluzione Problemi",
+        "guide.sec5Body": "• Auto-Pausa dopo 5 errori: se un job fallisce 5 volte consecutive viene messo in pausa automaticamente. Clicca Play per azzerare gli errori e riattivarlo.\\n• Stato COMPLETATO (Max Runs): se un job raggiunge il tetto Max Esecuzioni (es. 50/50), non partirà più finché non aumenti Max Runs o imposti 0.",
+        "tt.liveBadge": "Connesso al server locale OpenCode Cron. Il polling si adatta automaticamente se la scheda è in background.",
+        "tt.workspaceDir": "Cartella radice del progetto (.opencode/cron/jobs.json e memoria risiedono qui).",
+        "tt.tabJobs": "Gestisci, crea, metti in pausa o avvia manualmente i tuoi Cron Job.",
+        "tt.tabChat": "Visualizza in tempo reale i messaggi delle sessioni OpenCode e invia prompt manuali.",
+        "tt.tabMemory": "Ispeziona e modifica il file Markdown di memoria persistente di ciascun job.",
+        "tt.tabDiff": "Controlla i file creati o modificati nel repository Git dai tuoi agenti.",
+        "tt.tabLogs": "Visualizza gli ultimi 150 record di stdout/stderr del demone launchd.",
+        "tt.tabRuns": "Apri la pagina dedicata con statistiche, timeline e filtro immediato di runs riuscite vs fallite.",
+        "tt.kpiActive": "Numero di Cron Job abilitati pronti a partire alla prossima scadenza.",
+        "tt.kpiTotalRuns": "Somma totale dei tick eseguiti. Clicca per aprire l'analisi dettagliata su /runs.",
+        "tt.kpiLaunchd": "Demone macOS (ai.opencode.cron) attivo in background ogni 60 secondi anche a browser chiuso.",
+        "tt.kpiNextTick": "Conto alla rovescia e orario del prossimo Cron Job in scadenza.",
+        "tt.runDueBtn": "Forza un controllo immediato ed esegue subito tutti i job la cui scadenza è passata.",
+        "tt.runNowBtn": "Esegui immediatamente un singolo tick di questo job fuori programmazione.",
+        "tt.toggleBtn": "Metti in pausa il job oppure riattivalo azzerando il contatore errori consecutivi.",
+        "tt.deleteBtn": "Elimina definitivamente il job e i suoi file di memoria/log associati.",
+        "tt.maxRunsBadge": "Il job ha raggiunto il limite massimo di esecuzioni configurato (Max Runs). Modifica il job per continuare.",
+        "tt.runsKpiTotal": "Numero complessivo di esecuzioni ricostruite da history.json, SQLite e log di sistema. Clicca per mostrare tutte.",
+        "tt.runsKpiSuccess": "Esecuzioni terminate con codice 0 e risposta valida dell'agente. Clicca per filtrare solo i successi.",
+        "tt.runsKpiFailed": "Esecuzioni interrotte per errore, timeout o eccezione. Clicca per isolare subito i fallimenti.",
+        "tt.runsKpiAvg": "Durata media di completamento di un turno cron e timestamp dell'ultima esecuzione.",
+        "tt.runsTimeline": "Sequenza cronologica delle ultime 48 esecuzioni (verde = successo, rosso = fallita). Clicca su una barra per saltare alla scheda.",
+        "tt.runsByJob": "Riepilogo salute per singolo job. Clicca su una card per filtrare l'elenco sottostante.",
+        "tt.formSchedule": "Accetta intervalli rapidi (es. 1m, 5m, 2h, 1d) oppure espressioni Cron standard a 5 campi (min ora giorno mese giorno_sett).",
+        "tt.formMaxRuns": "Imposta 0 per esecuzione illimitata, oppure un numero (es. 20) per fermare automaticamente il job dopo N tick.",
+        "tt.formSystem": "Istruzioni permanenti (frozen) che definiscono ruolo, vincoli e formato di risposta dell'agente.",
+        "tt.formFollowup": "Prompt operativo inviato ad ogni tick insieme alla memoria persistente.",
+        "tt.sessionCron": "Sessioni collegate a uno o più Cron Job attivi o programmati.",
+        "tt.sessionRoot": "Sessioni principali (Root) create dall'utente senza parentID.",
+        "tt.sessionSub": "Sessioni figlie generate automaticamente da subagenti o task delegati.",
+        "tt.memoryHashes": "Numero di hash/URL già visti (seenHashes) per evitare duplicazioni tra i tick.",
+        "chat.setCron": "Imposta Cron",
+        "tt.setCronBtn": "Imposta un nuovo Cron Job su questa conversazione",
+        "nav.instructions": "Istruzioni",
+        "tt.navInstructions": "Manuale completo, architettura e istruzioni dettagliate",
+        "tt.navDashboard": "Torna alla dashboard principale e ai job registrati",
+        "tour.startBtn": "Demo",
+        "tt.tourBtn": "Avvia il tour interattivo guidato di benvenuto",
+        "instructions.pageSubtitle": "Manuale interattivo, architettura e istruzioni complete",
+        "instructions.heroTitle": "Tutto quello che devi sapere su OpenCode Cron",
+        "instructions.heroDesc": "Esegui task autonomi stile ChatGPT direttamente dentro le sessioni OpenCode. Questa guida ti accompagna passo dopo passo nella configurazione, nelle pianificazioni temporali, nella memoria persistente e nella gestione degli esiti.",
+        "instructions.searchPlaceholder": "Cerca argomento (es. imposta cron, max runs, launchd, prompt, seenHashes)...",
+        "instructions.badge": "Documentazione Ufficiale OpenCode Cron",
+        "instructions.sec1Title": "1. Architettura in 60 Secondi: Non un banale timer bash, ma un vero agente programmato",
+        "instructions.sec1Sub": "Come OpenCode Cron si differenzia radicalmente da cron di sistema o da semplici script",
+        "instructions.sec2Title": "2. Impostare un Cron su una Conversazione (Modalità 1-Click)",
+        "instructions.sec2Sub": "Due modalità intuitive per legare un'automazione ricorrente a qualsiasi chat",
+        "instructions.sec3Title": "3. Visual Schedule Builder: Orari, Intervalli & Cron a 5 Campi",
+        "instructions.sec3Sub": "Tutti i formati supportati e l'anteprima predittiva in tempo reale",
+        "instructions.sec4Title": "4. Durata & Fine Programmata: Esecuzione Infinita vs Limite Max Runs",
+        "instructions.sec4Sub": "Come stabilire se un compito deve durare per sempre o arrestarsi dopo N cicli",
+        "instructions.sec5Title": "5. Memoria Persistente Markdown & Deduplicazione (seenHashes)",
+        "instructions.sec5Sub": "Come evitare duplicazioni e preservare lo stato tra un ciclo e l'altro",
+        "instructions.sec6Title": "6. Pagina Dedicata 'Esiti Runs' (/runs)",
+        "instructions.sec6Sub": "Controllo istantaneo di quali job sono partiti con successo e quali sono falliti",
+        "instructions.sec7Title": "7. Demone di Sfondo macOS launchd: Esecuzione Autonoma 24/7",
+        "instructions.sec7Sub": "I tuoi compiti girano in background anche con il browser e l'interfaccia chiusi",
+        "instructions.sec8Title": "8. FAQ, Sicurezza & Risoluzione Problemi Rapida",
+        "instructions.sec8Sub": "Cosa fare in caso di errori consecutivi o riavvio dell'applicazione desktop"
+      },
+      en: {
+        "app.liveBadge": "Web GUI Live",
+        "nav.jobs": "Jobs & Cron",
+        "nav.chat": "Live Chat",
+        "nav.memory": "Memory",
+        "nav.diff": "Git Diff",
+        "nav.logs": "Logs",
+        "nav.runs": "Run Outcomes",
+        "nav.historyRuns": "Runs History",
+        "nav.newJob": "New Job",
+        "nav.guide": "Guide",
+        "nav.dashboard": "Dashboard",
+        "kpi.activeTasks": "Active Tasks",
+        "kpi.totalRuns": "Total Executions (View Outcomes →)",
+        "kpi.launchd": "Launchd Daemon",
+        "kpi.nextTick": "Next Tick",
+        "jobs.heading": "Registered Cron Jobs",
+        "jobs.subheading": "Recurring tasks writing directly into OpenCode sessions",
+        "jobs.runDueNow": "Run Due Jobs Now",
+        "jobs.emptyTitle": "No Cron Jobs Configured",
+        "jobs.emptyDesc": "Create your first scheduled task to automate research, monitoring, or reports directly inside an OpenCode session.",
+        "jobs.createFirst": "Create First Cron Job",
+        "job.active": "ACTIVE",
+        "job.paused": "PAUSED",
+        "job.completed": "COMPLETED",
+        "job.schedule": "Schedule",
+        "job.executions": "Executions",
+        "job.lastRun": "Last Run",
+        "job.nextRun": "Next",
+        "job.viewChat": "View Live Chat",
+        "job.memoryBtn": "Memory",
+        "job.editBtn": "Edit",
+        "job.runNowTitle": "Run Tick Immediately",
+        "job.pauseTitle": "Pause Job",
+        "job.resumeTitle": "Resume Job",
+        "job.deleteTitle": "Delete Job",
+        "chat.sessionsTitle": "OpenCode Sessions",
+        "chat.title": "Live Chat & Session Feed",
+        "chat.subtitle": "View and update in real time the prompts and responses generated by automated ticks",
+        "chat.sessionLabel": "Session:",
+        "chat.searchPlaceholder": "Search session, cron job, or ID...",
+        "chat.filterAll": "All",
+        "chat.filterCron": "⚡ With Cron",
+        "chat.filterMain": "💬 Main",
+        "chat.filterRoot": "💬 Main",
+        "chat.filterSub": "🤖 Subagents",
+        "chat.onlyRepo": "This Repo Only",
+        "chat.autoRefresh": "Auto-refresh (3s)",
+        "chat.promptPlaceholder": "Send a manual prompt or instruction to this session (Enter sends, Shift+Enter newline)...",
+        "chat.send": "Send",
+        "chat.sendBtn": "Send",
+        "memory.title": "Persistent Job Memory",
+        "memory.subtitle": "Markdown files saved in .opencode/cron/memory/",
+        "memory.save": "Save Changes",
+        "memory.saveBtn": "Save Changes",
+        "memory.editor": "Markdown Editor",
+        "memory.preview": "Rendered Preview",
+        "diff.title": "Git Diff & File Changes",
+        "diff.subtitle": "Real-time inspection of created, modified, or deleted files in the local workspace.",
+        "diff.reload": "Refresh Diff",
+        "diff.refreshBtn": "Refresh Diff",
+        "diff.filesInvolved": "Files Changed",
+        "diff.all": "All",
+        "logs.title": "Launchd Daemon Logs (opencode-cron.log)",
+        "logs.subtitle": "Output from ~/Library/Logs/opencode-cron.log and .err",
+        "logs.reload": "Reload Logs",
+        "modal.newTitle": "New Cron Job",
+        "modal.editTitle": "Edit Cron Job",
+        "modal.fieldTitle": "Job Title",
+        "modal.fieldSchedule": "Interval or Cron Expression",
+        "modal.fieldMaxRuns": "Max Runs (0 = unlimited)",
+        "modal.fieldSession": "Target OpenCode Session",
+        "modal.fieldModel": "LLM Model (Optional)",
+        "modal.fieldSystem": "System Prompt (Frozen Goal & Rules)",
+        "modal.fieldFollowup": "Followup Prompt (Per-Tick Action)",
+        "modal.cancel": "Cancel",
+        "modal.save": "Save Cron Job",
+        "runs.pageTitle": "Cron Execution History (Runs)",
+        "runs.pageSubtitle": "Instantly see which scheduled cron runs succeeded and which failed",
+        "runs.autoRefresh": "Auto-refresh (5s)",
+        "runs.refreshNow": "Refresh Now",
+        "runs.kpiTotal": "Total Runs",
+        "runs.kpiTotalSub": "recorded runs",
+        "runs.kpiClickAll": "Click to show all",
+        "runs.kpiSuccess": "Succeeded Runs",
+        "runs.kpiSuccessSub": "completed OK",
+        "runs.kpiFailed": "Failed Runs / Errors",
+        "runs.kpiFailedSub": "errors detected",
+        "runs.kpiFilterFailed": "Filter failed runs only",
+        "runs.kpiLastRun": "Latest Execution",
+        "runs.kpiAvgDuration": "Avg response time:",
+        "runs.timelineTitle": "Recent Executions Timeline Strip",
+        "runs.timelineSub": "Each bar is a run (left = older, right = newer). Click any bar to jump to its details.",
+        "runs.legendSuccess": "✓ Succeeded",
+        "runs.legendFailed": "✕ Failed",
+        "runs.byJobTitle": "Health Breakdown by Cron Job",
+        "runs.byJobSub": "Click any card to filter runs for that specific job",
+        "runs.showAllJobs": "Show All Jobs",
+        "runs.filterAll": "All",
+        "runs.filterSuccess": "Succeeded Only",
+        "runs.filterFailed": "Failed Only",
+        "runs.allJobsOption": "All Cron Jobs",
+        "runs.searchPlaceholder": "Search by job title, output text, error, or session ID...",
+        "runs.listHeading": "Recent Executions Feed",
+        "runs.statusSuccess": "✓ SUCCEEDED",
+        "runs.statusFailed": "✕ EXECUTION FAILED",
+        "runs.statusSkipped": "⏭ SKIPPED",
+        "runs.openInChat": "Open in Chat",
+        "runs.outputLabel": "Cron Job Output:",
+        "runs.errorLabel": "Error / Failure Details:",
+        "runs.expandMore": "Expand full text ▼",
+        "runs.expandLess": "Show less ▲",
+        "onboard.title": "Welcome to OpenCode Cron — Quick Start Guide",
+        "onboard.subtitle": "Automate recurring tasks, news monitoring, and code checks directly inside OpenCode sessions.",
+        "onboard.step1Title": "1. Schedule a Job",
+        "onboard.step1Desc": "Pick a main session, set an interval (e.g. 5m or 0 9 * * *), and define System + Followup prompts.",
+        "onboard.step2Title": "2. Autonomous 60s Ticker",
+        "onboard.step2Desc": "The macOS launchd daemon runs due jobs in the background even when the browser is closed.",
+        "onboard.step3Title": "3. Monitor Outcomes & Chat",
+        "onboard.step3Desc": "Watch live responses in Live Chat or open Run Outcomes (/runs) to inspect successes and failures.",
+        "onboard.dismiss": "Hide tips",
+        "guide.title": "OpenCode Cron Guide & Instructions",
+        "guide.subtitle": "Interactive manual, architecture overview, and troubleshooting",
+        "guide.shortcutHint": "Press ? anytime to open this guide",
+        "guide.closeBtn": "Got it",
+        "guide.sec1Title": "⚡ 1. How OpenCode Cron Works (Architecture)",
+        "guide.sec1Body": "OpenCode Cron runs ChatGPT-style scheduled tasks directly inside your OpenCode sessions. A system daemon (macOS launchd 'ai.opencode.cron') checks .opencode/cron/jobs.json every 60 seconds. When a job is due, it triggers a turn in the target session, updates persistent Markdown memory, and mirrors SQLite tables (v2 -> v1) so messages appear in both the Web GUI and desktop app.",
+        "guide.sec2Title": "🚀 2. Creating or Editing a Cron Job",
+        "guide.sec2Body": "• Title & Schedule: use simple intervals (1m, 5m, 1h) or 5-field Cron expressions ('0 9 * * *').\\n• Target Session: pick a '💬 Main' root session to keep all history in one thread.\\n• System Prompt (Frozen): defines fixed rules and agent persona.\\n• Followup Prompt: per-tick instruction executed on each cycle.\\n• Max Runs: set 0 for unlimited runs, or a cap (e.g. 50) to stop automatically after N ticks.",
+        "guide.sec3Title": "🧠 3. Persistent Memory & Deduplication (seenHashes)",
+        "guide.sec3Body": "Even if OpenCode compacts a long session, .opencode/cron/memory/<jobId>.md preserves key facts and seen URLs/hashes (seenHashes). It is injected before every tick.",
+        "guide.sec4Title": "📊 4. Dedicated 'Run Outcomes' Page (/runs)",
+        "guide.sec4Body": "On /runs you can immediately see which runs succeeded (green ✓ badge) and which failed (red ✕ badge). Click KPI cards or timeline bars to filter errors, read error details, or jump straight to Live Chat.",
+        "guide.sec5Title": "🛠️ 5. Safety Guardrails & Troubleshooting",
+        "guide.sec5Body": "• Auto-Pause after 5 failures: jobs pause automatically after 5 consecutive errors. Click Play to reset failures and resume.\\n• COMPLETED (Max Runs): when a job hits Max Runs (e.g. 50/50), increase Max Runs or set it to 0 to continue.",
+        "tt.liveBadge": "Connected to local OpenCode Cron server. Polling pauses automatically when tab is hidden.",
+        "tt.workspaceDir": "Active project root directory (.opencode/cron/jobs.json and memory live here).",
+        "tt.tabJobs": "Manage, create, pause, or manually trigger your Cron Jobs.",
+        "tt.tabChat": "Watch OpenCode session messages in real time and send manual prompts.",
+        "tt.tabMemory": "Inspect and edit persistent Markdown memory for each job.",
+        "tt.tabDiff": "Review uncommitted Git changes made by your agents.",
+        "tt.tabLogs": "View the latest 150 stdout/stderr lines from the launchd daemon.",
+        "tt.tabRuns": "Open the dedicated page with KPI stats, timeline strip, and succeeded vs failed run filters.",
+        "tt.kpiActive": "Number of enabled Cron Jobs ready to run when due.",
+        "tt.kpiTotalRuns": "Total executed ticks across jobs. Click to open detailed breakdown on /runs.",
+        "tt.kpiLaunchd": "Background macOS daemon (ai.opencode.cron) checking due jobs every 60s.",
+        "tt.kpiNextTick": "Countdown and timestamp of the next scheduled execution.",
+        "tt.runDueBtn": "Force an immediate check and execute all currently due jobs.",
+        "tt.runNowBtn": "Trigger an immediate single execution of this job right now.",
+        "tt.toggleBtn": "Pause future ticks or resume and reset consecutive failure counters.",
+        "tt.deleteBtn": "Permanently delete this job and its memory/log files.",
+        "tt.maxRunsBadge": "This job reached its configured Max Runs limit. Edit Max Runs to continue.",
+        "tt.runsKpiTotal": "Total runs reconstructed from history.json, SQLite, and daemon logs. Click to show all.",
+        "tt.runsKpiSuccess": "Runs completed with exit code 0 and valid response. Click to filter succeeded runs.",
+        "tt.runsKpiFailed": "Runs that failed with an error or timeout. Click to isolate failed runs.",
+        "tt.runsKpiAvg": "Average turn duration and timestamp of the most recent run.",
+        "tt.runsTimeline": "Chronological strip of the last 48 runs (green = success, red = failed). Click any bar to jump to it.",
+        "tt.runsByJob": "Per-job reliability summary. Click any card to filter the run list below.",
+        "tt.formSchedule": "Accepts intervals (1m, 5m, 2h, 1d) or standard 5-field Cron expressions.",
+        "tt.formMaxRuns": "Set 0 for unlimited runs, or a positive integer to auto-stop after N runs.",
+        "tt.formSystem": "Frozen instructions defining the agent's role, constraints, and output format.",
+        "tt.formFollowup": "Per-tick instruction sent on every scheduled cycle along with persistent memory.",
+        "tt.sessionCron": "Sessions linked to one or more active or scheduled Cron Jobs.",
+        "tt.sessionRoot": "Primary (Root) sessions created by the user without a parentID.",
+        "tt.sessionSub": "Child sessions spawned automatically by subagents or delegated tasks.",
+        "tt.memoryHashes": "Count of seen hashes/URLs (seenHashes) used to prevent duplicate items across ticks.",
+        "chat.setCron": "Set Cron",
+        "tt.setCronBtn": "Schedule a new Cron Job directly on this conversation",
+        "nav.instructions": "Instructions",
+        "tt.navInstructions": "Complete manual, architecture, and step-by-step instructions",
+        "tt.navDashboard": "Return to main dashboard and registered jobs",
+        "tour.startBtn": "Demo",
+        "tt.tourBtn": "Launch interactive guided onboarding demo tour",
+        "instructions.pageSubtitle": "Interactive manual, architecture, and complete instructions",
+        "instructions.heroTitle": "Everything You Need to Know About OpenCode Cron",
+        "instructions.heroDesc": "Run ChatGPT-style autonomous tasks directly inside your OpenCode sessions. This guide walks you through configuration, schedules, persistent memory, and run outcomes.",
+        "instructions.searchPlaceholder": "Search topics (e.g. set cron, max runs, launchd, prompts, seenHashes)...",
+        "instructions.badge": "Official OpenCode Cron Documentation",
+        "instructions.sec1Title": "1. 60-Second Architecture: An AI Agent Scheduler, Not a Dumb Bash Timer",
+        "instructions.sec1Sub": "How OpenCode Cron radically differs from basic system crons or shell scripts",
+        "instructions.sec2Title": "2. Binding Cron to a Conversation (1-Click Mode)",
+        "instructions.sec2Sub": "Two seamless workflows to attach recurring tasks to any OpenCode session",
+        "instructions.sec3Title": "3. Visual Schedule Builder: Times, Intervals & 5-Field Cron",
+        "instructions.sec3Sub": "Supported formats with real-time predictive next-runs preview",
+        "instructions.sec4Title": "4. Duration & End Condition: Infinite Execution vs Max Runs Limit",
+        "instructions.sec4Sub": "Configure indefinite runs or auto-stop after N cycles",
+        "instructions.sec5Title": "5. Persistent Markdown Memory & Deduplication (seenHashes)",
+        "instructions.sec5Sub": "Preserve context across compactions and prevent duplicated work",
+        "instructions.sec6Title": "6. Dedicated 'Run Outcomes' Page (/runs)",
+        "instructions.sec6Sub": "Instant verification of succeeded vs failed executions",
+        "instructions.sec7Title": "7. Background macOS launchd Daemon: 24/7 Autonomous Execution",
+        "instructions.sec7Sub": "Your scheduled tasks run in background even when browser and UI are closed",
+        "instructions.sec8Title": "8. FAQs, Security Guardrails & Quick Troubleshooting",
+        "instructions.sec8Sub": "What to do on consecutive errors or desktop app restarts"
+      },
+      es: {
+        "app.liveBadge": "Web GUI en Vivo",
+        "nav.jobs": "Jobs y Cron",
+        "nav.chat": "Chat en Vivo",
+        "nav.memory": "Memoria",
+        "nav.diff": "Git Diff",
+        "nav.logs": "Logs",
+        "nav.runs": "Resultados Runs",
+        "nav.historyRuns": "Historial Runs",
+        "nav.newJob": "Nuevo Job",
+        "nav.guide": "Guía",
+        "nav.dashboard": "Panel",
+        "kpi.activeTasks": "Tareas Activas",
+        "kpi.totalRuns": "Ejecuciones Totales (Ver →)",
+        "kpi.launchd": "Demonio Launchd",
+        "kpi.nextTick": "Próximo Tick",
+        "jobs.heading": "Cron Jobs Registrados",
+        "jobs.subheading": "Tareas recurrentes que escriben directamente en sesiones de OpenCode",
+        "jobs.runDueNow": "Ejecutar Vencidos Ahora",
+        "jobs.emptyTitle": "Sin Cron Jobs Configurados",
+        "jobs.emptyDesc": "Crea tu primera tarea programada para automatizar búsquedas, monitoreo o informes dentro de OpenCode.",
+        "jobs.createFirst": "Crear Primer Cron Job",
+        "job.active": "ACTIVO",
+        "job.paused": "EN PAUSA",
+        "job.completed": "COMPLETADO",
+        "job.schedule": "Programación",
+        "job.executions": "Ejecuciones",
+        "job.lastRun": "Última Ejecución",
+        "job.nextRun": "Siguiente",
+        "job.viewChat": "Ver Chat en Vivo",
+        "job.memoryBtn": "Memoria",
+        "job.editBtn": "Editar",
+        "modal.newTitle": "Nuevo Cron Job",
+        "modal.editTitle": "Editar Cron Job",
+        "modal.fieldTitle": "Título del Job",
+        "modal.fieldSchedule": "Intervalo o Expresión Cron",
+        "modal.fieldMaxRuns": "Máx. Ejecuciones (0 = infinito)",
+        "modal.fieldSession": "Sesión OpenCode Destino",
+        "modal.fieldModel": "Modelo LLM (Opcional)",
+        "modal.fieldSystem": "System Prompt (Objetivo Fijo)",
+        "modal.fieldFollowup": "Followup Prompt (Instrucción por Tick)",
+        "modal.cancel": "Cancelar",
+        "modal.save": "Guardar Cron Job",
+        "runs.pageTitle": "Historial de Ejecuciones Cron (Runs)",
+        "runs.pageSubtitle": "Comprueba fácilmente qué ejecuciones tuvieron éxito y cuáles fallaron",
+        "runs.autoRefresh": "Auto-actualizar (5s)",
+        "runs.refreshNow": "Actualizar Ahora",
+        "runs.kpiTotal": "Total Ejecuciones",
+        "runs.kpiTotalSub": "runs registradas",
+        "runs.kpiClickAll": "Clic para mostrar todas",
+        "runs.kpiSuccess": "Ejecutadas con Éxito",
+        "runs.kpiSuccessSub": "completadas OK",
+        "runs.kpiFailed": "Runs Fallidas / Errores",
+        "runs.kpiFailedSub": "errores detectados",
+        "runs.kpiFilterFailed": "Filtrar solo fallidas",
+        "runs.kpiLastRun": "Última Ejecución",
+        "runs.kpiAvgDuration": "Duración media:",
+        "runs.timelineTitle": "Línea Temporal de Últimas Ejecuciones",
+        "runs.timelineSub": "Cada barra es una ejecución (izquierda = anterior, derecha = reciente). Haz clic en una barra para ir al detalle.",
+        "runs.legendSuccess": "✓ Éxito",
+        "runs.legendFailed": "✕ Fallida",
+        "runs.byJobTitle": "Estado por Cron Job",
+        "runs.byJobSub": "Haz clic en una tarjeta para filtrar por ese job",
+        "runs.showAllJobs": "Mostrar todos los Jobs",
+        "runs.filterAll": "Todas",
+        "runs.filterSuccess": "Solo Éxitos",
+        "runs.filterFailed": "Solo Fallidas",
+        "runs.allJobsOption": "Todos los Cron Jobs",
+        "runs.searchPlaceholder": "Buscar por nombre de job, respuesta, error o sesión...",
+        "runs.listHeading": "Lista de Ejecuciones Recientes",
+        "runs.statusSuccess": "✓ EJECUCIÓN EXITOSA",
+        "runs.statusFailed": "✕ EJECUCIÓN FALLIDA",
+        "runs.statusSkipped": "⏭ OMITIDA",
+        "runs.openInChat": "Abrir en Chat",
+        "runs.outputLabel": "Respuesta del Cron Job:",
+        "runs.errorLabel": "Detalle del Error:",
+        "runs.expandMore": "Expandir todo ▼",
+        "runs.expandLess": "Mostrar menos ▲",
+        "onboard.title": "Bienvenido a OpenCode Cron — Guía Rápida",
+        "onboard.subtitle": "Automatiza tareas recurrentes y monitoreo directamente en tus sesiones OpenCode.",
+        "onboard.step1Title": "1. Programa un Job",
+        "onboard.step1Desc": "Elige una sesión principal, define el intervalo (ej. 5m) y escribe System + Followup Prompt.",
+        "onboard.step2Title": "2. Ejecución Autónoma 60s",
+        "onboard.step2Desc": "El demonio launchd ejecuta las tareas vencidas en segundo plano incluso con el navegador cerrado.",
+        "onboard.step3Title": "3. Revisa Resultados y Chat",
+        "onboard.step3Desc": "Sigue las respuestas en Chat en Vivo o abre Resultados Runs (/runs) para ver éxitos y fallos.",
+        "onboard.dismiss": "Ocultar consejos",
+        "guide.title": "Guía e Instrucciones de OpenCode Cron",
+        "guide.subtitle": "Manual interactivo, arquitectura y solución de problemas",
+        "guide.shortcutHint": "Pulsa ? en cualquier momento para abrir la guía",
+        "guide.closeBtn": "Entendido",
+        "guide.sec1Title": "⚡ 1. Cómo Funciona OpenCode Cron",
+        "guide.sec1Body": "OpenCode Cron ejecuta tareas programadas dentro de tus sesiones OpenCode. El demonio launchd comprueba jobs.json cada 60 segundos, lanza el turno, guarda la memoria Markdown y sincroniza SQLite.",
+        "guide.sec2Title": "🚀 2. Crear o Editar un Cron Job",
+        "guide.sec2Body": "Usa intervalos (1m, 5m, 1h) o expresiones Cron de 5 campos. Elige una sesión Principal, define el System Prompt fijo y el Followup Prompt de cada ciclo.",
+        "guide.sec3Title": "🧠 3. Memoria Persistente (seenHashes)",
+        "guide.sec3Body": "El archivo Markdown de memoria conserva hechos clave y hashes vistos para no duplicar noticias ni enlaces aunque la sesión se compacte.",
+        "guide.sec4Title": "📊 4. Página 'Resultados Runs' (/runs)",
+        "guide.sec4Body": "Consulta de un vistazo qué runs tuvieron éxito (✓ verde) y cuáles fallaron (✕ rojo), con duración, modelo y enlace directo al chat.",
+        "guide.sec5Title": "🛠️ 5. Seguridad y Solución de Problemas",
+        "guide.sec5Body": "Tras 5 fallos consecutivos el job se pausa automáticamente. Si alcanza Max Runs (COMPLETADO), aumenta el límite o pon 0 para continuar."
+      },
+      fr: {
+        "app.liveBadge": "Web GUI Live",
+        "nav.jobs": "Jobs & Cron",
+        "nav.chat": "Chat en Direct",
+        "nav.memory": "Mémoire",
+        "nav.diff": "Git Diff",
+        "nav.logs": "Journaux",
+        "nav.runs": "Résultats Runs",
+        "nav.historyRuns": "Historique Runs",
+        "nav.newJob": "Nouveau Job",
+        "nav.guide": "Guide",
+        "nav.dashboard": "Tableau de bord",
+        "kpi.activeTasks": "Tâches Actives",
+        "kpi.totalRuns": "Total Exécutions (Voir →)",
+        "kpi.launchd": "Démon Launchd",
+        "kpi.nextTick": "Prochain Tick",
+        "jobs.heading": "Cron Jobs Enregistrés",
+        "jobs.subheading": "Tâches récurrentes écrivant directement dans les sessions OpenCode",
+        "jobs.runDueNow": "Exécuter les Échus",
+        "jobs.emptyTitle": "Aucun Cron Job Configuré",
+        "jobs.emptyDesc": "Créez votre première tâche planifiée pour automatiser vos recherches ou rapports dans OpenCode.",
+        "jobs.createFirst": "Créer le Premier Job",
+        "job.active": "ACTIF",
+        "job.paused": "EN PAUSE",
+        "job.completed": "TERMINÉ",
+        "job.schedule": "Planification",
+        "job.executions": "Exécutions",
+        "job.lastRun": "Dernier Run",
+        "job.nextRun": "Prochain",
+        "job.viewChat": "Voir le Chat",
+        "job.memoryBtn": "Mémoire",
+        "job.editBtn": "Modifier",
+        "modal.newTitle": "Nouveau Cron Job",
+        "modal.editTitle": "Modifier le Cron Job",
+        "modal.fieldTitle": "Titre du Job",
+        "modal.fieldSchedule": "Intervalle ou Expression Cron",
+        "modal.fieldMaxRuns": "Exécutions Max (0 = illimité)",
+        "modal.fieldSession": "Session OpenCode Cible",
+        "modal.fieldModel": "Modèle LLM (Optionnel)",
+        "modal.fieldSystem": "System Prompt (Objectif Fixe)",
+        "modal.fieldFollowup": "Followup Prompt (Instruction par Tick)",
+        "modal.cancel": "Annuler",
+        "modal.save": "Enregistrer",
+        "runs.pageTitle": "Historique des Exécutions Cron (Runs)",
+        "runs.pageSubtitle": "Visualisez immédiatement quelles exécutions ont réussi et lesquelles ont échoué",
+        "runs.autoRefresh": "Auto-actualiser (5s)",
+        "runs.refreshNow": "Actualiser",
+        "runs.kpiTotal": "Total Exécutions",
+        "runs.kpiTotalSub": "runs enregistrées",
+        "runs.kpiClickAll": "Cliquer pour tout voir",
+        "runs.kpiSuccess": "Exécutions Réussies",
+        "runs.kpiSuccessSub": "terminées OK",
+        "runs.kpiFailed": "Runs Échouées / Erreurs",
+        "runs.kpiFailedSub": "erreurs détectées",
+        "runs.kpiFilterFailed": "Filtrer les échecs",
+        "runs.kpiLastRun": "Dernière Exécution",
+        "runs.kpiAvgDuration": "Durée moyenne :",
+        "runs.timelineTitle": "Chronologie Visuelle des Exécutions Récentes",
+        "runs.timelineSub": "Chaque barre représente un run (gauche = ancien, droite = récent). Cliquez pour voir le détail.",
+        "runs.legendSuccess": "✓ Réussie",
+        "runs.legendFailed": "✕ Échouée",
+        "runs.byJobTitle": "Santé par Cron Job",
+        "runs.byJobSub": "Cliquez sur une carte pour filtrer ce job",
+        "runs.showAllJobs": "Afficher tous les Jobs",
+        "runs.filterAll": "Toutes",
+        "runs.filterSuccess": "Réussies",
+        "runs.filterFailed": "Échouées",
+        "runs.allJobsOption": "Tous les Cron Jobs",
+        "runs.searchPlaceholder": "Rechercher par titre, réponse, erreur ou session...",
+        "runs.listHeading": "Liste des Exécutions Récentes",
+        "runs.statusSuccess": "✓ EXÉCUTION RÉUSSIE",
+        "runs.statusFailed": "✕ EXÉCUTION ÉCHOUÉE",
+        "runs.statusSkipped": "⏭ IGNORÉE",
+        "runs.openInChat": "Ouvrir dans le Chat",
+        "runs.outputLabel": "Réponse du Cron Job :",
+        "runs.errorLabel": "Détail de l'Erreur :",
+        "runs.expandMore": "Tout afficher ▼",
+        "runs.expandLess": "Réduire ▲",
+        "onboard.title": "Bienvenue sur OpenCode Cron — Guide Rapide",
+        "onboard.subtitle": "Automatisez vos tâches récurrentes et veilles directement dans vos sessions OpenCode.",
+        "onboard.step1Title": "1. Planifier un Job",
+        "onboard.step1Desc": "Choisissez une session principale, définissez l'intervalle (ex. 5m) et les prompts.",
+        "onboard.step2Title": "2. Démon Autonome 60s",
+        "onboard.step2Desc": "Le démon launchd exécute les tâches échues en arrière-plan même navigateur fermé.",
+        "onboard.step3Title": "3. Suivre Résultats & Chat",
+        "onboard.step3Desc": "Consultez le Chat en Direct ou la page Résultats Runs (/runs) pour voir succès et erreurs.",
+        "onboard.dismiss": "Masquer les conseils",
+        "guide.title": "Guide & Instructions OpenCode Cron",
+        "guide.subtitle": "Manuel interactif, architecture et dépannage",
+        "guide.shortcutHint": "Appuyez sur ? à tout moment pour ouvrir ce guide",
+        "guide.closeBtn": "Compris",
+        "guide.sec1Title": "⚡ 1. Fonctionnement d'OpenCode Cron",
+        "guide.sec1Body": "Le démon launchd vérifie jobs.json toutes les 60 secondes, lance le tour dans la session cible, met à jour la mémoire Markdown et synchronise SQLite.",
+        "guide.sec2Title": "🚀 2. Créer ou Modifier un Cron Job",
+        "guide.sec2Body": "Utilisez des intervalles (1m, 5m, 1h) ou expressions Cron. Définissez le System Prompt fixe et le Followup Prompt exécuté à chaque cycle.",
+        "guide.sec3Title": "🧠 3. Mémoire Persistante (seenHashes)",
+        "guide.sec3Body": "La mémoire Markdown conserve les faits clés et les hash déjà vus pour éviter les doublons même après compactage de la session.",
+        "guide.sec4Title": "📊 4. Page 'Résultats Runs' (/runs)",
+        "guide.sec4Body": "Identifiez immédiatement les runs réussies (✓ vert) et échouées (✕ rouge), leur durée et accédez au chat en un clic.",
+        "guide.sec5Title": "🛠️ 5. Sécurité & Dépannage",
+        "guide.sec5Body": "Après 5 échecs consécutifs, le job se met en pause automatiquement. Si Max Runs est atteint (TERMINÉ), augmentez la limite ou mettez 0."
+      },
+      de: {
+        "app.liveBadge": "Web GUI Live",
+        "nav.jobs": "Jobs & Cron",
+        "nav.chat": "Live-Chat",
+        "nav.memory": "Speicher",
+        "nav.diff": "Git Diff",
+        "nav.logs": "Logs",
+        "nav.runs": "Run-Ergebnisse",
+        "nav.historyRuns": "Run-Verlauf",
+        "nav.newJob": "Neuer Job",
+        "nav.guide": "Anleitung",
+        "nav.dashboard": "Dashboard",
+        "kpi.activeTasks": "Aktive Aufgaben",
+        "kpi.totalRuns": "Ausführungen Gesamt (Ansehen →)",
+        "kpi.launchd": "Launchd-Daemon",
+        "kpi.nextTick": "Nächster Tick",
+        "jobs.heading": "Registrierte Cron-Jobs",
+        "jobs.subheading": "Wiederkehrende Aufgaben, die direkt in OpenCode-Sitzungen schreiben",
+        "jobs.runDueNow": "Fällige Jetzt Ausführen",
+        "jobs.emptyTitle": "Keine Cron-Jobs Konfiguriert",
+        "jobs.emptyDesc": "Erstellen Sie Ihre erste geplante Aufgabe zur Automatisierung von Recherchen oder Berichten in OpenCode.",
+        "jobs.createFirst": "Ersten Cron-Job Erstellen",
+        "job.active": "AKTIV",
+        "job.paused": "PAUSIERT",
+        "job.completed": "ABGESCHLOSSEN",
+        "job.schedule": "Zeitplan",
+        "job.executions": "Ausführungen",
+        "job.lastRun": "Letzter Lauf",
+        "job.nextRun": "Nächster",
+        "job.viewChat": "Live-Chat Öffnen",
+        "job.memoryBtn": "Speicher",
+        "job.editBtn": "Bearbeiten",
+        "modal.newTitle": "Neuer Cron-Job",
+        "modal.editTitle": "Cron-Job Bearbeiten",
+        "modal.fieldTitle": "Job-Titel",
+        "modal.fieldSchedule": "Intervall oder Cron-Ausdruck",
+        "modal.fieldMaxRuns": "Max. Ausführungen (0 = unbegrenzt)",
+        "modal.fieldSession": "Ziel-OpenCode-Sitzung",
+        "modal.fieldModel": "LLM-Modell (Optional)",
+        "modal.fieldSystem": "System-Prompt (Festes Ziel)",
+        "modal.fieldFollowup": "Followup-Prompt (Aktion pro Tick)",
+        "modal.cancel": "Abbrechen",
+        "modal.save": "Speichern",
+        "runs.pageTitle": "Cron-Ausführungsverlauf (Runs)",
+        "runs.pageSubtitle": "Sofort erkennen, welche Cron-Läufe erfolgreich waren und welche fehlgeschlagen sind",
+        "runs.autoRefresh": "Auto-Aktualisierung (5s)",
+        "runs.refreshNow": "Jetzt Aktualisieren",
+        "runs.kpiTotal": "Ausführungen Gesamt",
+        "runs.kpiTotalSub": "erfasste Läufe",
+        "runs.kpiClickAll": "Klicken, um alle anzuzeigen",
+        "runs.kpiSuccess": "Erfolgreiche Läufe",
+        "runs.kpiSuccessSub": "erfolgreich beendet",
+        "runs.kpiFailed": "Fehlgeschlagene Läufe",
+        "runs.kpiFailedSub": "Fehler erkannt",
+        "runs.kpiFilterFailed": "Nur Fehler filtern",
+        "runs.kpiLastRun": "Letzte Ausführung",
+        "runs.kpiAvgDuration": "Durchschn. Dauer:",
+        "runs.timelineTitle": "Zeitstrahl der Letzten Ausführungen",
+        "runs.timelineSub": "Jeder Balken steht für einen Lauf (links = älter, rechts = neuer). Klicken zum Springen.",
+        "runs.legendSuccess": "✓ Erfolg",
+        "runs.legendFailed": "✕ Fehlgeschlagen",
+        "runs.byJobTitle": "Status pro Cron-Job",
+        "runs.byJobSub": "Klicken Sie auf eine Karte, um nach diesem Job zu filtern",
+        "runs.showAllJobs": "Alle Jobs anzeigen",
+        "runs.filterAll": "Alle",
+        "runs.filterSuccess": "Nur Erfolge",
+        "runs.filterFailed": "Nur Fehler",
+        "runs.allJobsOption": "Alle Cron-Jobs",
+        "runs.searchPlaceholder": "Suche nach Jobname, Antwort, Fehler oder Sitzung...",
+        "runs.listHeading": "Letzte Ausführungen",
+        "runs.statusSuccess": "✓ ERFOLGREICH GESTARTET",
+        "runs.statusFailed": "✕ AUSFÜHRUNG FEHLGESCHLAGEN",
+        "runs.statusSkipped": "⏭ ÜBERSPRUNGEN",
+        "runs.openInChat": "Im Chat Öffnen",
+        "runs.outputLabel": "Antwort des Cron-Jobs:",
+        "runs.errorLabel": "Fehlerdetails:",
+        "runs.expandMore": "Alles anzeigen ▼",
+        "runs.expandLess": "Weniger anzeigen ▲",
+        "onboard.title": "Willkommen bei OpenCode Cron — Kurzanleitung",
+        "onboard.subtitle": "Automatisieren Sie wiederkehrende Aufgaben direkt in Ihren OpenCode-Sitzungen.",
+        "onboard.step1Title": "1. Job Planen",
+        "onboard.step1Desc": "Hauptsitzung wählen, Intervall (z.B. 5m) sowie System- und Followup-Prompt festlegen.",
+        "onboard.step2Title": "2. Autonomer 60s-Daemon",
+        "onboard.step2Desc": "Der macOS launchd-Daemon führt fällige Jobs im Hintergrund aus, auch bei geschlossenem Browser.",
+        "onboard.step3Title": "3. Ergebnisse & Chat Prüfen",
+        "onboard.step3Desc": "Antworten im Live-Chat verfolgen oder auf /runs Erfolge und Fehler analysieren.",
+        "onboard.dismiss": "Tipps ausblenden",
+        "guide.title": "OpenCode Cron Handbuch & Anleitung",
+        "guide.subtitle": "Interaktives Handbuch, Architektur und Fehlerbehebung",
+        "guide.shortcutHint": "Drücken Sie jederzeit ?, um diese Anleitung zu öffnen",
+        "guide.closeBtn": "Verstanden",
+        "guide.sec1Title": "⚡ 1. Wie OpenCode Cron Funktioniert",
+        "guide.sec1Body": "Der launchd-Daemon prüft alle 60s jobs.json, startet fällige Läufe in der gewählten Sitzung, speichert Markdown-Memory und spiegelt SQLite.",
+        "guide.sec2Title": "🚀 2. Cron-Job Erstellen oder Bearbeiten",
+        "guide.sec2Body": "Nutzen Sie Intervalle (1m, 5m, 1h) oder Cron-Ausdrücke. Definieren Sie den festen System-Prompt und den Followup-Prompt pro Tick.",
+        "guide.sec3Title": "🧠 3. Persistenter Speicher (seenHashes)",
+        "guide.sec3Body": "Die Markdown-Speicherdatei bewahrt wichtige Fakten und gesehene Hashes, um Duplikate zu vermeiden.",
+        "guide.sec4Title": "📊 4. Seite 'Run-Ergebnisse' (/runs)",
+        "guide.sec4Body": "Sehen Sie sofort erfolgreiche (✓ grün) und fehlgeschlagene (✕ rot) Läufe inklusive Antwortzeit und Chat-Link.",
+        "guide.sec5Title": "🛠️ 5. Sicherheit & Fehlerbehebung",
+        "guide.sec5Body": "Nach 5 Fehlern in Folge pausiert der Job automatisch. Bei ABGESCHLOSSEN (Max Runs) erhöhen Sie das Limit oder setzen es auf 0."
+      },
+      pt: {
+        "app.liveBadge": "Web GUI ao Vivo",
+        "nav.jobs": "Jobs e Cron",
+        "nav.chat": "Chat ao Vivo",
+        "nav.memory": "Memória",
+        "nav.diff": "Git Diff",
+        "nav.logs": "Logs",
+        "nav.runs": "Resultados Runs",
+        "nav.historyRuns": "Histórico Runs",
+        "nav.newJob": "Novo Job",
+        "nav.guide": "Guia",
+        "nav.dashboard": "Painel",
+        "kpi.activeTasks": "Tarefas Ativas",
+        "kpi.totalRuns": "Total de Execuções (Ver →)",
+        "kpi.launchd": "Daemon Launchd",
+        "kpi.nextTick": "Próximo Tick",
+        "jobs.heading": "Cron Jobs Registrados",
+        "jobs.subheading": "Tarefas recorrentes que escrevem diretamente nas sessões do OpenCode",
+        "jobs.runDueNow": "Executar Vencidos Agora",
+        "jobs.emptyTitle": "Nenhum Cron Job Configurado",
+        "jobs.emptyDesc": "Crie sua primeira tarefa agendada para automatizar pesquisas, monitoramento ou relatórios no OpenCode.",
+        "jobs.createFirst": "Criar Primeiro Cron Job",
+        "job.active": "ATIVO",
+        "job.paused": "PAUSADO",
+        "job.completed": "CONCLUÍDO",
+        "job.schedule": "Agendamento",
+        "job.executions": "Execuções",
+        "job.lastRun": "Última Execução",
+        "job.nextRun": "Próxima",
+        "job.viewChat": "Ver Chat ao Vivo",
+        "job.memoryBtn": "Memória",
+        "job.editBtn": "Editar",
+        "modal.newTitle": "Novo Cron Job",
+        "modal.editTitle": "Editar Cron Job",
+        "modal.fieldTitle": "Título do Job",
+        "modal.fieldSchedule": "Intervalo ou Expressão Cron",
+        "modal.fieldMaxRuns": "Máx. Execuções (0 = ilimitado)",
+        "modal.fieldSession": "Sessão OpenCode Alvo",
+        "modal.fieldModel": "Modelo LLM (Opcional)",
+        "modal.fieldSystem": "System Prompt (Objetivo Fixo)",
+        "modal.fieldFollowup": "Followup Prompt (Instrução por Tick)",
+        "modal.cancel": "Cancelar",
+        "modal.save": "Salvar Cron Job",
+        "runs.pageTitle": "Histórico de Execuções Cron (Runs)",
+        "runs.pageSubtitle": "Veja facilmente quais execuções tiveram sucesso e quais falharam",
+        "runs.autoRefresh": "Auto-atualizar (5s)",
+        "runs.refreshNow": "Atualizar Agora",
+        "runs.kpiTotal": "Total de Execuções",
+        "runs.kpiTotalSub": "runs registradas",
+        "runs.kpiClickAll": "Clique para mostrar todas",
+        "runs.kpiSuccess": "Iniciadas com Sucesso",
+        "runs.kpiSuccessSub": "concluídas OK",
+        "runs.kpiFailed": "Runs Falhadas / Erros",
+        "runs.kpiFailedSub": "erros detectados",
+        "runs.kpiFilterFailed": "Filtrar apenas falhas",
+        "runs.kpiLastRun": "Última Execução",
+        "runs.kpiAvgDuration": "Duração média:",
+        "runs.timelineTitle": "Linha do Tempo das Últimas Execuções",
+        "runs.timelineSub": "Cada barra representa uma execução (esquerda = antiga, direita = recente). Clique para ir ao detalhe.",
+        "runs.legendSuccess": "✓ Sucesso",
+        "runs.legendFailed": "✕ Falha",
+        "runs.byJobTitle": "Saúde por Cron Job",
+        "runs.byJobSub": "Clique em um cartão para filtrar esse job",
+        "runs.showAllJobs": "Mostrar todos os Jobs",
+        "runs.filterAll": "Todas",
+        "runs.filterSuccess": "Apenas Sucessos",
+        "runs.filterFailed": "Apenas Falhas",
+        "runs.allJobsOption": "Todos os Cron Jobs",
+        "runs.searchPlaceholder": "Buscar por nome do job, resposta, erro ou sessão...",
+        "runs.listHeading": "Lista de Execuções Recentes",
+        "runs.statusSuccess": "✓ INICIADA COM SUCESSO",
+        "runs.statusFailed": "✕ EXECUÇÃO FALHOU",
+        "runs.statusSkipped": "⏭ IGNORADA",
+        "runs.openInChat": "Abrir no Chat",
+        "runs.outputLabel": "Resposta do Cron Job:",
+        "runs.errorLabel": "Detalhe do Erro / Falha:",
+        "runs.expandMore": "Expandir tudo ▼",
+        "runs.expandLess": "Mostrar menos ▲",
+        "onboard.title": "Bem-vindo ao OpenCode Cron — Guia Rápido",
+        "onboard.subtitle": "Automatize tarefas recorrentes e monitoramento diretamente nas sessões OpenCode.",
+        "onboard.step1Title": "1. Agende um Job",
+        "onboard.step1Desc": "Escolha uma sessão principal, defina o intervalo (ex. 5m) e configure System + Followup Prompt.",
+        "onboard.step2Title": "2. Execução Autônoma 60s",
+        "onboard.step2Desc": "O daemon launchd executa tarefas vencidas em segundo plano mesmo com o navegador fechado.",
+        "onboard.step3Title": "3. Monitore Resultados e Chat",
+        "onboard.step3Desc": "Acompanhe no Chat ao Vivo ou abra Resultados Runs (/runs) para ver sucessos e falhas.",
+        "onboard.dismiss": "Ocultar dicas",
+        "guide.title": "Guia e Instruções do OpenCode Cron",
+        "guide.subtitle": "Manual interativo, arquitetura e solução de problemas",
+        "guide.shortcutHint": "Pressione ? a qualquer momento para abrir o guia",
+        "guide.closeBtn": "Entendi",
+        "guide.sec1Title": "⚡ 1. Como Funciona o OpenCode Cron",
+        "guide.sec1Body": "O daemon launchd verifica jobs.json a cada 60s, executa o turno na sessão escolhida, salva a memória Markdown e sincroniza o SQLite.",
+        "guide.sec2Title": "🚀 2. Criar ou Editar um Cron Job",
+        "guide.sec2Body": "Use intervalos (1m, 5m, 1h) ou expressões Cron de 5 campos. Defina o System Prompt fixo e o Followup Prompt de cada ciclo.",
+        "guide.sec3Title": "🧠 3. Memória Persistente (seenHashes)",
+        "guide.sec3Body": "O arquivo Markdown preserva fatos importantes e hashes já vistos para evitar duplicatas.",
+        "guide.sec4Title": "📊 4. Página 'Resultados Runs' (/runs)",
+        "guide.sec4Body": "Veja rapidamente quais execuções tiveram sucesso (✓ verde) e quais falharam (✕ vermelho), com duração e link para o chat.",
+        "guide.sec5Title": "🛠️ 5. Segurança e Solução de Problemas",
+        "guide.sec5Body": "Após 5 falhas consecutivas o job entra em pausa automaticamente. Se atingir Max Runs (CONCLUÍDO), aumente o limite ou defina 0."
+      },
+      zh: {
+        "app.liveBadge": "Web GUI 实时在线",
+        "nav.jobs": "定时任务",
+        "nav.chat": "实时对话",
+        "nav.memory": "持久记忆",
+        "nav.diff": "Git 变更",
+        "nav.logs": "系统日志",
+        "nav.runs": "运行结果",
+        "nav.historyRuns": "运行历史",
+        "nav.newJob": "新建任务",
+        "nav.guide": "使用指南",
+        "nav.dashboard": "主面板",
+        "kpi.activeTasks": "活动任务",
+        "kpi.totalRuns": "总运行次数 (查看结果 →)",
+        "kpi.launchd": "Launchd 守护进程",
+        "kpi.nextTick": "下次执行",
+        "jobs.heading": "已注册的定时任务 (Cron Jobs)",
+        "jobs.subheading": "直接向 OpenCode 会话写入结果的周期性自动化任务",
+        "jobs.runDueNow": "立即执行到期任务",
+        "jobs.emptyTitle": "尚未配置定时任务",
+        "jobs.emptyDesc": "创建您的第一个计划任务，在 OpenCode 会话中自动执行资讯监控、代码检查或定期报告。",
+        "jobs.createFirst": "创建第一个任务",
+        "job.active": "运行中",
+        "job.paused": "已暂停",
+        "job.completed": "已完成",
+        "job.schedule": "调度计划",
+        "job.executions": "执行次数",
+        "job.lastRun": "上次运行",
+        "job.nextRun": "下次运行",
+        "job.viewChat": "查看实时对话",
+        "job.memoryBtn": "记忆",
+        "job.editBtn": "编辑",
+        "modal.newTitle": "新建定时任务",
+        "modal.editTitle": "编辑定时任务",
+        "modal.fieldTitle": "任务名称",
+        "modal.fieldSchedule": "时间间隔或 Cron 表达式",
+        "modal.fieldMaxRuns": "最大运行次数 (0 = 无限)",
+        "modal.fieldSession": "目标 OpenCode 会话",
+        "modal.fieldModel": "LLM 模型 (可选)",
+        "modal.fieldSystem": "系统提示词 System Prompt (固定目标)",
+        "modal.fieldFollowup": "周期提示词 Followup Prompt (每次触发指令)",
+        "modal.cancel": "取消",
+        "modal.save": "保存任务",
+        "runs.pageTitle": "Cron 运行历史与结果监控",
+        "runs.pageSubtitle": "清晰直观地查看哪些定时任务成功启动、哪些执行失败",
+        "runs.autoRefresh": "自动刷新 (5秒)",
+        "runs.refreshNow": "立即刷新",
+        "runs.kpiTotal": "总执行次数",
+        "runs.kpiTotalSub": "条历史记录",
+        "runs.kpiClickAll": "点击显示全部",
+        "runs.kpiSuccess": "成功启动并完成",
+        "runs.kpiSuccessSub": "次执行成功",
+        "runs.kpiFailed": "执行失败 / 错误",
+        "runs.kpiFailedSub": "个错误记录",
+        "runs.kpiFilterFailed": "仅筛选失败记录",
+        "runs.kpiLastRun": "最近一次运行",
+        "runs.kpiAvgDuration": "平均响应耗时：",
+        "runs.timelineTitle": "最近运行状态时间轴",
+        "runs.timelineSub": "每根柱条代表一次运行（左=较早，右=最新）。点击任意柱条可跳转至对应详情。",
+        "runs.legendSuccess": "✓ 成功",
+        "runs.legendFailed": "✕ 失败",
+        "runs.byJobTitle": "各任务健康度汇总",
+        "runs.byJobSub": "点击任务卡片可单独筛选该任务的运行记录",
+        "runs.showAllJobs": "显示全部任务",
+        "runs.filterAll": "全部",
+        "runs.filterSuccess": "仅看成功",
+        "runs.filterFailed": "仅看失败",
+        "runs.allJobsOption": "所有定时任务",
+        "runs.searchPlaceholder": "搜索任务名称、输出内容、错误信息或会话 ID...",
+        "runs.listHeading": "最近运行明细列表",
+        "runs.statusSuccess": "✓ 成功启动并完成",
+        "runs.statusFailed": "✕ 执行失败",
+        "runs.statusSkipped": "⏭ 已跳过",
+        "runs.openInChat": "在对话中打开",
+        "runs.outputLabel": "Cron 任务输出内容：",
+        "runs.errorLabel": "错误 / 失败原因详情：",
+        "runs.expandMore": "展开全部 ▼",
+        "runs.expandLess": "收起 ▲",
+        "onboard.title": "欢迎使用 OpenCode Cron — 快速入门",
+        "onboard.subtitle": "在 OpenCode 会话中自动运行周期性搜索、监控与代码检查任务。",
+        "onboard.step1Title": "1. 创建计划任务",
+        "onboard.step1Desc": "选择主会话，设置运行间隔（如 5m 或 0 9 * * *），并填写系统与周期提示词。",
+        "onboard.step2Title": "2. 60秒后台守护进程",
+        "onboard.step2Desc": "macOS launchd 守护进程每 60 秒自动检查并运行到期任务，关闭浏览器也不受影响。",
+        "onboard.step3Title": "3. 查看运行结果与对话",
+        "onboard.step3Desc": "在“实时对话”中查看回复，或打开“运行结果”(/runs) 页面清晰排查成功与失败记录。",
+        "onboard.dismiss": "隐藏入门提示",
+        "guide.title": "OpenCode Cron 使用指南与说明",
+        "guide.subtitle": "交互式手册、系统架构与常见问题排查",
+        "guide.shortcutHint": "随时按 ? 键打开本指南",
+        "guide.closeBtn": "明白了",
+        "guide.sec1Title": "⚡ 1. 工作原理 (系统架构)",
+        "guide.sec1Body": "macOS launchd 守护进程 (ai.opencode.cron) 每 60 秒检查一次 jobs.json。到期后在目标会话中启动代理回合，更新 Markdown 持久记忆，并将 SQLite v2 消息同步镜像到 v1 表。",
+        "guide.sec2Title": "🚀 2. 创建与配置任务",
+        "guide.sec2Body": "支持简写间隔（1m、5m、1h）或 5 字段 Cron 表达式。建议绑定“💬 主会话”，System Prompt 设定固定规则，Followup Prompt 设定每次触发的具体指令。",
+        "guide.sec3Title": "🧠 3. 持久记忆与去重 (seenHashes)",
+        "guide.sec3Body": "即使会话被压缩，.opencode/cron/memory/<jobId>.md 仍会保留关键事实和已处理的 URL 哈希，防止重复汇报。",
+        "guide.sec4Title": "📊 4. 专用的“运行结果”页面 (/runs)",
+        "guide.sec4Body": "在 /runs 页面可一目了然地查看成功（绿色 ✓）与失败（红色 ✕）的运行记录、耗时、Token 消耗及错误详情。",
+        "guide.sec5Title": "🛠️ 5. 安全防护与故障排查",
+        "guide.sec5Body": "连续失败 5 次将自动暂停任务；达到最大运行次数（已完成）时，调高 Max Runs 或设为 0 即可继续运行。"
+      },
+      ja: {
+        "app.liveBadge": "Web GUI 稼働中",
+        "nav.jobs": "ジョブ & Cron",
+        "nav.chat": "ライブチャット",
+        "nav.memory": "メモリ",
+        "nav.diff": "Git Diff",
+        "nav.logs": "ログ",
+        "nav.runs": "実行結果 (Runs)",
+        "nav.historyRuns": "実行履歴",
+        "nav.newJob": "新規ジョブ",
+        "nav.guide": "ガイド",
+        "nav.dashboard": "ダッシュボード",
+        "kpi.activeTasks": "有効なタスク",
+        "kpi.totalRuns": "総実行回数 (結果を見る →)",
+        "kpi.launchd": "Launchd デーモン",
+        "kpi.nextTick": "次回ティック",
+        "jobs.heading": "登録済み Cron ジョブ",
+        "jobs.subheading": "OpenCode セッションに直接書き込む定期実行タスク",
+        "jobs.runDueNow": "期限到来ジョブを今すぐ実行",
+        "jobs.emptyTitle": "Cron ジョブが設定されていません",
+        "jobs.emptyDesc": "最初のスケジュールタスクを作成して、リサーチや監視、レポート作成を OpenCode 内で自動化しましょう。",
+        "jobs.createFirst": "最初のジョブを作成",
+        "job.active": "有効",
+        "job.paused": "一時停止",
+        "job.completed": "完了",
+        "job.schedule": "スケジュール",
+        "job.executions": "実行回数",
+        "job.lastRun": "最終実行",
+        "job.nextRun": "次回",
+        "job.viewChat": "チャットを見る",
+        "job.memoryBtn": "メモリ",
+        "job.editBtn": "編集",
+        "modal.newTitle": "新規 Cron ジョブ",
+        "modal.editTitle": "Cron ジョブを編集",
+        "modal.fieldTitle": "ジョブ名",
+        "modal.fieldSchedule": "間隔または Cron 式",
+        "modal.fieldMaxRuns": "最大実行回数 (0 = 無制限)",
+        "modal.fieldSession": "対象 OpenCode セッション",
+        "modal.fieldModel": "LLM モデル (任意)",
+        "modal.fieldSystem": "System Prompt (固定目標・ルール)",
+        "modal.fieldFollowup": "Followup Prompt (毎回の実行指示)",
+        "modal.cancel": "キャンセル",
+        "modal.save": "保存する",
+        "runs.pageTitle": "Cron 実行履歴・結果一覧 (Runs)",
+        "runs.pageSubtitle": "成功したジョブと失敗したジョブを一目で確認できます",
+        "runs.autoRefresh": "自動更新 (5秒)",
+        "runs.refreshNow": "今すぐ更新",
+        "runs.kpiTotal": "総実行回数",
+        "runs.kpiTotalSub": "件の記録",
+        "runs.kpiClickAll": "クリックですべて表示",
+        "runs.kpiSuccess": "成功した実行",
+        "runs.kpiSuccessSub": "件が正常完了",
+        "runs.kpiFailed": "失敗 / エラー",
+        "runs.kpiFailedSub": "件のエラー",
+        "runs.kpiFilterFailed": "失敗のみを絞り込む",
+        "runs.kpiLastRun": "最終実行日時",
+        "runs.kpiAvgDuration": "平均応答時間:",
+        "runs.timelineTitle": "直近の実行タイムライン",
+        "runs.timelineSub": "各バーは1回の実行を表します（左＝過去、右＝最新）。クリックすると詳細へ移動します。",
+        "runs.legendSuccess": "✓ 成功",
+        "runs.legendFailed": "✕ 失敗",
+        "runs.byJobTitle": "Cron ジョブ別の稼働状況",
+        "runs.byJobSub": "カードをクリックするとそのジョブの履歴だけを絞り込みます",
+        "runs.showAllJobs": "すべてのジョブを表示",
+        "runs.filterAll": "すべて",
+        "runs.filterSuccess": "成功のみ",
+        "runs.filterFailed": "失敗のみ",
+        "runs.allJobsOption": "すべての Cron ジョブ",
+        "runs.searchPlaceholder": "ジョブ名、出力テキスト、エラー、セッションIDで検索...",
+        "runs.listHeading": "最新の実行リスト",
+        "runs.statusSuccess": "✓ 正常に実行完了",
+        "runs.statusFailed": "✕ 実行失敗",
+        "runs.statusSkipped": "⏭ スキップ",
+        "runs.openInChat": "チャットで開く",
+        "runs.outputLabel": "Cron ジョブの出力:",
+        "runs.errorLabel": "エラー / 失敗の詳細:",
+        "runs.expandMore": "全文を表示 ▼",
+        "runs.expandLess": "折りたたむ ▲",
+        "onboard.title": "OpenCode Cron へようこそ — クイックスタート",
+        "onboard.subtitle": "定期的な調査やモニタリングを OpenCode セッション内で自動化します。",
+        "onboard.step1Title": "1. ジョブをスケジュール",
+        "onboard.step1Desc": "メインセッションを選び、間隔（例: 5m）と System / Followup プロンプトを設定します。",
+        "onboard.step2Title": "2. 60秒周期の自律デーモン",
+        "onboard.step2Desc": "macOS launchd デーモンがブラウザを閉じていてもバックグラウンドで自動実行します。",
+        "onboard.step3Title": "3. 実行結果とチャットを確認",
+        "onboard.step3Desc": "ライブチャットや「実行結果 (/runs)」ページで成功・失敗をすぐに確認できます。",
+        "onboard.dismiss": "ヒントを隠す",
+        "guide.title": "OpenCode Cron ガイド & 説明書",
+        "guide.subtitle": "インタラクティブマニュアル・仕組み・トラブルシューティング",
+        "guide.shortcutHint": "いつでも ? キーでこのガイドを開けます",
+        "guide.closeBtn": "閉じる",
+        "guide.sec1Title": "⚡ 1. OpenCode Cron の仕組み",
+        "guide.sec1Body": "launchd デーモンが60秒ごとに jobs.json を確認し、対象セッションでターンを実行、Markdownメモリを更新し SQLite を同期します。",
+        "guide.sec2Title": "🚀 2. ジョブの作成と編集",
+        "guide.sec2Body": "間隔（1m, 5m, 1h）または5フィールドの Cron 式を指定します。System Prompt に固定ルール、Followup Prompt に毎回の指示を記述します。",
+        "guide.sec3Title": "🧠 3. 永続メモリと重複排除 (seenHashes)",
+        "guide.sec3Body": "チャットが圧縮されても Markdown メモリが重要事項と既読ハッシュを保持し、重複を防ぎます。",
+        "guide.sec4Title": "📊 4. 実行結果ページ (/runs)",
+        "guide.sec4Body": "成功（緑 ✓）と失敗（赤 ✕）を一目で判別でき、所要時間やエラー内容、チャットへの直接リンクを提供します。",
+        "guide.sec5Title": "🛠️ 5. 安全機能とトラブルシューティング",
+        "guide.sec5Body": "5回連続で失敗すると自動停止します。上限到達（完了）時は Max Runs を増やすか 0 に設定してください。"
+      },
+      ar: {
+        "app.liveBadge": "واجهة الويب متصلة",
+        "nav.jobs": "المهام المجدولة",
+        "nav.chat": "المحادثة المباشرة",
+        "nav.memory": "الذاكرة",
+        "nav.diff": "تغييرات Git",
+        "nav.logs": "السجلات",
+        "nav.runs": "نتائج التشغيل",
+        "nav.historyRuns": "سجل التشغيل",
+        "nav.newJob": "مهمة جديدة",
+        "nav.guide": "الدليل",
+        "nav.dashboard": "لوحة التحكم",
+        "kpi.activeTasks": "المهام النشطة",
+        "kpi.totalRuns": "إجمالي مرات التشغيل (عرض ←)",
+        "kpi.launchd": "خدمة Launchd",
+        "kpi.nextTick": "التشغيل القادم",
+        "jobs.heading": "مهام Cron المسجلة",
+        "jobs.subheading": "مهام متكررة تكتب نتائجها مباشرة داخل جلسات OpenCode",
+        "jobs.runDueNow": "تشغيل المهام المستحقة الآن",
+        "jobs.emptyTitle": "لا توجد مهام مجدولة",
+        "jobs.emptyDesc": "أنشئ مهمتك المجدولة الأولى لأتمتة البحث أو المراقبة أو التقارير داخل جلسة OpenCode.",
+        "jobs.createFirst": "إنشاء أول مهمة Cron",
+        "job.active": "نشط",
+        "job.paused": "متوقف مؤقتاً",
+        "job.completed": "مكتمل",
+        "job.schedule": "الجدولة",
+        "job.executions": "مرات التشغيل",
+        "job.lastRun": "آخر تشغيل",
+        "job.nextRun": "القادم",
+        "job.viewChat": "فتح المحادثة",
+        "job.memoryBtn": "الذاكرة",
+        "job.editBtn": "تعديل",
+        "modal.newTitle": "مهمة Cron جديدة",
+        "modal.editTitle": "تعديل مهمة Cron",
+        "modal.fieldTitle": "عنوان المهمة",
+        "modal.fieldSchedule": "الفاصل الزمني أو تعبير Cron",
+        "modal.fieldMaxRuns": "الحد الأقصى للتشغيل (0 = غير محدود)",
+        "modal.fieldSession": "جلسة OpenCode المستهدفة",
+        "modal.fieldModel": "نموذج LLM (اختياري)",
+        "modal.fieldSystem": "System Prompt (الهدف والقواعد الثابتة)",
+        "modal.fieldFollowup": "Followup Prompt (تعليمات كل دورة)",
+        "modal.cancel": "إلغاء",
+        "modal.save": "حفظ المهمة",
+        "runs.pageTitle": "سجل ونتائج تشغيل مهام Cron",
+        "runs.pageSubtitle": "تحقق بوضوح من المهام التي عملت بنجاح وتلك التي فشلت",
+        "runs.autoRefresh": "تحديث تلقائي (5 ث)",
+        "runs.refreshNow": "تحديث الآن",
+        "runs.kpiTotal": "إجمالي عمليات التشغيل",
+        "runs.kpiTotalSub": "عملية مسجلة",
+        "runs.kpiClickAll": "اضغط لعرض الكل",
+        "runs.kpiSuccess": "عمليات ناجحة",
+        "runs.kpiSuccessSub": "اكتملت بنجاح",
+        "runs.kpiFailed": "عمليات فاشلة / أخطاء",
+        "runs.kpiFailedSub": "أخطاء مكتشفة",
+        "runs.kpiFilterFailed": "تصفية العمليات الفاشلة فقط",
+        "runs.kpiLastRun": "آخر عملية تشغيل",
+        "runs.kpiAvgDuration": "متوسط وقت الاستجابة:",
+        "runs.timelineTitle": "الشريط الزمني لآخر عمليات التشغيل",
+        "runs.timelineSub": "يمثل كل عمود عملية تشغيل. اضغط على أي عمود للانتقال إلى تفاصيله.",
+        "runs.legendSuccess": "✓ ناجحة",
+        "runs.legendFailed": "✕ فاشلة",
+        "runs.byJobTitle": "حالة الأداء لكل مهمة Cron",
+        "runs.byJobSub": "اضغط على أي بطاقة لتصفية السجل حسب تلك المهمة",
+        "runs.showAllJobs": "عرض كل المهام",
+        "runs.filterAll": "الكل",
+        "runs.filterSuccess": "الناجحة فقط",
+        "runs.filterFailed": "الفاشلة فقط",
+        "runs.allJobsOption": "جميع مهام Cron",
+        "runs.searchPlaceholder": "ابحث باسم المهمة أو المخرجات أو الخطأ أو معرف الجلسة...",
+        "runs.listHeading": "قائمة عمليات التشغيل الأخيرة",
+        "runs.statusSuccess": "✓ تمت العملية بنجاح",
+        "runs.statusFailed": "✕ فشل التشغيل",
+        "runs.statusSkipped": "⏭ تم التخطي",
+        "runs.openInChat": "فتح في المحادثة",
+        "runs.outputLabel": "مخرجات مهمة Cron:",
+        "runs.errorLabel": "تفاصيل الخطأ / الفشل:",
+        "runs.expandMore": "عرض الكل ▼",
+        "runs.expandLess": "عرض أقل ▲",
+        "onboard.title": "مرحباً بك في OpenCode Cron — دليل البدء السريع",
+        "onboard.subtitle": "أتمتة المهام المتكررة ومراقبة الأخبار مباشرة داخل جلسات OpenCode.",
+        "onboard.step1Title": "1. جدولة مهمة",
+        "onboard.step1Desc": "اختر جلسة رئيسية وحدد الفاصل الزمني (مثل 5m) واكتب تعليمات النظام والمتابعة.",
+        "onboard.step2Title": "2. تشغيل تلقائي كل 60 ثانية",
+        "onboard.step2Desc": "تعمل خدمة launchd في الخلفية حتى عند إغلاق المتصفح وتقوم بمزامنة قاعدة البيانات.",
+        "onboard.step3Title": "3. متابعة النتائج والمحادثة",
+        "onboard.step3Desc": "تابع الردود في المحادثة المباشرة أو افتح صفحة نتائج التشغيل (/runs) لمعرفة النجاح والفشل.",
+        "onboard.dismiss": "إخفاء النصائح",
+        "guide.title": "دليل وتعليمات OpenCode Cron",
+        "guide.subtitle": "الدليل التفاعلي، بنية النظام وحل المشكلات",
+        "guide.shortcutHint": "اضغط ? في أي وقت لفتح الدليل",
+        "guide.closeBtn": "حسناً، فهمت",
+        "guide.sec1Title": "⚡ 1. كيف يعمل OpenCode Cron",
+        "guide.sec1Body": "تقوم خدمة launchd بفحص ملف jobs.json كل 60 ثانية، وتشغيل المهمة في الجلسة المحددة، وتحديث ذاكرة Markdown ومزامنة SQLite.",
+        "guide.sec2Title": "🚀 2. إنشاء أو تعديل مهمة Cron",
+        "guide.sec2Body": "استخدم فواصل بسيطة (1m, 5m, 1h) أو تعبيرات Cron. اختر جلسة رئيسية وحدد System Prompt الثابت وFollowup Prompt لكل دورة.",
+        "guide.sec3Title": "🧠 3. الذاكرة الدائمة ومنع التكرار (seenHashes)",
+        "guide.sec3Body": "تحفظ ذاكرة Markdown الحقائق الأساسية والروابط التي تمت معالجتها لمنع التكرار حتى بعد ضغط المحادثة.",
+        "guide.sec4Title": "📊 4. صفحة نتائج التشغيل (/runs)",
+        "guide.sec4Body": "تعرض بوضوح العمليات الناجحة (✓ بالأخضر) والفاشلة (✕ بالأحمر) مع المدة والتفاصيل ورابط المحادثة.",
+        "guide.sec5Title": "🛠️ 5. الأمان وحل المشكلات",
+        "guide.sec5Body": "تتوقف المهمة تلقائياً بعد 5 إخفاقات متتالية. وإذا وصلت للحد الأقصى (مكتمل)، قم بزيادة Max Runs أو اضبطه على 0."
+      },
+      ru: {
+        "app.liveBadge": "Web GUI Онлайн",
+        "nav.jobs": "Задачи и Cron",
+        "nav.chat": "Живой Чат",
+        "nav.memory": "Память",
+        "nav.diff": "Git Diff",
+        "nav.logs": "Логи",
+        "nav.runs": "Итоги Запусков",
+        "nav.historyRuns": "История Запусков",
+        "nav.newJob": "Новая Задача",
+        "nav.guide": "Инструкция",
+        "nav.dashboard": "Панель",
+        "kpi.activeTasks": "Активные Задачи",
+        "kpi.totalRuns": "Всего Запусков (Итоги →)",
+        "kpi.launchd": "Демон Launchd",
+        "kpi.nextTick": "Следующий Тик",
+        "jobs.heading": "Зарегистрированные Cron-задачи",
+        "jobs.subheading": "Регулярные задачи, пишущие напрямую в сессии OpenCode",
+        "jobs.runDueNow": "Запустить Просроченные",
+        "jobs.emptyTitle": "Нет Настроенных Cron-задач",
+        "jobs.emptyDesc": "Создайте первую задачу по расписанию для автоматизации поиска, мониторинга или отчетов в OpenCode.",
+        "jobs.createFirst": "Создать Первую Задачу",
+        "job.active": "АКТИВНА",
+        "job.paused": "ПАУЗА",
+        "job.completed": "ЗАВЕРШЕНА",
+        "job.schedule": "Расписание",
+        "job.executions": "Выполнений",
+        "job.lastRun": "Последний",
+        "job.nextRun": "Следующий",
+        "job.viewChat": "Открыть Чат",
+        "job.memoryBtn": "Память",
+        "job.editBtn": "Изменить",
+        "modal.newTitle": "Новая Cron-задача",
+        "modal.editTitle": "Изменить Cron-задачу",
+        "modal.fieldTitle": "Название Задачи",
+        "modal.fieldSchedule": "Интервал или Cron-выражение",
+        "modal.fieldMaxRuns": "Макс. Запусков (0 = бесконечно)",
+        "modal.fieldSession": "Целевая Сессия OpenCode",
+        "modal.fieldModel": "Модель LLM (Опционально)",
+        "modal.fieldSystem": "System Prompt (Фиксированная Цель)",
+        "modal.fieldFollowup": "Followup Prompt (Команда на каждый тик)",
+        "modal.cancel": "Отмена",
+        "modal.save": "Сохранить",
+        "runs.pageTitle": "История и Итоги Запусков Cron (Runs)",
+        "runs.pageSubtitle": "Наглядный контроль успешных и завершившихся с ошибкой запусков cron",
+        "runs.autoRefresh": "Автообновление (5с)",
+        "runs.refreshNow": "Обновить Сейчас",
+        "runs.kpiTotal": "Всего Запусков",
+        "runs.kpiTotalSub": "записей в истории",
+        "runs.kpiClickAll": "Нажмите, чтобы показать все",
+        "runs.kpiSuccess": "Успешные Запуски",
+        "runs.kpiSuccessSub": "выполнены без ошибок",
+        "runs.kpiFailed": "Ошибки / Сбои",
+        "runs.kpiFailedSub": "обнаружено сбоев",
+        "runs.kpiFilterFailed": "Показать только ошибки",
+        "runs.kpiLastRun": "Последний Запуск",
+        "runs.kpiAvgDuration": "Среднее время ответа:",
+        "runs.timelineTitle": "Хронологическая Шкала Последних Запусков",
+        "runs.timelineSub": "Каждый столбец — отдельный запуск (слева старые, справа новые). Нажмите для перехода к деталям.",
+        "runs.legendSuccess": "✓ Успешно",
+        "runs.legendFailed": "✕ Ошибка",
+        "runs.byJobTitle": "Статистика по Каждой Cron-задаче",
+        "runs.byJobSub": "Нажмите на карточку, чтобы отфильтровать список по этой задаче",
+        "runs.showAllJobs": "Показать все задачи",
+        "runs.filterAll": "Все",
+        "runs.filterSuccess": "Только Успешные",
+        "runs.filterFailed": "Только Ошибки",
+        "runs.allJobsOption": "Все Cron-задачи",
+        "runs.searchPlaceholder": "Поиск по названию задачи, тексту ответа, ошибке или ID сессии...",
+        "runs.listHeading": "Список Последних Запусков",
+        "runs.statusSuccess": "✓ УСПЕШНЫЙ ЗАПУСК",
+        "runs.statusFailed": "✕ ОШИБКА ВЫПОЛНЕНИЯ",
+        "runs.statusSkipped": "⏭ ПРОПУЩЕНО",
+        "runs.openInChat": "Открыть в Чате",
+        "runs.outputLabel": "Ответ Cron-задачи:",
+        "runs.errorLabel": "Подробности Ошибки / Сбоя:",
+        "runs.expandMore": "Развернуть полностью ▼",
+        "runs.expandLess": "Свернуть ▲",
+        "onboard.title": "Добро пожаловать в OpenCode Cron — Быстрый Старт",
+        "onboard.subtitle": "Автоматизируйте регулярные задачи, мониторинг и проверки прямо в сессиях OpenCode.",
+        "onboard.step1Title": "1. Запланируйте Задачу",
+        "onboard.step1Desc": "Выберите основную сессию, задайте интервал (напр. 5m) и укажите System + Followup Prompt.",
+        "onboard.step2Title": "2. Автономный Демон (60с)",
+        "onboard.step2Desc": "Системный демон launchd выполняет задачи в фоне даже при закрытом браузере.",
+        "onboard.step3Title": "3. Контролируйте Итоги и Чат",
+        "onboard.step3Desc": "Следите за ответами в Живом Чате или откройте страницу Итоги Запусков (/runs).",
+        "onboard.dismiss": "Скрыть подсказки",
+        "guide.title": "Руководство и Инструкции OpenCode Cron",
+        "guide.subtitle": "Интерактивный справочник, архитектура и решение проблем",
+        "guide.shortcutHint": "Нажмите ? в любой момент для открытия инструкции",
+        "guide.closeBtn": "Понятно",
+        "guide.sec1Title": "⚡ 1. Как Работает OpenCode Cron",
+        "guide.sec1Body": "Демон launchd каждые 60 секунд проверяет jobs.json, запускает ход в выбранной сессии, обновляет Markdown-память и синхронизирует SQLite.",
+        "guide.sec2Title": "🚀 2. Создание и Настройка Задачи",
+        "guide.sec2Body": "Используйте интервалы (1m, 5m, 1h) или Cron-выражения из 5 полей. System Prompt задает неизменные правила, а Followup Prompt — задачу каждого тика.",
+        "guide.sec3Title": "🧠 3. Постоянная Память (seenHashes)",
+        "guide.sec3Body": "Файл памяти сохраняет ключевые факты и хеши просмотренных ссылок, предотвращая дублирование.",
+        "guide.sec4Title": "📊 4. Страница «Итоги Запусков» (/runs)",
+        "guide.sec4Body": "Позволяет мгновенно увидеть успешные (✓ зеленые) и неудачные (✕ красные) запуски, время ответа и перейти в чат.",
+        "guide.sec5Title": "🛠️ 5. Защита и Устранение Неполадок",
+        "guide.sec5Body": "После 5 ошибок подряд задача ставится на паузу. Если достигнут лимит Max Runs (ЗАВЕРШЕНА), увеличьте лимит или укажите 0."
+      }
+    };
+
+    let currentLang = localStorage.getItem('oc_cron_lang') || 'it';
+    if (!OC_I18N[currentLang]) currentLang = 'it';
+
+    function t(key, fallback) {
+      const dict = OC_I18N[currentLang] || OC_I18N.it;
+      return dict[key] || OC_I18N.it[key] || OC_I18N.en[key] || fallback || key;
+    }
+
+    function setLanguage(langCode) {
+      if (!OC_I18N[langCode]) return;
+      currentLang = langCode;
+      localStorage.setItem('oc_cron_lang', langCode);
+      const langMeta = OC_SUPPORTED_LANGS.find(l => l.code === langCode);
+      document.documentElement.setAttribute('lang', langCode);
+      document.documentElement.setAttribute('dir', langMeta && langMeta.rtl ? 'rtl' : 'ltr');
+
+      const sel = document.getElementById('oc-lang-select');
+      if (sel && sel.value !== langCode) sel.value = langCode;
+
+      applyStaticTranslations();
+      renderGuideDrawerContent();
+
+      // Re-render dynamic views if present on current page
+      if (typeof renderJobs === 'function' && typeof currentJobs !== 'undefined') {
+        try { renderJobs(currentJobs); } catch {}
+      }
+      if (typeof renderKpis === 'function') {
+        try { renderKpis(); } catch {}
+      }
+      if (typeof renderTimelineStrip === 'function') {
+        try { renderTimelineStrip(); } catch {}
+      }
+      if (typeof renderByJobCards === 'function') {
+        try { renderByJobCards(); } catch {}
+      }
+      if (typeof populateJobDropdown === 'function') {
+        try { populateJobDropdown(); } catch {}
+      }
+      if (typeof renderRunsList === 'function') {
+        try { renderRunsList(); } catch {}
+      }
+    }
+
+    function applyStaticTranslations() {
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.getAttribute('data-i18n');
+        if (key) el.textContent = t(key, el.textContent);
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (key) el.setAttribute('placeholder', t(key, el.getAttribute('placeholder')));
+      });
+      document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-aria');
+        if (key) el.setAttribute('aria-label', t(key, el.getAttribute('aria-label')));
+      });
+    }
+
+    function renderGuideDrawerContent() {
+      const body = document.getElementById('oc-guide-body');
+      if (!body) return;
+      const sections = [
+        { title: t('guide.sec1Title'), body: t('guide.sec1Body'), icon: 'fa-bolt text-amber-400', border: 'border-amber-500/25' },
+        { title: t('guide.sec2Title'), body: t('guide.sec2Body'), icon: 'fa-calendar-plus text-indigo-400', border: 'border-indigo-500/25' },
+        { title: t('guide.sec3Title'), body: t('guide.sec3Body'), icon: 'fa-brain text-purple-400', border: 'border-purple-500/25' },
+        { title: t('guide.sec4Title'), body: t('guide.sec4Body'), icon: 'fa-chart-line text-emerald-400', border: 'border-emerald-500/25' },
+        { title: t('guide.sec5Title'), body: t('guide.sec5Body'), icon: 'fa-shield-halved text-rose-400', border: 'border-rose-500/25' }
+      ];
+      body.innerHTML = sections.map(s => \`
+        <div class="bg-gray-900/90 border \${s.border} rounded-2xl p-4 space-y-2">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid \${s.icon}"></i>
+            <span>\${s.title}</span>
+          </h3>
+          <p class="text-xs text-gray-300 whitespace-pre-line leading-relaxed">\${s.body}</p>
+        </div>
+      \`).join('');
+    }
+
+    function openGuideDrawer() {
+      const drawer = document.getElementById('oc-guide-drawer');
+      const backdrop = document.getElementById('oc-guide-backdrop');
+      if (!drawer || !backdrop) return;
+      renderGuideDrawerContent();
+      backdrop.classList.remove('hidden');
+      drawer.classList.remove('translate-x-full', 'rtl:-translate-x-full');
+      setTimeout(() => drawer.focus(), 50);
+    }
+
+    function closeGuideDrawer() {
+      const drawer = document.getElementById('oc-guide-drawer');
+      const backdrop = document.getElementById('oc-guide-backdrop');
+      if (!drawer || !backdrop) return;
+      drawer.classList.add('translate-x-full', 'rtl:-translate-x-full');
+      backdrop.classList.add('hidden');
+    }
+
+    function dismissOnboardingBanner() {
+      localStorage.setItem('oc_cron_onboard_dismissed', '1');
+      const banner = document.getElementById('oc-onboarding-banner');
+      if (banner) banner.classList.add('hidden');
+    }
+
+    function initOnboardingBanner() {
+      const banner = document.getElementById('oc-onboarding-banner');
+      if (!banner) return;
+      if (localStorage.getItem('oc_cron_onboard_dismissed') === '1') {
+        banner.classList.add('hidden');
+      } else {
+        banner.classList.remove('hidden');
+      }
+    }
+
+    // Universal Accessible Tooltip Engine
+    function initAccessibleTooltips() {
+      const tooltipEl = document.getElementById('oc-tooltip');
+      if (!tooltipEl) return;
+      let activeTarget = null;
+
+      function showTooltipFor(target) {
+        if (!target) return;
+        const key = target.getAttribute('data-tooltip');
+        const raw = target.getAttribute('data-tooltip-raw');
+        const text = key ? t(key, raw || '') : raw;
+        if (!text) return;
+
+        activeTarget = target;
+        tooltipEl.textContent = text;
+        tooltipEl.setAttribute('aria-hidden', 'false');
+        tooltipEl.setAttribute('data-visible', 'true');
+        target.setAttribute('aria-describedby', 'oc-tooltip');
+
+        const rect = target.getBoundingClientRect();
+        const ttRect = tooltipEl.getBoundingClientRect();
+        let top = rect.bottom + 8;
+        if (top + ttRect.height > window.innerHeight - 12) {
+          top = Math.max(12, rect.top - ttRect.height - 8);
+        }
+        let left = rect.left + (rect.width / 2) - (ttRect.width / 2);
+        left = Math.max(12, Math.min(left, window.innerWidth - ttRect.width - 12));
+
+        tooltipEl.style.top = Math.round(top) + 'px';
+        tooltipEl.style.left = Math.round(left) + 'px';
+      }
+
+      function hideTooltip() {
+        if (activeTarget) {
+          activeTarget.removeAttribute('aria-describedby');
+          activeTarget = null;
+        }
+        tooltipEl.setAttribute('data-visible', 'false');
+        tooltipEl.setAttribute('aria-hidden', 'true');
+      }
+
+      document.addEventListener('mouseover', (e) => {
+        const el = e.target && e.target.closest ? e.target.closest('[data-tooltip], [data-tooltip-raw]') : null;
+        if (el) showTooltipFor(el);
+        else if (activeTarget) hideTooltip();
+      });
+
+      document.addEventListener('focusin', (e) => {
+        const el = e.target && e.target.closest ? e.target.closest('[data-tooltip], [data-tooltip-raw]') : null;
+        if (el) showTooltipFor(el);
+      });
+
+      document.addEventListener('focusout', () => hideTooltip());
+      window.addEventListener('scroll', () => { if (activeTarget) hideTooltip(); }, true);
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          hideTooltip();
+          closeGuideDrawer();
+        } else if (e.key === '?' && !['INPUT', 'TEXTAREA', 'SELECT'].includes((document.activeElement && document.activeElement.tagName) || '')) {
+          e.preventDefault();
+          openGuideDrawer();
+        }
+      });
+    }
+
+    // ============================================================================
+    // INTERACTIVE GUIDED DEMO TOUR ENGINE (FIRST VISIT ONBOARDING)
+    // ============================================================================
+    const OC_TOUR_STEPS = [
+      {
+        title: "1. Benvenuto in OpenCode Cron",
+        desc: "Esegui task autonomi stile ChatGPT programmando turni ricorrenti direttamente nelle tue sessioni OpenCode.",
+        icon: "fa-rocket",
+        color: "text-indigo-400",
+        highlight: "La cronologia della conversazione viene preservata ad ogni tick."
+      },
+      {
+        title: "2. Imposta Cron con 1 Clic su Qualsiasi Conversazione",
+        desc: "Nella scheda Live Chat puoi cliccare su '⚡ Imposta Cron' nel banner della sessione per pre-selezionarla istantaneamente nel configuratore.",
+        icon: "fa-bolt",
+        color: "text-amber-400",
+        highlight: "Nessun bisogno di cercare manualmente l'ID: binding immediato."
+      },
+      {
+        title: "3. Builder Visuale di Pianificazione & Durata",
+        desc: "Usa intervalli semplici (5m, 1h) o espressioni Cron a 5 campi (0 9 * * *). Imposta Max Runs a 0 per durata infinita o fissa un limite numerico.",
+        icon: "fa-clock",
+        color: "text-purple-400",
+        highlight: "Anteprima predittiva in tempo reale con data e ora dei prossimi 3 tick."
+      },
+      {
+        title: "4. Memoria Persistente Markdown (seenHashes)",
+        desc: "Anche dopo la compattazione di chat lunghe centinaia di messaggi, il file .opencode/cron/memory/<id>.md preserva i fatti chiave e deduplica i risultati.",
+        icon: "fa-brain",
+        color: "text-emerald-400",
+        highlight: "Nessuna duplicazione di notizie o alert già visti in precedenza."
+      },
+      {
+        title: "5. Verifica Esiti delle Runs & Demone launchd 60s",
+        desc: "Il demone macOS esegue i compiti in background ogni 60 secondi anche a browser chiuso. Nella pagina /runs verifichi a colpo d'occhio successi ed errori.",
+        icon: "fa-chart-line",
+        color: "text-cyan-400",
+        highlight: "Con un clic passi dalla scheda dell'errore al messaggio esatto in Live Chat."
+      }
+    ];
+
+    let ocCurrentTourStep = 0;
+
+    function renderTourStep(index) {
+      const step = OC_TOUR_STEPS[index];
+      const container = document.getElementById('tour-slide-container');
+      const ind = document.getElementById('tour-step-indicator');
+      const prevBtn = document.getElementById('tour-prev-btn');
+      const nextBtn = document.getElementById('tour-next-btn');
+      const dots = document.getElementById('tour-dots');
+
+      if (!step || !container) return;
+
+      if (ind) ind.textContent = 'Passo ' + (index + 1) + ' di ' + OC_TOUR_STEPS.length;
+      if (prevBtn) prevBtn.disabled = (index === 0);
+      if (nextBtn) {
+        if (index === OC_TOUR_STEPS.length - 1) {
+          nextBtn.innerHTML = 'Concludi Demo <i class="fa-solid fa-check ml-1"></i>';
+          nextBtn.className = 'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-md shadow-emerald-600/30 transition-all cursor-pointer';
+        } else {
+          nextBtn.innerHTML = 'Avanti <i class="fa-solid fa-arrow-right ml-1"></i>';
+          nextBtn.className = 'px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md shadow-indigo-600/30 transition-all cursor-pointer';
+        }
+      }
+
+      if (dots) {
+        dots.innerHTML = OC_TOUR_STEPS.map((_, i) => \`
+          <span class="w-2.5 h-2.5 rounded-full transition-all \${i === index ? 'bg-indigo-500 w-5' : 'bg-gray-700'}"></span>
+        \`).join('');
+      }
+
+      container.innerHTML = \`
+        <div class="space-y-4 animate-fadeIn">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-gray-900 border border-darkborder flex items-center justify-center shrink-0">
+              <i class="fa-solid \${step.icon} text-xl \${step.color}"></i>
+            </div>
+            <h4 class="text-base sm:text-lg font-bold text-white tracking-tight">\${step.title}</h4>
+          </div>
+          <p class="text-xs sm:text-sm text-gray-300 leading-relaxed">\${step.desc}</p>
+          <div class="p-3 bg-gray-950/80 rounded-xl border border-indigo-500/20 text-xs text-indigo-300 flex items-center gap-2">
+            <i class="fa-solid fa-lightbulb text-amber-400 shrink-0"></i>
+            <span>\${step.highlight}</span>
+          </div>
+        </div>
+      \`;
+    }
+
+    function startGuidedDemo() {
+      ocCurrentTourStep = 0;
+      renderTourStep(0);
+      const modal = document.getElementById('oc-tour-modal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeTourModal() {
+      const modal = document.getElementById('oc-tour-modal');
+      if (modal) modal.classList.add('hidden');
+      localStorage.setItem('oc_cron_tour_seen', '1');
+    }
+
+    function nextTourStep() {
+      if (ocCurrentTourStep < OC_TOUR_STEPS.length - 1) {
+        ocCurrentTourStep++;
+        renderTourStep(ocCurrentTourStep);
+      } else {
+        closeTourModal();
+      }
+    }
+
+    function prevTourStep() {
+      if (ocCurrentTourStep > 0) {
+        ocCurrentTourStep--;
+        renderTourStep(ocCurrentTourStep);
+      }
+    }
+
+    function initOcUiEnhancements() {
+      initAccessibleTooltips();
+      initOnboardingBanner();
+      setLanguage(currentLang);
+
+      // Auto-trigger demo on very first visit
+      if (!localStorage.getItem('oc_cron_tour_seen')) {
+        setTimeout(() => startGuidedDemo(), 700);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initOcUiEnhancements();
+    });
+  `;
+}
+
+export function getHeaderControlsHtml(): string {
+  return `
+    <!-- Direct link to Instructions / Guide Page -->
+    <a
+      href="/instructions"
+      data-tooltip="tt.navInstructions"
+      class="bg-gray-900 hover:bg-gray-800 text-indigo-300 hover:text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border border-indigo-500/30 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+    >
+      <i class="fa-solid fa-book text-indigo-400 text-xs"></i>
+      <span class="hidden md:inline" data-i18n="nav.instructions">Istruzioni</span>
+    </a>
+
+    <!-- Interactive Guided Demo Tour Button -->
+    <button
+      type="button"
+      onclick="startGuidedDemo()"
+      data-tooltip="tt.tourBtn"
+      class="bg-gray-900 hover:bg-gray-800 text-amber-300 hover:text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border border-amber-500/30 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+    >
+      <i class="fa-solid fa-wand-magic-sparkles text-amber-400 text-xs"></i>
+      <span class="hidden lg:inline" data-i18n="tour.startBtn">Demo</span>
+    </button>
+
+    <!-- Language Selector (10 Languages) -->
+    <div class="relative flex items-center shrink-0" data-tooltip="tt.liveBadge">
+      <label for="oc-lang-select" class="sr-only">Lingua / Language</label>
+      <select
+        id="oc-lang-select"
+        onchange="setLanguage(this.value)"
+        aria-label="Seleziona lingua interfaccia"
+        class="bg-gray-900 hover:bg-gray-800 text-gray-200 text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-darkborder focus:outline-none focus:border-brand-500 cursor-pointer transition-colors"
+      >
+        <option value="it">🇮🇹 IT</option>
+        <option value="en">🇬🇧 EN</option>
+        <option value="es">🇪🇸 ES</option>
+        <option value="fr">🇫🇷 FR</option>
+        <option value="de">🇩🇪 DE</option>
+        <option value="pt">🇵🇹 PT</option>
+        <option value="zh">🇨🇳 中文</option>
+        <option value="ja">🇯🇵 日本語</option>
+        <option value="ar">🇸🇦 العربية</option>
+        <option value="ru">🇷🇺 RU</option>
+      </select>
+    </div>
+
+    <!-- Interactive Guide Drawer Button -->
+    <button
+      type="button"
+      id="oc-guide-btn"
+      onclick="openGuideDrawer()"
+      data-tooltip="guide.shortcutHint"
+      class="bg-gray-900 hover:bg-gray-800 text-indigo-300 hover:text-white px-3 py-1.5 rounded-xl text-xs font-semibold border border-indigo-500/30 flex items-center gap-1.5 transition-all shrink-0"
+    >
+      <i class="fa-solid fa-circle-question text-indigo-400"></i>
+      <span class="hidden sm:inline" data-i18n="nav.guide">Guida</span>
+    </button>
+  `;
+}
+
+export function getOnboardingBannerHtml(): string {
+  return `
+    <!-- Quick-Start Collapsible Instructions Banner -->
+    <section id="oc-onboarding-banner" aria-label="Guida Rapida Primi Passi" class="bg-gradient-to-r from-indigo-950/60 via-darkcard to-emerald-950/40 border border-indigo-500/30 rounded-2xl p-4 sm:p-5 shadow-lg">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-800/80">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+          </span>
+          <div>
+            <h2 class="text-sm font-bold text-white" data-i18n="onboard.title">Benvenuto in OpenCode Cron — Guida Rapida</h2>
+            <p class="text-xs text-gray-300" data-i18n="onboard.subtitle">Automatizza task ricorrenti, monitoraggio notizie e controlli codice direttamente nelle sessioni OpenCode.</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 self-end sm:self-center">
+          <button type="button" onclick="openGuideDrawer()" class="px-3 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/30 text-xs font-semibold">
+            <i class="fa-solid fa-book-open mr-1"></i> <span data-i18n="nav.guide">Guida</span>
+          </button>
+          <button type="button" onclick="dismissOnboardingBanner()" class="px-2.5 py-1 rounded-lg bg-gray-800/80 hover:bg-gray-700 text-gray-400 hover:text-white text-xs" data-i18n="onboard.dismiss">
+            Nascondi suggerimenti
+          </button>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 text-xs">
+        <div class="bg-gray-900/70 border border-gray-800 rounded-xl p-3">
+          <p class="font-bold text-indigo-300 mb-1" data-i18n="onboard.step1Title">1. Pianifica un Job</p>
+          <p class="text-gray-300 leading-relaxed" data-i18n="onboard.step1Desc">Scegli una sessione principale, imposta l'intervallo (es. 5m o 0 9 * * *) e definisci System + Followup Prompt.</p>
+        </div>
+        <div class="bg-gray-900/70 border border-gray-800 rounded-xl p-3">
+          <p class="font-bold text-emerald-300 mb-1" data-i18n="onboard.step2Title">2. Esecuzione Autonoma 60s</p>
+          <p class="text-gray-300 leading-relaxed" data-i18n="onboard.step2Desc">Il demone macOS launchd esegue i job scaduti in background anche a browser chiuso e sincronizza il DB SQLite.</p>
+        </div>
+        <div class="bg-gray-900/70 border border-gray-800 rounded-xl p-3">
+          <p class="font-bold text-amber-300 mb-1" data-i18n="onboard.step3Title">3. Controlla Esiti & Chat</p>
+          <p class="text-gray-300 leading-relaxed" data-i18n="onboard.step3Desc">Segui le risposte in tempo reale in Live Chat oppure apri la pagina Esiti Runs per vedere successi ed errori.</p>
+        </div>
+      </div>
+    </section>
+  `;
+}

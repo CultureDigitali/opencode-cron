@@ -65,7 +65,12 @@ export const CronPlugin = Plugin.define({
           const text = md
             ? `## Cron Memory ${j.id} (persistent source of truth)\n${md.slice(0, 4000)}`
             : `## Cron ${j.id}: goal=${j.title}. Followup: ${j.followupPrompt.slice(0, 500)}`;
-          if (Array.isArray(event?.messages)) event.messages.push({ role: "user", content: text } as never);
+          if (Array.isArray(event?.messages)) {
+            event.messages.push({
+              role: "user",
+              content: [{ type: "text", text }],
+            } as never);
+          }
         }
       } catch { /* never break compaction */ }
     });
@@ -221,6 +226,7 @@ export const CronPlugin = Plugin.define({
             id: idProp,
             md: { type: "string", description: "Full updated memory markdown" },
             seenHashes: { type: "array", items: { type: "string" } },
+            counts: { type: "object", additionalProperties: { type: "number" } },
             news: { type: "number" },
             tweets: { type: "number" },
           },
@@ -232,12 +238,16 @@ export const CronPlugin = Plugin.define({
           if (String(input.md).length > 32000) throw new Error("Memory too large (max 32000 chars).");
           const dir = await sessionDir(String(tctx.sessionID));
           const prev = await readMemory(dir, String(input.id));
+          const mergedCounts: Record<string, number> = {
+            ...(prev.state.counts ?? {}),
+            ...(input.counts && typeof input.counts === "object" ? input.counts : {}),
+          };
+          if (typeof input.news === "number") mergedCounts.news = input.news;
+          if (typeof input.tweets === "number") mergedCounts.tweets = input.tweets;
+
           await writeMemory(dir, String(input.id), String(input.md), {
             seenHashes: Array.isArray(input.seenHashes) ? input.seenHashes.map(String) : prev.state.seenHashes,
-            counts: {
-              news: typeof input.news === "number" ? input.news : prev.state.counts.news,
-              tweets: typeof input.tweets === "number" ? input.tweets : prev.state.counts.tweets,
-            },
+            counts: mergedCounts,
             lastRunAt: new Date().toISOString(),
             consecutiveFailures: 0,
           });
