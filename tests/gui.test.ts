@@ -309,6 +309,40 @@ describe("GUI Server API", () => {
     expect(body.ok).toBe(false);
     expect(body.error).toContain("Cross-site mutation rejected");
   });
+
+  it("provides bilingual English schedule preview and guarantees guided tour close reliability", async () => {
+    // 1. English preview for interval
+    const resEnInterval = await fetch(`${baseUrl}/api/schedule/preview?q=15m&lang=en`);
+    expect(resEnInterval.status).toBe(200);
+    const dataEnInterval: any = await resEnInterval.json();
+    expect(dataEnInterval.valid).toBe(true);
+    expect(dataEnInterval.description).toContain("Every 15 minutes");
+
+    // 2. English preview for cron
+    const resEnCron = await fetch(`${baseUrl}/api/schedule/preview?q=0%209%20*%20*%20*&lang=en`);
+    expect(resEnCron.status).toBe(200);
+    const dataEnCron: any = await resEnCron.json();
+    expect(dataEnCron.valid).toBe(true);
+    expect(dataEnCron.description).toContain("Every day at 09:00");
+
+    // 3. Verify Spotlight close handlers and CSS !important rules on Dashboard
+    const dashRes = await fetch(`${baseUrl}/`);
+    const dashHtml = await dashRes.text();
+    expect(dashHtml).toContain('id="oc-spotlight-close-btn"');
+    expect(dashHtml).toContain('stopGuidedDemo(event)');
+    expect(dashHtml).toContain('#oc-spotlight-backdrop.hidden');
+    expect(dashHtml).toContain('display: none !important');
+    expect(dashHtml).toContain('isSpotlightActive = false');
+
+    // 4. Verify Tour modal and bilingual support on Instructions page
+    const instRes = await fetch(`${baseUrl}/instructions`);
+    const instHtml = await instRes.text();
+    expect(instHtml).toContain('id="instructions-tour-modal"');
+    expect(instHtml).toContain('closeTourModal(event)');
+    expect(instHtml).toContain('TOUR_STEPS_IT');
+    expect(instHtml).toContain('TOUR_STEPS_EN');
+    expect(instHtml).toContain('renderInstructionsPage');
+  });
 });
 
 

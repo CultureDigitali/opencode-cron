@@ -202,7 +202,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         <!-- Rendered by JS -->
         <div class="col-span-full py-16 text-center text-gray-500 bg-darkcard/50 rounded-2xl border border-dashed border-darkborder">
           <i class="fa-solid fa-spinner fa-spin text-2xl mb-3 text-indigo-400"></i>
-          <p class="text-sm">Caricamento job in corso...</p>
+          <p class="text-sm" data-i18n="loading.jobs">Caricamento job in corso...</p>
         </div>
       </div>
     </section>
@@ -236,10 +236,10 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
               <span class="text-xs text-gray-400 font-medium" data-i18n="chat.sessionLabel">Sessione:</span>
               <div id="session-trigger-badge" class="flex items-center gap-1.5">
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-800 text-gray-300">
-                  <i class="fa-solid fa-spinner fa-spin text-[9px]"></i> Caricamento...
+                  <i class="fa-solid fa-spinner fa-spin text-[9px]"></i> <span data-i18n="loading.generic">Caricamento...</span>
                 </span>
               </div>
-              <span id="session-trigger-title" class="font-bold text-gray-100 max-w-[150px] sm:max-w-[220px] md:max-w-[280px] truncate block text-left">
+              <span id="session-trigger-title" class="font-bold text-gray-100 max-w-[150px] sm:max-w-[220px] md:max-w-[280px] truncate block text-left" data-i18n="loading.generic">
                 Caricamento...
               </span>
               <span id="session-trigger-time" class="text-[10px] text-gray-500 hidden sm:inline-block font-mono">
@@ -250,7 +250,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
 
             <!-- Hidden native select for programmatic and test compatibility -->
             <select id="chat-session-select" onchange="selectSession(this.value)" class="sr-only" tabindex="-1" aria-hidden="true">
-              <option value="">Caricamento sessioni...</option>
+              <option value="" data-i18n="loading.sessions">Caricamento sessioni...</option>
             </select>
 
             <!-- Dropdown Popover Menu -->
@@ -395,7 +395,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         <div id="chat-messages" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           <div class="text-center py-20 text-gray-500">
             <i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-400 mb-3"></i>
-            <p class="text-sm">Caricamento conversazione in tempo reale...</p>
+            <p class="text-sm" data-i18n="loading.chat">Caricamento conversazione in tempo reale...</p>
           </div>
         </div>
 
@@ -514,7 +514,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       <div id="git-stat-bar" class="p-3 bg-darkcard border border-darkborder rounded-xl text-xs flex flex-wrap items-center justify-between gap-2">
         <div class="flex items-center gap-2 text-gray-300 font-mono text-[11px]">
           <i class="fa-solid fa-chart-simple text-indigo-400"></i>
-          <span id="git-stat-summary">Caricamento stato Git...</span>
+          <span id="git-stat-summary" data-i18n="loading.git">Caricamento stato Git...</span>
         </div>
         <div id="git-files-summary" class="flex items-center gap-2 text-[11px]"></div>
       </div>
@@ -531,7 +531,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
             </button>
           </div>
           <div id="git-file-list" class="flex-1 overflow-y-auto space-y-1 pr-1">
-            <div class="text-center py-12 text-gray-500 text-xs">Caricamento file...</div>
+            <div class="text-center py-12 text-gray-500 text-xs" data-i18n="loading.generic">Caricamento file...</div>
           </div>
         </div>
 
@@ -546,7 +546,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           <div id="git-diff-content" class="flex-1 overflow-auto p-4 bg-gray-950 font-mono text-[11px] leading-relaxed select-text">
             <div class="text-center py-20 text-gray-500">
               <i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-400 mb-2"></i>
-              <p class="text-xs">Caricamento diff...</p>
+              <p class="text-xs" data-i18n="loading.diff">Caricamento diff...</p>
             </div>
           </div>
         </div>
@@ -655,8 +655,8 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           <i class="fa-solid fa-triangle-exclamation text-base"></i>
         </div>
         <div>
-          <h3 id="confirm-modal-title" class="text-sm font-bold text-white">Conferma Eliminazione</h3>
-          <p class="text-[11px] text-gray-400">Azione irreversibile</p>
+          <h3 id="confirm-modal-title" class="text-sm font-bold text-white" data-i18n="modal.deleteTitle">Conferma Eliminazione</h3>
+          <p class="text-[11px] text-gray-400" data-i18n="modal.irreversibleAction">Azione irreversibile</p>
         </div>
       </div>
       <p id="confirm-modal-message" class="text-xs text-gray-300 leading-relaxed mt-2 bg-gray-950/60 p-3 rounded-xl border border-darkborder">Sei sicuro di voler eliminare questo job?</p>
@@ -777,7 +777,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         currentJobs = await res.json();
         renderJobs();
       } catch (err) {
-        showToast('Errore nel caricamento dei job: ' + err.message, 'error');
+        showToast((typeof t === 'function' ? t('toast.loadJobsError') : 'Errore nel caricamento dei job: ') + err.message, 'error');
       }
     }
 
@@ -888,19 +888,19 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i>';
       }
-      showToast('Esecuzione tick in corso per ' + id + '...', 'info');
+      showToast((typeof t === 'function' ? t('toast.tickRunning') : 'Esecuzione tick in corso per ') + id + '...', 'info');
       try {
         const res = await fetch('/api/jobs/' + encodeURIComponent(id) + '/run', { method: 'POST' });
         const data = await res.json();
         if (res.ok && data.ok) {
-          showToast('Tick completato con successo!', 'success');
+          showToast(typeof t === 'function' ? t('toast.tickSuccess') : 'Tick completato con successo!', 'success');
           await loadJobs();
           if (currentTab === 'chat' && activeSessionId) await loadSessionChat(activeSessionId);
         } else {
-          showToast('Errore tick: ' + (data.error || 'fallito'), 'error');
+          showToast((typeof t === 'function' ? t('toast.tickError') : 'Errore tick: ') + (data.error || 'fallito'), 'error');
         }
       } catch (err) {
-        showToast('Errore di rete: ' + err.message, 'error');
+        showToast((typeof t === 'function' ? t('toast.netError') : 'Errore di rete: ') + err.message, 'error');
       } finally {
         if (btn) {
           btn.disabled = false;
@@ -919,10 +919,10 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || 'Operazione fallita');
-        showToast(enable ? 'Job riattivato' : 'Job messo in pausa', 'info');
+        showToast(enable ? (typeof t === 'function' ? t('toast.jobResumed') : 'Job riattivato') : (typeof t === 'function' ? t('toast.jobPaused') : 'Job messo in pausa'), 'info');
         await loadJobs();
       } catch (err) {
-        showToast('Errore: ' + err.message, 'error');
+        showToast((typeof t === 'function' ? t('toast.genericError') : 'Errore: ') + err.message, 'error');
       }
     }
 
@@ -934,18 +934,23 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       const modal = document.getElementById('confirm-modal');
       const msg = document.getElementById('confirm-modal-message');
       const btn = document.getElementById('confirm-modal-btn');
-      msg.textContent = 'Sei sicuro di voler eliminare il job "' + id + '"? I tick programmati cesseranno immediatamente.';
+      const template = (typeof t === 'function' ? t('modal.deleteConfirmMsg') : 'Sei sicuro di voler eliminare il job "{id}"? I tick programmati cesseranno immediatamente.');
+      msg.textContent = template.replace('{id}', id);
       btn.onclick = () => {
         closeConfirmModal();
         if (pendingDeleteJobId) executeDeleteJob(pendingDeleteJobId);
       };
       modal.classList.remove('hidden');
+      modal.style.display = 'flex';
       setTimeout(() => btn.focus(), 50);
     }
 
     function closeConfirmModal() {
       const modal = document.getElementById('confirm-modal');
-      modal.classList.add('hidden');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
       pendingDeleteJobId = null;
     }
 
@@ -954,10 +959,10 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         const res = await fetch('/api/jobs/' + encodeURIComponent(id), { method: 'DELETE' });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || 'Eliminazione fallita');
-        showToast('Job eliminato con successo', 'success');
+        showToast(typeof t === 'function' ? t('toast.jobDeleted') : 'Job eliminato con successo', 'success');
         await loadJobs();
       } catch (err) {
-        showToast('Errore eliminazione: ' + err.message, 'error');
+        showToast((typeof t === 'function' ? t('toast.deleteError') : 'Errore eliminazione: ') + err.message, 'error');
       }
     }
 
@@ -1056,7 +1061,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       if (icon) icon.classList.add('fa-spin');
       try {
         await loadSessions();
-        if (interactive) showToast('Lista sessioni aggiornata da SQLite', 'info');
+        if (interactive) showToast(typeof t === 'function' ? t('toast.sessionsUpdated') : 'Lista sessioni aggiornata da SQLite', 'info');
       } finally {
         if (icon) icon.classList.remove('fa-spin');
       }
@@ -1400,9 +1405,9 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           icon.className = 'fa-solid fa-check text-emerald-400';
           setTimeout(() => { icon.className = 'fa-regular fa-copy'; }, 2000);
         }
-        showToast('Session ID copiato: ' + activeSessionId, 'success');
+        showToast((typeof t === 'function' ? t('toast.copySessionSuccess') : 'Session ID copiato: ') + activeSessionId, 'success');
       }).catch(() => {
-        showToast('Impossibile copiare negli appunti', 'error');
+        showToast(typeof t === 'function' ? t('toast.copySessionError') : 'Impossibile copiare negli appunti', 'error');
       });
     }
 
@@ -1748,20 +1753,20 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         });
         const data = await res.json();
         if (!data.ok) {
-          showToast('Errore invio: ' + (data.error || 'fallito'), 'error');
+          showToast((typeof t === 'function' ? t('toast.sendError') : 'Errore invio: ') + (data.error || 'fallito'), 'error');
           input.value = text;
           autoResizeTextarea(input);
         } else {
-          showToast('Prompt inviato alla sessione', 'info');
+          showToast(typeof t === 'function' ? t('toast.promptSent') : 'Prompt inviato alla sessione', 'info');
         }
         await loadSessionChat(activeSessionId, true);
       } catch (err) {
-        showToast('Errore di rete: ' + err.message, 'error');
+        showToast((typeof t === 'function' ? t('toast.netError') : 'Errore di rete: ') + err.message, 'error');
         input.value = text;
         autoResizeTextarea(input);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Invia';
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ' + (typeof t === 'function' ? t('chat.send') : 'Invia');
       }
     }
 
@@ -1802,7 +1807,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           }, 150);
         };
       } catch (err) {
-        showToast('Errore caricamento memoria: ' + err.message, 'error');
+        showToast((typeof t === 'function' ? t('toast.loadMemoryError') : 'Errore caricamento memoria: ') + err.message, 'error');
       }
     }
 
@@ -1819,9 +1824,9 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || 'Operazione fallita');
-        showToast('Memoria salvata con successo!', 'success');
+        showToast(typeof t === 'function' ? t('toast.memorySaved') : 'Memoria salvata con successo!', 'success');
       } catch (err) {
-        showToast('Errore salvataggio: ' + err.message, 'error');
+        showToast((typeof t === 'function' ? t('toast.saveMemoryError') : 'Errore salvataggio: ') + err.message, 'error');
       }
     }
 
@@ -1869,19 +1874,24 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       if (!descEl || !runsEl) return;
 
       const trimmed = (val || '').trim();
+      const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
       if (!trimmed) {
-        descEl.textContent = 'Inserisci un intervallo o clicca su un preset sopra.';
+        descEl.textContent = isEn
+          ? 'Enter an interval or click a preset above.'
+          : 'Inserisci un intervallo o clicca su un preset sopra.';
         runsEl.innerHTML = '';
         return;
       }
 
       try {
-        const res = await fetch('/api/schedule/preview?q=' + encodeURIComponent(trimmed));
+        const langParam = typeof currentLang !== 'undefined' ? currentLang : 'it';
+        const res = await fetch('/api/schedule/preview?q=' + encodeURIComponent(trimmed) + '&lang=' + encodeURIComponent(langParam));
         const data = await res.json();
         if (data && data.valid) {
           descEl.innerHTML = '<span class="text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check mr-1 text-[10px]"></i>' + escapeHtml(data.description) + '</span>';
           if (Array.isArray(data.nextRuns) && data.nextRuns.length > 0) {
-            runsEl.innerHTML = '<span class="text-gray-400 font-sans mr-1">Prossimi tick:</span>' + data.nextRuns.map((r, i) => {
+            const nextTicksLabel = isEn ? 'Next ticks:' : 'Prossimi tick:';
+            runsEl.innerHTML = '<span class="text-gray-400 font-sans mr-1">' + nextTicksLabel + '</span>' + data.nextRuns.map((r, i) => {
               const dt = new Date(r);
               const formatted = dt.toLocaleTimeString() + ' (' + dt.toLocaleDateString() + ')';
               return '<span class="px-1.5 py-0.5 rounded bg-gray-950 border border-darkborder text-[10px] text-indigo-300">#' + (i + 1) + ' ' + formatted + '</span>';
@@ -1890,11 +1900,11 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
             runsEl.innerHTML = '';
           }
         } else {
-          descEl.innerHTML = '<span class="text-rose-400"><i class="fa-solid fa-circle-xmark mr-1 text-[10px]"></i>' + escapeHtml(data.description || 'Espressione non valida') + '</span>';
+          descEl.innerHTML = '<span class="text-rose-400"><i class="fa-solid fa-circle-xmark mr-1 text-[10px]"></i>' + escapeHtml(data.description || (isEn ? 'Invalid expression' : 'Espressione non valida')) + '</span>';
           runsEl.innerHTML = '';
         }
       } catch (err) {
-        descEl.textContent = 'Errore anteprima: ' + err.message;
+        descEl.textContent = (isEn ? 'Preview error: ' : 'Errore anteprima: ') + err.message;
         runsEl.innerHTML = '';
       }
     }
@@ -2095,9 +2105,18 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         if (sessionSelect) sessionSelect.value = targetSessionId;
       }
       document.getElementById('form-model').value = 'nvidia/z-ai/glm-5.3';
-      document.getElementById('form-system-prompt').value = 'Sei un assistente autonomo programmato. Esegui il compito con precisione e registra i risultati.';
-      document.getElementById('form-followup-prompt').value = 'Esegui il tick programmato e fornisci un riassunto sintetico.';
-      document.getElementById('job-modal').classList.remove('hidden');
+      const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+      document.getElementById('form-system-prompt').value = isEn
+        ? 'You are an autonomous scheduled assistant. Perform the task with precision and log the findings.'
+        : 'Sei un assistente autonomo programmato. Esegui il compito con precisione e registra i risultati.';
+      document.getElementById('form-followup-prompt').value = isEn
+        ? 'Execute the scheduled tick and provide a concise summary.'
+        : 'Esegui il tick programmato e fornisci un riassunto sintetico.';
+      const modal = document.getElementById('job-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
       setTimeout(() => document.getElementById('form-title').focus(), 50);
     }
 
@@ -2119,12 +2138,25 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       document.getElementById('form-model').value = job.model || '';
       document.getElementById('form-system-prompt').value = job.systemPrompt || '';
       document.getElementById('form-followup-prompt').value = job.followupPrompt || '';
-      document.getElementById('job-modal').classList.remove('hidden');
+      const modal = document.getElementById('job-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
       setTimeout(() => document.getElementById('form-title').focus(), 50);
     }
 
     function closeModal() {
-      document.getElementById('job-modal').classList.add('hidden');
+      const modal = document.getElementById('job-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+      if (typeof isSpotlightActive !== 'undefined' && isSpotlightActive) {
+        if (typeof stopGuidedDemo === 'function') {
+          stopGuidedDemo();
+        }
+      }
     }
 
     async function handleJobSubmit(e) {
@@ -2132,12 +2164,12 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       const id = document.getElementById('form-job-id').value;
       const sessionID = document.getElementById('form-session-id').value;
       if (!sessionID) {
-        showToast('Seleziona una sessione OpenCode prima di salvare il job.', 'error');
+        showToast(typeof t === 'function' ? t('toast.selectSession') : 'Seleziona una sessione OpenCode prima di salvare il job.', 'error');
         return;
       }
       const schedStr = document.getElementById('form-schedule').value.trim();
       if (!schedStr) {
-        showToast('Inserisci un intervallo valido (es. 5m o */5 * * * *).', 'error');
+        showToast(typeof t === 'function' ? t('toast.invalidSchedule') : 'Inserisci un intervallo valido (es. 5m o */5 * * * *).', 'error');
         return;
       }
 
@@ -2161,28 +2193,28 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         });
         const data = await res.json();
         if (res.ok && data.ok) {
-          showToast(id ? 'Job aggiornato!' : 'Nuovo job creato!', 'success');
+          showToast(id ? (typeof t === 'function' ? t('toast.jobUpdated') : 'Job aggiornato!') : (typeof t === 'function' ? t('toast.jobCreated') : 'Nuovo job creato!'), 'success');
           closeModal();
           await loadJobs();
         } else {
-          showToast('Errore: ' + (data.error || 'Operazione fallita'), 'error');
+          showToast((typeof t === 'function' ? t('toast.genericError') : 'Errore: ') + (data.error || 'Operazione fallita'), 'error');
         }
       } catch (err) {
-        showToast('Errore rete: ' + err.message, 'error');
+        showToast((typeof t === 'function' ? t('toast.netError') : 'Errore rete: ') + err.message, 'error');
       }
     }
 
     async function runAllDue() {
-      showToast('Controllo ed esecuzione dei job scaduti in corso...', 'info');
+      showToast(typeof t === 'function' ? t('toast.runningDue') : 'Controllo ed esecuzione dei job scaduti in corso...', 'info');
       try {
         const res = await fetch('/api/check', { method: 'POST' });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || (data && data.ok === false)) throw new Error(data.error || 'Errore durante il controllo');
-        showToast('Controllo terminato!', 'success');
+        showToast(typeof t === 'function' ? t('toast.runDueFinished') : 'Controllo terminato!', 'success');
         await loadJobs();
         if (currentTab === 'chat' && activeSessionId) await loadSessionChat(activeSessionId);
       } catch (err) {
-        showToast('Errore: ' + err.message, 'error');
+        showToast((typeof t === 'function' ? t('toast.genericError') : 'Errore: ') + err.message, 'error');
       }
     }
 

@@ -593,7 +593,8 @@ export function startGuiServer(opts: ServerOpts = {}) {
       // 16. GET /api/schedule/preview (Explain schedule & compute next runs)
       if (pathname === "/api/schedule/preview" && method === "GET") {
         const q = (url.searchParams.get("q") ?? "").slice(0, 100);
-        const res = explainSchedule(q);
+        const lang = (url.searchParams.get("lang") ?? "it").slice(0, 5);
+        const res = explainSchedule(q, new Date(), lang);
         return new Response(JSON.stringify(res), { headers });
       }
 

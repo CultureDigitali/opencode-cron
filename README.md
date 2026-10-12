@@ -6,6 +6,8 @@
 
 > **ChatGPT introduced Scheduled Tasks. OpenCode was missing them. opencode-cron brings them to life — supercharged with persistent markdown memory, session binding, and a real-time Mission Control Web GUI.**
 
+> 🌐 **Visit the launch site:** [culturedigitali.github.io/opencode-cron](https://culturedigitali.github.io/opencode-cron/) — available in 10 languages.
+
 Tell OpenCode **“watch competitor releases every 15 minutes”** or **“re-check CI flaky tests every hour”** — and it continues autonomously in the exact same chat session. Even after context compact. Even when your terminal or TUI is closed.
 
 [![npm version](https://img.shields.io/npm/v/@culturedigitali/opencode-cron?style=flat-square&color=blue)](https://www.npmjs.com/package/@culturedigitali/opencode-cron)

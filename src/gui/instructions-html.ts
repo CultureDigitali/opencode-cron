@@ -152,7 +152,7 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
       </div>
 
       <!-- Quick Nav Pills -->
-      <div class="mt-6 pt-6 border-t border-indigo-700/20 flex flex-wrap gap-2 text-xs">
+      <div id="quick-nav-pills" class="mt-6 pt-6 border-t border-indigo-700/20 flex flex-wrap gap-2 text-xs">
         <a href="#sec-overview" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⚡ Cos'è</a>
         <a href="#sec-setup" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">🎯 Imposta Cron su Sessione</a>
         <a href="#sec-schedule" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⏰ Orari & Visual Builder</a>
@@ -477,7 +477,15 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
   </main>
 
   <!-- Interactive Guided Demo Tour Modal -->
-  <div id="oc-tour-modal" role="dialog" aria-modal="true" aria-labelledby="tour-modal-title" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+  <div
+    id="instructions-tour-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="tour-modal-title"
+    onclick="if(event.target === this) closeTourModal(event)"
+    class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 transition-all"
+    style="display: none;"
+  >
     <div class="bg-darkcard border border-indigo-500/40 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl relative space-y-6">
       
       <!-- Tour Header -->
@@ -491,7 +499,13 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
             <span id="tour-step-indicator" class="text-[11px] font-mono text-indigo-400">Passo 1 di 5</span>
           </div>
         </div>
-        <button onclick="closeTourModal()" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 cursor-pointer">
+        <button
+          type="button"
+          onclick="closeTourModal(event)"
+          class="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 text-sm transition-colors cursor-pointer"
+          aria-label="Chiudi demo"
+          title="Chiudi demo (Esc)"
+        >
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -502,15 +516,25 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
       </div>
 
       <!-- Tour Navigation Footer -->
-      <div class="flex items-center justify-between pt-4 border-t border-darkborder text-xs">
-        <button
-          type="button"
-          id="tour-prev-btn"
-          onclick="prevTourStep()"
-          class="px-3.5 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 font-semibold border border-darkborder transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <i class="fa-solid fa-arrow-left mr-1"></i> Indietro
-        </button>
+      <div class="flex items-center justify-between pt-4 border-t border-darkborder text-xs gap-2">
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            id="tour-prev-btn"
+            onclick="prevTourStep()"
+            class="px-3.5 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 font-semibold border border-darkborder transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <i class="fa-solid fa-arrow-left mr-1"></i> <span id="tour-prev-label">Indietro</span>
+          </button>
+          <button
+            type="button"
+            id="tour-skip-btn"
+            onclick="closeTourModal(event)"
+            class="text-gray-400 hover:text-gray-200 text-xs transition-colors cursor-pointer px-2 py-1"
+          >
+            <span id="tour-skip-label">Salta</span>
+          </button>
+        </div>
 
         <div class="flex items-center gap-1.5" id="tour-dots">
           <!-- Dots rendered by JS -->
@@ -520,9 +544,9 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
           type="button"
           id="tour-next-btn"
           onclick="nextTourStep()"
-          class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md shadow-indigo-600/30 transition-all cursor-pointer"
+          class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md shadow-indigo-600/30 transition-all cursor-pointer flex items-center gap-1.5"
         >
-          Avanti <i class="fa-solid fa-arrow-right ml-1"></i>
+          <span id="tour-next-label">Avanti</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
         </button>
       </div>
     </div>
@@ -557,8 +581,8 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
       }
     }
 
-    // Interactive Demo Tour Engine
-    const TOUR_STEPS = [
+    // Interactive Demo Tour Engine (Bilingual Italian / English)
+    const TOUR_STEPS_IT = [
       {
         title: "1. Benvenuto nella Console di Controllo OpenCode Cron",
         desc: "OpenCode Cron consente di eseguire compiti ricorrenti stile ChatGPT preservando l'intera sessione di chat e senza mai perdere il contesto.",
@@ -596,33 +620,94 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
       }
     ];
 
+    const TOUR_STEPS_EN = [
+      {
+        title: "1. Welcome to OpenCode Cron Mission Control",
+        desc: "OpenCode Cron runs recurring ChatGPT-style tasks directly inside your OpenCode sessions without losing context or chat history.",
+        icon: "fa-rocket",
+        color: "text-indigo-400",
+        highlight: "All your OpenCode sessions are monitored in real time from this Web GUI."
+      },
+      {
+        title: "2. 1-Click Cron Binding on Any Conversation",
+        desc: "Open the Live Chat tab and click '⚡ Set Cron' in the top banner. The active conversation is immediately pre-selected in the setup form.",
+        icon: "fa-bolt",
+        color: "text-amber-400",
+        highlight: "Zero configuration errors: session binding happens instantly."
+      },
+      {
+        title: "3. Visual Schedule Builder & Duration (Max Runs)",
+        desc: "Choose an intuitive interval (e.g. 5m) or a precise 5-field Cron schedule (e.g. 0 9 * * *). Set Max Runs to 0 for infinite runs, or set a finite cap (e.g. 10).",
+        icon: "fa-clock",
+        color: "text-purple-400",
+        highlight: "The visual builder calculates and previews your next 3 upcoming ticks in real time."
+      },
+      {
+        title: "4. Persistent Markdown Memory & seenHashes",
+        desc: "Even when a chat is compacted after hundreds of messages, .opencode/cron/memory/<id>.md retains key facts and seen URLs.",
+        icon: "fa-brain",
+        color: "text-emerald-400",
+        highlight: "Zero duplicated work, zero hallucinations, and maximum token efficiency."
+      },
+      {
+        title: "5. Run Outcomes Diagnostics (/runs) & 60s Daemon",
+        desc: "The background macOS launchd daemon checks jobs every 60s even with the browser closed. Review real-time successes and errors on /runs.",
+        icon: "fa-chart-line",
+        color: "text-cyan-400",
+        highlight: "Complete transparency with direct deep links to the exact chat turn."
+      }
+    ];
+
     let currentTourStep = 0;
 
+    function getTourSteps() {
+      const lang = (typeof currentLang !== 'undefined' ? currentLang : localStorage.getItem('oc_cron_lang') || 'it');
+      return lang === 'en' ? TOUR_STEPS_EN : TOUR_STEPS_IT;
+    }
+
     function renderTourStep(index) {
-      const step = TOUR_STEPS[index];
+      const steps = getTourSteps();
+      const isEn = (typeof currentLang !== 'undefined' ? currentLang : localStorage.getItem('oc_cron_lang') || 'it') === 'en';
+      if (index < 0 || index >= steps.length) return;
+      currentTourStep = index;
+      const step = steps[index];
+
       const container = document.getElementById('tour-slide-container');
       const ind = document.getElementById('tour-step-indicator');
+      const titleEl = document.getElementById('tour-modal-title');
       const prevBtn = document.getElementById('tour-prev-btn');
+      const prevLabel = document.getElementById('tour-prev-label');
+      const skipLabel = document.getElementById('tour-skip-label');
       const nextBtn = document.getElementById('tour-next-btn');
+      const nextLabel = document.getElementById('tour-next-label');
       const dots = document.getElementById('tour-dots');
 
       if (!step || !container) return;
 
-      if (ind) ind.textContent = 'Passo ' + (index + 1) + ' di ' + TOUR_STEPS.length;
+      if (titleEl) titleEl.textContent = isEn ? 'Demo & Guided Tour' : 'Demo & Tour Guidato';
+      if (ind) ind.textContent = (isEn ? 'Step ' : 'Passo ') + (index + 1) + (isEn ? ' of ' : ' di ') + steps.length;
       if (prevBtn) prevBtn.disabled = (index === 0);
-      if (nextBtn) {
-        if (index === TOUR_STEPS.length - 1) {
-          nextBtn.innerHTML = 'Concludi Demo <i class="fa-solid fa-check ml-1"></i>';
-          nextBtn.className = 'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-md shadow-emerald-600/30 transition-all cursor-pointer';
+      if (prevLabel) prevLabel.textContent = isEn ? 'Back' : 'Indietro';
+      if (skipLabel) skipLabel.textContent = isEn ? 'Skip' : 'Salta';
+
+      if (nextLabel) {
+        if (index === steps.length - 1) {
+          nextLabel.textContent = isEn ? 'Finish Tour' : 'Concludi Demo';
+          if (nextBtn) nextBtn.className = 'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-md shadow-emerald-600/30 transition-all cursor-pointer flex items-center gap-1.5';
         } else {
-          nextBtn.innerHTML = 'Avanti <i class="fa-solid fa-arrow-right ml-1"></i>';
-          nextBtn.className = 'px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md shadow-indigo-600/30 transition-all cursor-pointer';
+          nextLabel.textContent = isEn ? 'Next' : 'Avanti';
+          if (nextBtn) nextBtn.className = 'px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md shadow-indigo-600/30 transition-all cursor-pointer flex items-center gap-1.5';
         }
       }
 
       if (dots) {
-        dots.innerHTML = TOUR_STEPS.map((_, i) => \`
-          <span class="w-2.5 h-2.5 rounded-full transition-all \${i === index ? 'bg-indigo-500 w-5' : 'bg-gray-700'}"></span>
+        dots.innerHTML = steps.map((_, i) => \`
+          <button
+            type="button"
+            onclick="renderTourStep(\${i})"
+            class="w-2.5 h-2.5 rounded-full transition-all cursor-pointer \${i === index ? 'bg-indigo-500 w-5' : 'bg-gray-700 hover:bg-gray-500'}"
+            aria-label="\${isEn ? 'Step' : 'Passo'} \${i + 1}"
+          ></button>
         \`).join('');
       }
 
@@ -646,18 +731,34 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
     function startGuidedDemo() {
       currentTourStep = 0;
       renderTourStep(0);
-      const modal = document.getElementById('oc-tour-modal');
-      if (modal) modal.classList.remove('hidden');
+      const modal = document.getElementById('instructions-tour-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
     }
 
-    function closeTourModal() {
-      const modal = document.getElementById('oc-tour-modal');
-      if (modal) modal.classList.add('hidden');
+    function closeTourModal(e) {
+      if (e) {
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+      }
+      const modal = document.getElementById('instructions-tour-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+      const ocModal = document.getElementById('oc-tour-modal');
+      if (ocModal) {
+        ocModal.classList.add('hidden');
+        ocModal.style.display = 'none';
+      }
       localStorage.setItem('oc_cron_tour_seen', '1');
     }
 
     function nextTourStep() {
-      if (currentTourStep < TOUR_STEPS.length - 1) {
+      const steps = getTourSteps();
+      if (currentTourStep < steps.length - 1) {
         currentTourStep++;
         renderTourStep(currentTourStep);
       } else {
@@ -672,8 +773,347 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
       }
     }
 
-    // Auto-launch demo on first visit
+    // Keyboard ESC listener
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeTourModal(e);
+    });
+
+    // Bilingual Instructions Page Renderer
+    function renderInstructionsPage() {
+      const lang = (typeof currentLang !== 'undefined' ? currentLang : localStorage.getItem('oc_cron_lang') || 'it');
+      const isEn = (lang === 'en');
+
+      // Update Quick Nav Pills
+      const pillsContainer = document.getElementById('quick-nav-pills');
+      if (pillsContainer) {
+        if (isEn) {
+          pillsContainer.innerHTML = \`
+            <a href="#sec-overview" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⚡ Overview</a>
+            <a href="#sec-setup" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">🎯 Set Cron on Session</a>
+            <a href="#sec-schedule" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⏰ Schedules & Visual Builder</a>
+            <a href="#sec-duration" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">♾️ Max Runs (Infinite vs Finite)</a>
+            <a href="#sec-memory" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">🧠 Memory & seenHashes</a>
+            <a href="#sec-runs" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">📊 Run Outcomes (/runs)</a>
+            <a href="#sec-daemon" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⚙️ 60s launchd Daemon</a>
+            <a href="#sec-faq" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">❓ FAQs & Troubleshooting</a>
+          \`;
+        } else {
+          pillsContainer.innerHTML = \`
+            <a href="#sec-overview" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⚡ Cos'è</a>
+            <a href="#sec-setup" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">🎯 Imposta Cron su Sessione</a>
+            <a href="#sec-schedule" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⏰ Orari & Visual Builder</a>
+            <a href="#sec-duration" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">♾️ Max Runs (Infinito vs Finito)</a>
+            <a href="#sec-memory" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">🧠 Memoria & seenHashes</a>
+            <a href="#sec-runs" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">📊 Esiti delle Runs (/runs)</a>
+            <a href="#sec-daemon" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⚙️ Demone launchd 60s</a>
+            <a href="#sec-faq" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">❓ FAQ & Risoluzione</a>
+          \`;
+        }
+      }
+
+      // Update Documentation Sections
+      const container = document.getElementById('instructions-container');
+      if (container) {
+        if (isEn) {
+          container.innerHTML = \`
+            <!-- SECTION 1: ARCHITECTURE OVERVIEW -->
+            <section id="sec-overview" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
+              <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
+                <div class="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20 shrink-0">
+                  <i class="fa-solid fa-bolt text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">1. 60-Second Architecture: An AI Agent Scheduler, Not a Dumb Bash Timer</h2>
+                  <p class="text-xs text-gray-400">How OpenCode Cron radically differs from basic system crons or shell scripts</p>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+                <div class="bg-gray-950/60 p-4 rounded-2xl border border-darkborder space-y-2">
+                  <h3 class="font-bold text-indigo-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-comments"></i> Session Continuity (Same Chat ID)
+                  </h3>
+                  <p>
+                    Standard crons run an isolated command and forget everything. OpenCode Cron wakes up <strong>the exact same OpenCode conversation</strong> (same <code class="text-indigo-300 font-mono">sessionID</code>). The agent keeps full contextual history from previous turns.
+                  </p>
+                </div>
+                <div class="bg-gray-950/60 p-4 rounded-2xl border border-darkborder space-y-2">
+                  <h3 class="font-bold text-purple-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-shield-halved"></i> Compaction Resilient (Zero Amnesia)
+                  </h3>
+                  <p>
+                    When a conversation spans hundreds of messages and OpenCode compacts context, OpenCode Cron automatically injects the persistent Markdown memory file (<code class="text-purple-300 font-mono">.opencode/cron/memory/&lt;id&gt;.md</code>) into the summary, guaranteeing zero amnesia.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <!-- SECTION 2: BINDING CRON TO CONVERSATION -->
+            <section id="sec-setup" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
+              <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
+                <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shrink-0">
+                  <i class="fa-solid fa-calendar-plus text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">2. Setting a Cron on a Conversation (1-Click Workflow)</h2>
+                  <p class="text-xs text-gray-400">Two intuitive workflows to attach recurring tasks to any OpenCode session</p>
+                </div>
+              </div>
+              <div class="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="bg-gray-950/70 p-5 rounded-2xl border border-indigo-500/30 space-y-2">
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 text-white">
+                      <i class="fa-solid fa-bolt text-amber-300"></i> Method 1: 1-Click from Live Chat
+                    </div>
+                    <p class="pt-1">
+                      1. Open the <strong>Live Chat</strong> tab and select the conversation.<br>
+                      2. In the top banner, click the purple button <span class="px-2 py-0.5 rounded bg-indigo-600 text-white font-bold text-[11px]">⚡ Set Cron</span>.<br>
+                      3. The configurator opens with <strong>that specific session pre-selected</strong>, ready to configure!
+                    </p>
+                  </div>
+                  <div class="bg-gray-950/70 p-5 rounded-2xl border border-darkborder space-y-2">
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-800 text-gray-300">
+                      <i class="fa-solid fa-plus text-indigo-400"></i> Method 2: From + New Job Button
+                    </div>
+                    <p class="pt-1">
+                      1. Click <strong class="text-white">&quot;+ New Job&quot;</strong> anytime in the top navbar.<br>
+                      2. Under <em>Target Session</em>, choose from the organized dropdown:<br>
+                      &nbsp;&nbsp;• 💬 <strong>Main Sessions (Root)</strong> (recommended)<br>
+                      &nbsp;&nbsp;• 🤖 <strong>Subagents</strong> generated automatically<br>
+                      &nbsp;&nbsp;• ⚡ <strong>Sessions with active Crons</strong>
+                    </p>
+                  </div>
+                </div>
+                <div class="bg-indigo-950/20 border border-indigo-500/20 p-4 rounded-2xl space-y-2">
+                  <h3 class="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-sliders text-indigo-400"></i> Configuration Form Fields
+                  </h3>
+                  <ul class="list-disc list-inside space-y-1 text-xs text-gray-300">
+                    <li><strong class="text-white">Job Title:</strong> Descriptive name (e.g. <em>AI News Monitor 5m</em> or <em>Daily Standup Report</em>).</li>
+                    <li><strong class="text-white">Schedule / Interval:</strong> Execution cadence (e.g. <code class="text-indigo-300 font-mono">5m</code>, <code class="text-indigo-300 font-mono">1h</code>, <code class="text-indigo-300 font-mono">0 9 * * *</code>).</li>
+                    <li><strong class="text-white">Max Runs:</strong> Max completed cycles before stopping (<code class="text-indigo-300 font-mono">0 = infinite / indefinite</code>).</li>
+                    <li><strong class="text-white">System Prompt (Frozen):</strong> Permanent identity, constraints, and instructions for the agent.</li>
+                    <li><strong class="text-white">Followup Prompt:</strong> Actionable task executed on every single automated tick.</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <!-- SECTION 3: VISUAL SCHEDULE BUILDER -->
+            <section id="sec-schedule" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
+              <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
+                <div class="w-10 h-10 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20 shrink-0">
+                  <i class="fa-solid fa-clock text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">3. Visual Schedule Builder: Times, Intervals & 5-Field Cron</h2>
+                  <p class="text-xs text-gray-400">Supported formats with real-time predictive next-runs preview</p>
+                </div>
+              </div>
+              <div class="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+                <p>
+                  OpenCode Cron supports both natural intervals and standard Unix 5-field Cron expressions. As you type, the engine instantly computes the human-readable description and exact timestamps for the <strong>next 3 runs</strong>.
+                </p>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr class="border-b border-darkborder bg-gray-950 text-gray-400">
+                        <th class="py-2.5 px-3 font-semibold">Type</th>
+                        <th class="py-2.5 px-3 font-semibold">Expression</th>
+                        <th class="py-2.5 px-3 font-semibold">Description & Use Case</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-darkborder/50 text-gray-300">
+                      <tr class="hover:bg-gray-900/40">
+                        <td class="py-2.5 px-3 font-mono text-indigo-400 font-bold">Quick Interval</td>
+                        <td class="py-2.5 px-3 font-mono text-amber-300">5m, 15m, 30m, 1h, 1d</td>
+                        <td class="py-2.5 px-3">Runs every N minutes or hours continuously. Safety minimum allowed: 60s.</td>
+                      </tr>
+                      <tr class="hover:bg-gray-900/40">
+                        <td class="py-2.5 px-3 font-mono text-purple-400 font-bold">Daily Morning</td>
+                        <td class="py-2.5 px-3 font-mono text-amber-300">0 9 * * *</td>
+                        <td class="py-2.5 px-3">Every day at 09:00 AM sharp (standup prep, news digesting).</td>
+                      </tr>
+                      <tr class="hover:bg-gray-900/40">
+                        <td class="py-2.5 px-3 font-mono text-purple-400 font-bold">Weekdays Only</td>
+                        <td class="py-2.5 px-3 font-mono text-amber-300">0 9 * * 1-5</td>
+                        <td class="py-2.5 px-3">Monday through Friday at 09:00 AM (workday automations).</td>
+                      </tr>
+                      <tr class="hover:bg-gray-900/40">
+                        <td class="py-2.5 px-3 font-mono text-purple-400 font-bold">Evening Summary</td>
+                        <td class="py-2.5 px-3 font-mono text-amber-300">0 18 * * *</td>
+                        <td class="py-2.5 px-3">Every day at 06:00 PM (end-of-day reports, commit summaries).</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+
+            <!-- SECTION 4: DURATION & MAX RUNS -->
+            <section id="sec-duration" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
+              <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
+                <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 shrink-0">
+                  <i class="fa-solid fa-infinity text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">4. Duration & End Condition: Infinite Execution vs Max Runs Limit</h2>
+                  <p class="text-xs text-gray-400">Configure indefinite runs or auto-stop after N cycles</p>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+                <div class="bg-gray-950/70 p-5 rounded-2xl border border-emerald-500/30 space-y-2">
+                  <h3 class="font-bold text-emerald-400 text-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-infinity"></i> Infinite Execution (Max Runs = 0)
+                  </h3>
+                  <p>
+                    Setting <code class="text-emerald-300 font-mono font-bold">0</code> in Max Runs (default), the Cron Job <strong>never stops</strong>. It continues running on schedule day after day until you pause or delete it.
+                  </p>
+                </div>
+                <div class="bg-gray-950/70 p-5 rounded-2xl border border-amber-500/30 space-y-2">
+                  <h3 class="font-bold text-amber-300 text-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-flag-checkered"></i> Programmed End (Max Runs = N)
+                  </h3>
+                  <p>
+                    Setting a positive number (e.g. <code class="text-amber-300 font-mono font-bold">10</code> or <code class="text-amber-300 font-mono font-bold">50</code>), the engine accurately tracks completed ticks. Upon reaching the cap, it marks the job as <span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30 text-[10px]">COMPLETED</span> and stops, saving tokens.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <!-- SECTION 5: PERSISTENT MEMORY -->
+            <section id="sec-memory" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
+              <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
+                <div class="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20 shrink-0">
+                  <i class="fa-solid fa-brain text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">5. Persistent Markdown Memory & Deduplication (seenHashes)</h2>
+                  <p class="text-xs text-gray-400">Preserve context across compactions and prevent duplicated work</p>
+                </div>
+              </div>
+              <div class="space-y-3 text-xs sm:text-sm text-gray-300 leading-relaxed">
+                <p>
+                  Every cron job has a dedicated Markdown file in <code class="text-purple-300 font-mono">.opencode/cron/memory/&lt;jobId&gt;.md</code> storing:
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div class="bg-gray-950/60 p-3.5 rounded-xl border border-darkborder">
+                    <strong class="text-indigo-400 block mb-1">1. Key Facts</strong>
+                    <p class="text-xs text-gray-400">Information verified in previous ticks, readily available to the agent.</p>
+                  </div>
+                  <div class="bg-gray-950/60 p-3.5 rounded-xl border border-darkborder">
+                    <strong class="text-purple-400 block mb-1">2. seenHashes (Dedup)</strong>
+                    <p class="text-xs text-gray-400">List of visited URLs or hashes to ensure no duplicated reports.</p>
+                  </div>
+                  <div class="bg-gray-950/60 p-3.5 rounded-xl border border-darkborder">
+                    <strong class="text-emerald-400 block mb-1">3. Mandatory Self-Check</strong>
+                    <p class="text-xs text-gray-400">3 pre-flight verification questions to prevent LLM hallucinations.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- SECTION 6: RUN OUTCOMES -->
+            <section id="sec-runs" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
+              <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
+                <div class="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20 shrink-0">
+                  <i class="fa-solid fa-chart-line text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">6. Dedicated 'Run Outcomes' Page (/runs)</h2>
+                  <p class="text-xs text-gray-400">Instant verification of succeeded vs failed executions</p>
+                </div>
+              </div>
+              <div class="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+                <p>
+                  Navigate to <a href="/runs" class="text-indigo-400 hover:underline font-bold">/runs</a> to access full diagnostics:
+                </p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                  <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder">
+                    <span class="text-gray-400 block">✓ Success vs ✕ Failed</span>
+                    <span class="text-emerald-400 font-bold">Immediate color badges</span>
+                  </div>
+                  <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder">
+                    <span class="text-gray-400 block">Timeline Strip</span>
+                    <span class="text-indigo-300 font-bold">Last 48 clickable runs</span>
+                  </div>
+                  <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder">
+                    <span class="text-gray-400 block">Outcomes per Job</span>
+                    <span class="text-purple-300 font-bold">Health & success rate %</span>
+                  </div>
+                  <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder">
+                    <span class="text-gray-400 block">Live Chat Deep Link</span>
+                    <span class="text-sky-300 font-bold">Jump to exact turn</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- SECTION 7: LAUNCHD DAEMON -->
+            <section id="sec-daemon" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
+              <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
+                <div class="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20 shrink-0">
+                  <i class="fa-solid fa-server text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">7. Background macOS launchd Daemon: 24/7 Autonomous Execution</h2>
+                  <p class="text-xs text-gray-400">Your scheduled tasks run in background even when browser and UI are closed</p>
+                </div>
+              </div>
+              <div class="space-y-3 text-xs sm:text-sm text-gray-300 leading-relaxed">
+                <p>
+                  The native macOS daemon (<code class="text-blue-300 font-mono">ai.opencode.cron</code>) lives in <code class="text-gray-400 font-mono">~/Library/LaunchAgents/ai.opencode.cron.plist</code> and fires automatically every 60 seconds:
+                </p>
+                <div class="bg-gray-950 p-4 rounded-xl border border-darkborder font-mono text-xs text-gray-300 space-y-1 overflow-x-auto">
+                  <div><span class="text-gray-500"># Verify macOS launchd daemon status</span></div>
+                  <div>launchctl list | grep opencode.cron</div>
+                  <div class="pt-2"><span class="text-gray-500"># Real-time stdout tailing</span></div>
+                  <div>tail -f ~/Library/Logs/opencode-cron.log</div>
+                </div>
+              </div>
+            </section>
+
+            <!-- SECTION 8: FAQ & TROUBLESHOOTING -->
+            <section id="sec-faq" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
+              <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
+                <div class="w-10 h-10 rounded-2xl bg-teal-500/10 text-teal-400 flex items-center justify-center border border-teal-500/20 shrink-0">
+                  <i class="fa-solid fa-circle-question text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">8. FAQs, Security Guardrails & Quick Troubleshooting</h2>
+                  <p class="text-xs text-gray-400">What to do on consecutive errors or desktop app restarts</p>
+                </div>
+              </div>
+              <div class="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+                <div class="border-b border-darkborder/60 pb-3">
+                  <h3 class="font-bold text-white mb-1">What happens if a job fails repeatedly?</h3>
+                  <p class="text-gray-400">
+                    To prevent infinite error loops and token burn, if a job accumulates <strong>5 consecutive failures</strong> it is automatically paused. Click Play on the Dashboard to reset failures and resume.
+                  </p>
+                </div>
+                <div class="border-b border-darkborder/60 pb-3">
+                  <h3 class="font-bold text-white mb-1">What to do if ticks fail with HTTP 401 after restarting the desktop app?</h3>
+                  <p class="text-gray-400">
+                    The desktop app rotates sidecar credentials on every restart. Run this command in terminal:
+                    <code class="block mt-1 p-2 bg-gray-950 rounded font-mono text-indigo-300">node ./dist/bin/run.js refresh-creds</code>
+                    or type <code class="text-indigo-300">/cron-refresh</code> directly in OpenCode chat.
+                  </p>
+                </div>
+                <div>
+                  <h3 class="font-bold text-white mb-1">How do I change languages or toggle RTL mode?</h3>
+                  <p class="text-gray-400">
+                    Use the language dropdown at the top right to switch between 10 supported languages (English, Italian, Spanish, French, German, Portuguese, Chinese, Japanese, Arabic, Russian). Selecting Arabic activates native Right-to-Left (<strong>RTL</strong>) styling automatically.
+                  </p>
+                </div>
+              </div>
+            </section>
+          \`;
+        }
+      }
+    }
+
+    // Auto-launch demo on first visit and render page on load
     window.addEventListener('DOMContentLoaded', () => {
+      renderInstructionsPage();
       if (!localStorage.getItem('oc_cron_tour_seen')) {
         setTimeout(() => startGuidedDemo(), 600);
       }

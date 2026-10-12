@@ -1,0 +1,14 @@
+{
+  "name": "opencode-cron — ChatGPT Scheduled Tasks for opencode",
+  "short_name": "opencode-cron",
+  "description": "An intelligent AI agent scheduler with persistent memory, a Mission Control Web GUI and a cross-platform desktop app.",
+  "start_url": "/opencode-cron/",
+  "scope": "/opencode-cron/",
+  "display": "standalone",
+  "background_color": "#070a12",
+  "theme_color": "#070a12",
+  "lang": "en",
+  "icons": [
+    { "src": "/opencode-cron/assets/img/favicon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

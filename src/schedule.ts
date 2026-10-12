@@ -52,10 +52,13 @@ export interface ScheduleExplanation {
   nextRuns: string[];
 }
 
-export function explainSchedule(input: string, fromDate: Date = new Date()): ScheduleExplanation {
+export function explainSchedule(input: string, fromDate: Date = new Date(), lang: string = "it"): ScheduleExplanation {
+  const isEn = lang === "en";
   const trimmed = (input || "").trim();
   if (!trimmed) {
-    const err = "Specifica un intervallo (es. 5m, 1h) o cron (es. */5 * * * *)";
+    const err = isEn
+      ? "Specify an interval (e.g. 5m, 1h) or cron (e.g. */5 * * * *)"
+      : "Specifica un intervallo (es. 5m, 1h) o cron (es. */5 * * * *)";
     return { ok: false, valid: false, error: err, description: err, humanDescription: err, nextRuns: [] };
   }
 
@@ -64,14 +67,21 @@ export function explainSchedule(input: string, fromDate: Date = new Date()): Sch
   if (m) {
     const val = parseInt(m[1], 10);
     const unit = m[2];
-    const unitMap: Record<string, string> = { s: "secondi", m: "minuti", h: "ore", d: "giorni" };
-    const unitSingular: Record<string, string> = { s: "secondo", m: "minuto", h: "ora", d: "giorno" };
-    const desc = val === 1 ? `Ogni ${unitSingular[unit]}` : `Ogni ${val} ${unitMap[unit]}`;
+    const unitMapIt: Record<string, string> = { s: "secondi", m: "minuti", h: "ore", d: "giorni" };
+    const unitSingularIt: Record<string, string> = { s: "secondo", m: "minuto", h: "ora", d: "giorno" };
+    const unitMapEn: Record<string, string> = { s: "seconds", m: "minutes", h: "hours", d: "days" };
+    const unitSingularEn: Record<string, string> = { s: "second", m: "minute", h: "hour", d: "day" };
+
+    const desc = isEn
+      ? (val === 1 ? `Every ${unitSingularEn[unit]}` : `Every ${val} ${unitMapEn[unit]}`)
+      : (val === 1 ? `Ogni ${unitSingularIt[unit]}` : `Ogni ${val} ${unitMapIt[unit]}`);
 
     const mult = UNIT_MS[unit] || 60000;
     const ms = val * mult;
     if (ms < 60000) {
-      const err = "Intervallo minimo consentito: 60s (per evitare loop di spesa)";
+      const err = isEn
+        ? "Minimum allowed interval: 60s (to prevent spend loops)"
+        : "Intervallo minimo consentito: 60s (per evitare loop di spesa)";
       return { ok: false, valid: false, error: err, description: err, humanDescription: err, nextRuns: [] };
     }
 
@@ -87,7 +97,9 @@ export function explainSchedule(input: string, fromDate: Date = new Date()): Sch
   // 2. Cron 5 fields
   const parts = trimmed.split(/\s+/);
   if (parts.length !== 5) {
-    const err = "Formato non valido. Usa un intervallo (es. 5m, 1h) o cron a 5 campi (es. */5 * * * *)";
+    const err = isEn
+      ? "Invalid format. Use an interval (e.g. 5m, 1h) or 5-field cron (e.g. */5 * * * *)"
+      : "Formato non valido. Usa un intervallo (es. 5m, 1h) o cron a 5 campi (es. */5 * * * *)";
     return { ok: false, valid: false, error: err, description: err, humanDescription: err, nextRuns: [] };
   }
 
@@ -99,24 +111,38 @@ export function explainSchedule(input: string, fromDate: Date = new Date()): Sch
       (it.next().toDate() as Date).toISOString(),
     ];
 
-    let desc = "Pianificazione cron attiva";
+    let desc = isEn ? "Active cron schedule" : "Pianificazione cron attiva";
     const [min, hour, dom, mon, dow] = parts;
 
-    if (min === "*/5" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Ogni 5 minuti";
-    else if (min === "*/10" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Ogni 10 minuti";
-    else if (min === "*/15" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Ogni 15 minuti";
-    else if (min === "*/30" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Ogni 30 minuti";
-    else if (min === "0" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Ogni ora al minuto 00";
-    else if (min === "0" && hour === "0" && dom === "*" && mon === "*" && dow === "*") desc = "Tutti i giorni a mezzanotte (00:00)";
-    else if (dom === "*" && mon === "*" && dow === "*") desc = `Tutti i giorni alle ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
-    else if (dom === "*" && mon === "*" && (dow === "1-5" || dow === "1,2,3,4,5")) desc = `Dal lunedì al venerdì alle ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
-    else if (dom === "*" && mon === "*" && (dow === "0" || dow === "7")) desc = `Ogni domenica alle ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
-    else if (dom === "*" && mon === "*" && dow === "1") desc = `Ogni lunedì alle ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
-    else desc = `Cron: ${trimmed}`;
+    if (isEn) {
+      if (min === "*/5" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Every 5 minutes";
+      else if (min === "*/10" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Every 10 minutes";
+      else if (min === "*/15" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Every 15 minutes";
+      else if (min === "*/30" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Every 30 minutes";
+      else if (min === "0" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Every hour at minute :00";
+      else if (min === "0" && hour === "0" && dom === "*" && mon === "*" && dow === "*") desc = "Every day at midnight (00:00)";
+      else if (dom === "*" && mon === "*" && dow === "*") desc = `Every day at ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+      else if (dom === "*" && mon === "*" && (dow === "1-5" || dow === "1,2,3,4,5")) desc = `Monday through Friday at ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+      else if (dom === "*" && mon === "*" && (dow === "0" || dow === "7")) desc = `Every Sunday at ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+      else if (dom === "*" && mon === "*" && dow === "1") desc = `Every Monday at ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+      else desc = `Cron: ${trimmed}`;
+    } else {
+      if (min === "*/5" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Ogni 5 minuti";
+      else if (min === "*/10" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Ogni 10 minuti";
+      else if (min === "*/15" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Ogni 15 minuti";
+      else if (min === "*/30" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Ogni 30 minuti";
+      else if (min === "0" && hour === "*" && dom === "*" && mon === "*" && dow === "*") desc = "Ogni ora al minuto 00";
+      else if (min === "0" && hour === "0" && dom === "*" && mon === "*" && dow === "*") desc = "Tutti i giorni a mezzanotte (00:00)";
+      else if (dom === "*" && mon === "*" && dow === "*") desc = `Tutti i giorni alle ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+      else if (dom === "*" && mon === "*" && (dow === "1-5" || dow === "1,2,3,4,5")) desc = `Dal lunedì al venerdì alle ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+      else if (dom === "*" && mon === "*" && (dow === "0" || dow === "7")) desc = `Ogni domenica alle ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+      else if (dom === "*" && mon === "*" && dow === "1") desc = `Ogni lunedì alle ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+      else desc = `Cron: ${trimmed}`;
+    }
 
     return { ok: true, valid: true, kind: "cron", description: desc, humanDescription: desc, nextRuns };
   } catch (err: any) {
-    const errorMsg = `Sintassi cron non valida: ${err.message}`;
+    const errorMsg = isEn ? `Invalid cron syntax: ${err.message}` : `Sintassi cron non valida: ${err.message}`;
     return { ok: false, valid: false, error: errorMsg, description: errorMsg, humanDescription: errorMsg, nextRuns: [] };
   }
 }

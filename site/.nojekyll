@@ -1,0 +1,2 @@
+# Intentionally empty. Tells GitHub Pages to serve this site as-is (no Jekyll processing),
+# so Three.js ES modules, importmaps and raw assets work without a build step.

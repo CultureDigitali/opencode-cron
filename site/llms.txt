@@ -1,0 +1,36 @@
+# opencode-cron
+
+> ChatGPT Scheduled Tasks for opencode — session-bound cron + persistent markdown memory for AI agents, by Culture Digitali Srl.
+
+opencode-cron is an open-source (MIT) plugin for opencode that brings ChatGPT-style Scheduled Tasks to AI coding agents. Unlike plain cron, it re-prompts the same AI session on every scheduled tick with persistent memory, so the agent keeps full context, deduplicates alerts, and avoids burning tokens.
+
+## Key facts
+- Name: opencode-cron (npm: @culturedigitali/opencode-cron), version 1.0.0, license MIT.
+- Made by: Culture Digitali Srl. Creator & lead developer: Luigi Strazzullo.
+- Repository: https://github.com/CultureDigitali/opencode-cron
+- Launch site: https://culturedigitali.github.io/opencode-cron/
+
+## Core capabilities
+- Same conversation every tick: re-prompts the same sessionID with full history (not a detached CLI call).
+- Persistent markdown memory that survives context compaction, restarts and reboots; tracks seenHashes to prevent repeat alerts.
+- Compaction hook re-injects the job's memory file into the compaction summary.
+- Mission Control Web GUI on http://localhost:4488 (jobs, live SQLite session streaming, memory studio, execution timeline).
+- Cross-platform desktop app + system tray (macOS .dmg, Windows .exe, Linux .AppImage/.deb).
+- 1-click "Imposta Cron" schedule binding with natural-language schedule previews.
+- 9 native agent tools (cron_add, cron_list, cron_get, cron_pause, cron_resume, cron_remove, cron_run_now, cron_memory_read, cron_memory_save) + 5 slash commands.
+- Autonomous background daemon via launchd (macOS), systemd (Linux), schtasks (Windows), 60s ticker.
+- 10-language i18n suite: English, Italiano, Español, Français, Deutsch, Português, 中文, 日本語, Русский, العربية (RTL).
+
+## Reliability guardrails
+- Minimum 60s interval, up to 10% jitter, optional maxRuns cap, skip-if-running atomic locks, auto-pause after 5 consecutive failures.
+
+## Install
+```jsonc
+// opencode.json
+{ "plugins": ["@culturedigitali/opencode-cron"] }
+```
+Background execution: `npx @culturedigitali/opencode-cron os-install`
+
+## Contact
+- Culture Digitali Srl — https://github.com/CultureDigitali
+- Luigi Strazzullo (creator) — https://github.com/CultureDigitali

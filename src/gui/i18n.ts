@@ -160,9 +160,19 @@ export function getUiEnhancementsBodyHtml(): string {
       outline-offset: 4px !important;
       border-radius: 8px !important;
     }
+    #oc-spotlight-backdrop.hidden,
+    #oc-spotlight-ring.hidden,
+    #oc-spotlight-card.hidden,
+    #oc-tour-modal.hidden,
+    #job-modal.hidden {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
   </style>
 
-  <div id="oc-spotlight-backdrop" onclick="stopGuidedDemo()" class="fixed inset-0 bg-black/75 backdrop-blur-[2px] transition-all duration-300 hidden" style="z-index: 9990;"></div>
+  <div id="oc-spotlight-backdrop" onclick="stopGuidedDemo(event)" class="fixed inset-0 bg-black/75 backdrop-blur-[2px] transition-all duration-300 hidden" style="z-index: 9990;"></div>
   <div id="oc-spotlight-ring" class="fixed rounded-xl border-2 border-indigo-400 pointer-events-none transition-all duration-300 hidden" style="z-index: 9992;"></div>
 
   <!-- Interactive Guided Spotlight Tour Popover Card -->
@@ -186,9 +196,11 @@ export function getUiEnhancementsBodyHtml(): string {
       </div>
       <button
         type="button"
-        onclick="stopGuidedDemo()"
-        class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 text-xs transition-colors cursor-pointer"
+        id="oc-spotlight-close-btn"
+        onclick="stopGuidedDemo(event)"
+        class="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 text-sm transition-colors cursor-pointer"
         aria-label="Esci dal tour guidato"
+        title="Chiudi demo (Esc)"
       >
         <i class="fa-solid fa-xmark"></i>
       </button>
@@ -214,15 +226,25 @@ export function getUiEnhancementsBodyHtml(): string {
     </div>
 
     <!-- Card Footer -->
-    <div class="flex items-center justify-between pt-2.5 border-t border-darkborder/80 text-xs">
-      <button
-        type="button"
-        id="oc-spotlight-prev-btn"
-        onclick="prevSpotlightStep()"
-        class="px-3 py-1.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 font-semibold border border-darkborder transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-      >
-        <i class="fa-solid fa-arrow-left mr-1"></i> <span id="oc-spotlight-prev-label">Indietro</span>
-      </button>
+    <div class="flex items-center justify-between pt-2.5 border-t border-darkborder/80 text-xs gap-2">
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          id="oc-spotlight-prev-btn"
+          onclick="prevSpotlightStep()"
+          class="px-3 py-1.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 font-semibold border border-darkborder transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <i class="fa-solid fa-arrow-left mr-1"></i> <span id="oc-spotlight-prev-label">Indietro</span>
+        </button>
+        <button
+          type="button"
+          id="oc-spotlight-skip-btn"
+          onclick="stopGuidedDemo(event)"
+          class="text-gray-400 hover:text-gray-200 text-xs transition-colors cursor-pointer px-1.5 py-1"
+        >
+          <span id="oc-spotlight-skip-label">Salta</span>
+        </button>
+      </div>
 
       <div class="flex items-center gap-1.5" id="oc-spotlight-dots">
         <!-- 7 dots -->
@@ -232,7 +254,7 @@ export function getUiEnhancementsBodyHtml(): string {
         type="button"
         id="oc-spotlight-next-btn"
         onclick="nextSpotlightStep()"
-        class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md shadow-indigo-600/30 transition-all cursor-pointer flex items-center gap-1"
+        class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-md shadow-indigo-600/30 transition-all cursor-pointer flex items-center gap-1 shrink-0"
       >
         <span id="oc-spotlight-next-label">Avanti</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
       </button>
@@ -457,7 +479,50 @@ export function getUiEnhancementsScript(): string {
         "instructions.sec7Title": "7. Demone di Sfondo macOS launchd: Esecuzione Autonoma 24/7",
         "instructions.sec7Sub": "I tuoi compiti girano in background anche con il browser e l'interfaccia chiusi",
         "instructions.sec8Title": "8. FAQ, Sicurezza & Risoluzione Problemi Rapida",
-        "instructions.sec8Sub": "Cosa fare in caso di errori consecutivi o riavvio dell'applicazione desktop"
+        "instructions.sec8Sub": "Cosa fare in caso di errori consecutivi o riavvio dell'applicazione desktop",
+        "modal.deleteTitle": "Conferma Eliminazione",
+        "modal.irreversibleAction": "Azione irreversibile",
+        "modal.deleteConfirmMsg": "Sei sicuro di voler eliminare il job \"{id}\"? I tick programmati cesseranno immediatamente.",
+        "modal.deleteBtn": "Elimina Definitivamente",
+        "chat.noSessions": "Nessuna sessione trovata",
+        "chat.noMessages": "Nessun messaggio in questa sessione.",
+        "chat.lastUpdated": "Ultimo aggiornamento:",
+        "chat.noTextOutput": "*(Nessun output di testo)*",
+        "loading.jobs": "Caricamento job in corso...",
+        "loading.generic": "Caricamento...",
+        "loading.sessions": "Caricamento sessioni...",
+        "loading.chat": "Caricamento conversazione in tempo reale...",
+        "loading.git": "Caricamento stato Git...",
+        "loading.diff": "Caricamento diff...",
+        "logs.noStdout": "(Nessun output stdout)",
+        "logs.noStderr": "(Nessun errore registrato)",
+        "diff.clean": "Working tree pulito, nessuna modifica non committata",
+        "diff.changes": "{count} file modificati nel workspace",
+        "diff.noChanges": "Nessuna modifica da visualizzare",
+        "toast.loadJobsError": "Errore nel caricamento dei job: ",
+        "toast.tickRunning": "Esecuzione tick in corso per ",
+        "toast.tickSuccess": "Tick completato con successo!",
+        "toast.tickError": "Errore tick: ",
+        "toast.netError": "Errore di rete: ",
+        "toast.jobResumed": "Job riattivato",
+        "toast.jobPaused": "Job messo in pausa",
+        "toast.genericError": "Errore: ",
+        "toast.jobDeleted": "Job eliminato con successo",
+        "toast.deleteError": "Errore eliminazione: ",
+        "toast.sessionsUpdated": "Lista sessioni aggiornata da SQLite",
+        "toast.copySessionSuccess": "Session ID copiato: ",
+        "toast.copySessionError": "Impossibile copiare negli appunti",
+        "toast.sendError": "Errore invio: ",
+        "toast.promptSent": "Prompt inviato alla sessione",
+        "toast.loadMemoryError": "Errore caricamento memoria: ",
+        "toast.memorySaved": "Memoria salvata con successo!",
+        "toast.saveMemoryError": "Errore salvataggio memoria: ",
+        "toast.selectSession": "Seleziona una sessione OpenCode prima di salvare il job.",
+        "toast.invalidSchedule": "Inserisci un intervallo valido (es. 5m o */5 * * * *).",
+        "toast.jobCreated": "Nuovo job creato!",
+        "toast.jobUpdated": "Job aggiornato!",
+        "toast.runningDue": "Controllo ed esecuzione dei job scaduti in corso...",
+        "toast.runDueFinished": "Controllo terminato!"
       },
       en: {
         "app.liveBadge": "Web GUI Live",
@@ -652,7 +717,50 @@ export function getUiEnhancementsScript(): string {
         "instructions.sec7Title": "7. Background macOS launchd Daemon: 24/7 Autonomous Execution",
         "instructions.sec7Sub": "Your scheduled tasks run in background even when browser and UI are closed",
         "instructions.sec8Title": "8. FAQs, Security Guardrails & Quick Troubleshooting",
-        "instructions.sec8Sub": "What to do on consecutive errors or desktop app restarts"
+        "instructions.sec8Sub": "What to do on consecutive errors or desktop app restarts",
+        "modal.deleteTitle": "Confirm Deletion",
+        "modal.irreversibleAction": "Irreversible action",
+        "modal.deleteConfirmMsg": "Are you sure you want to delete job \"{id}\"? Scheduled ticks will stop immediately.",
+        "modal.deleteBtn": "Delete Permanently",
+        "chat.noSessions": "No sessions found",
+        "chat.noMessages": "No messages in this session.",
+        "chat.lastUpdated": "Last updated:",
+        "chat.noTextOutput": "*(No text output)*",
+        "loading.jobs": "Loading jobs...",
+        "loading.generic": "Loading...",
+        "loading.sessions": "Loading sessions...",
+        "loading.chat": "Loading real-time chat...",
+        "loading.git": "Loading Git status...",
+        "loading.diff": "Loading diff...",
+        "logs.noStdout": "(No stdout output)",
+        "logs.noStderr": "(No errors recorded)",
+        "diff.clean": "Working tree clean, no uncommitted changes",
+        "diff.changes": "{count} modified files in workspace",
+        "diff.noChanges": "No changes to display",
+        "toast.loadJobsError": "Error loading jobs: ",
+        "toast.tickRunning": "Running tick for ",
+        "toast.tickSuccess": "Tick completed successfully!",
+        "toast.tickError": "Tick error: ",
+        "toast.netError": "Network error: ",
+        "toast.jobResumed": "Job resumed",
+        "toast.jobPaused": "Job paused",
+        "toast.genericError": "Error: ",
+        "toast.jobDeleted": "Job deleted successfully",
+        "toast.deleteError": "Deletion error: ",
+        "toast.sessionsUpdated": "Session list updated from SQLite",
+        "toast.copySessionSuccess": "Session ID copied: ",
+        "toast.copySessionError": "Unable to copy to clipboard",
+        "toast.sendError": "Send error: ",
+        "toast.promptSent": "Prompt sent to session",
+        "toast.loadMemoryError": "Error loading memory: ",
+        "toast.memorySaved": "Memory saved successfully!",
+        "toast.saveMemoryError": "Error saving memory: ",
+        "toast.selectSession": "Please select an OpenCode session before saving the job.",
+        "toast.invalidSchedule": "Please enter a valid schedule (e.g. 5m or */5 * * * *).",
+        "toast.jobCreated": "New job created!",
+        "toast.jobUpdated": "Job updated!",
+        "toast.runningDue": "Checking and running due jobs in progress...",
+        "toast.runDueFinished": "Check finished!"
       },
       es: {
         "app.liveBadge": "Web GUI en Vivo",
@@ -1513,12 +1621,19 @@ export function getUiEnhancementsScript(): string {
       if (typeof renderRunsList === 'function') {
         try { renderRunsList(); } catch {}
       }
+      if (typeof renderInstructionsPage === 'function') {
+        try { renderInstructionsPage(); } catch {}
+      }
     }
 
     function applyStaticTranslations() {
       document.querySelectorAll('[data-i18n]').forEach((el) => {
         const key = el.getAttribute('data-i18n');
         if (key) el.textContent = t(key, el.textContent);
+      });
+      document.querySelectorAll('[data-i18n-html]').forEach((el) => {
+        const key = el.getAttribute('data-i18n-html');
+        if (key) el.innerHTML = t(key, el.innerHTML);
       });
       document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
         const key = el.getAttribute('data-i18n-placeholder');
@@ -1660,6 +1775,7 @@ export function getUiEnhancementsScript(): string {
         stepOf: "Passo {cur} di {tot}",
         btnNext: "Avanti",
         btnPrev: "Indietro",
+        btnSkip: "Salta",
         btnFinish: "Ho Capito! Inizia Ora",
         btnFillDemo: "✨ Compila Dati Esempio",
         filledToast: "Dati Esempio Inseriti!",
@@ -1700,6 +1816,7 @@ export function getUiEnhancementsScript(): string {
         stepOf: "Step {cur} of {tot}",
         btnNext: "Next",
         btnPrev: "Previous",
+        btnSkip: "Skip",
         btnFinish: "Got It! Start Now",
         btnFillDemo: "✨ Fill Sample Data",
         filledToast: "Sample Data Inserted!",
@@ -1740,6 +1857,7 @@ export function getUiEnhancementsScript(): string {
         stepOf: "Paso {cur} de {tot}",
         btnNext: "Siguiente",
         btnPrev: "Anterior",
+        btnSkip: "Saltar",
         btnFinish: "¡Entendido! Empezar",
         btnFillDemo: "✨ Rellenar Datos Ejemplo",
         filledToast: "¡Datos de ejemplo insertados!",
@@ -1780,6 +1898,7 @@ export function getUiEnhancementsScript(): string {
         stepOf: "Étape {cur} sur {tot}",
         btnNext: "Suivant",
         btnPrev: "Précédent",
+        btnSkip: "Passer",
         btnFinish: "Compris ! Démarrer",
         btnFillDemo: "✨ Remplir Exemple",
         filledToast: "Données d'exemple insérées !",
@@ -1820,6 +1939,7 @@ export function getUiEnhancementsScript(): string {
         stepOf: "Schritt {cur} von {tot}",
         btnNext: "Weiter",
         btnPrev: "Zurück",
+        btnSkip: "Überspringen",
         btnFinish: "Verstanden! Starten",
         btnFillDemo: "✨ Beispieldaten Ausfüllen",
         filledToast: "Beispieldaten eingefügt!",
@@ -1860,6 +1980,7 @@ export function getUiEnhancementsScript(): string {
         stepOf: "Passo {cur} de {tot}",
         btnNext: "Avançar",
         btnPrev: "Voltar",
+        btnSkip: "Pular",
         btnFinish: "Entendi! Começar",
         btnFillDemo: "✨ Preencher Exemplo",
         filledToast: "Dados de exemplo inseridos!",
@@ -1900,6 +2021,7 @@ export function getUiEnhancementsScript(): string {
         stepOf: "第 {cur} 步，共 {tot} 步",
         btnNext: "下一步",
         btnPrev: "上一步",
+        btnSkip: "跳过",
         btnFinish: "明白了！立即开始",
         btnFillDemo: "✨ 填入示例数据",
         filledToast: "示例数据已填入！",
@@ -1940,6 +2062,7 @@ export function getUiEnhancementsScript(): string {
         stepOf: "ステップ {cur} / {tot}",
         btnNext: "次へ",
         btnPrev: "前へ",
+        btnSkip: "スキップ",
         btnFinish: "理解しました！今すぐ開始",
         btnFillDemo: "✨ サンプルデータを入力",
         filledToast: "サンプルデータを入力しました！",
@@ -1980,6 +2103,7 @@ export function getUiEnhancementsScript(): string {
         stepOf: "خطوة {cur} من {tot}",
         btnNext: "التالي",
         btnPrev: "السابق",
+        btnSkip: "تخطي",
         btnFinish: "فهمت! ابدأ الآن",
         btnFillDemo: "✨ ملء بيانات تجريبية",
         filledToast: "تم إدراج بيانات تجريبية بنجاح!",
@@ -2020,6 +2144,7 @@ export function getUiEnhancementsScript(): string {
         stepOf: "Шаг {cur} из {tot}",
         btnNext: "Далее",
         btnPrev: "Назад",
+        btnSkip: "Пропустить",
         btnFinish: "Понятно! Начать",
         btnFillDemo: "✨ Заполнить Пример",
         filledToast: "Пример данных успешно вставлен!",
@@ -2070,12 +2195,14 @@ export function getUiEnhancementsScript(): string {
     let currentSpotlightStep = 0;
     let isSpotlightActive = false;
     let currentHighlightEl = null;
+    let spotlightStepTimeout = null;
 
     function getTourDict() {
       return TOUR_I18N[currentLang] || TOUR_I18N.it;
     }
 
     function positionCardAndRing(targetEl) {
+      if (!isSpotlightActive) return;
       const ring = document.getElementById('oc-spotlight-ring');
       const card = document.getElementById('oc-spotlight-card');
       if (!targetEl || !ring || !card) return;
@@ -2135,13 +2262,22 @@ export function getUiEnhancementsScript(): string {
       const maxr = document.getElementById('form-max-runs');
       const dict = getTourDict();
 
-      if (title && !title.value) title.value = "Monitor Novità AI (5m)";
+      const isEn = (currentLang === 'en');
+      if (title && !title.value) title.value = isEn ? "AI News Watchdog (5m)" : "Monitor Novità AI (5m)";
       if (sched) {
         sched.value = "5m";
         if (typeof debounceSchedulePreview === 'function') debounceSchedulePreview('5m');
       }
-      if (sys && !sys.value) sys.value = "Sei un assistente di monitoraggio autonomo. Obiettivo: scansiona novità e aggiorna la memoria.";
-      if (fup && !fup.value) fup.value = "Cerca aggiornamenti recenti, verifica seenHashes per evitare duplicati e salva i nuovi fatti con cron_memory_save.";
+      if (sys && !sys.value) {
+        sys.value = isEn
+          ? "You are an autonomous monitoring agent. Objective: scan recent updates and maintain persistent memory."
+          : "Sei un assistente di monitoraggio autonomo. Obiettivo: scansiona novità e aggiorna la memoria.";
+      }
+      if (fup && !fup.value) {
+        fup.value = isEn
+          ? "Check recent AI news, verify seenHashes to avoid duplicates, and save new facts via cron_memory_save."
+          : "Cerca aggiornamenti recenti, verifica seenHashes per evitare duplicati e salva i nuovi fatti con cron_memory_save.";
+      }
       if (maxr) maxr.value = "0";
 
       const btn = document.getElementById('oc-spotlight-demo-fill-btn');
@@ -2154,6 +2290,7 @@ export function getUiEnhancementsScript(): string {
     }
 
     function renderSpotlightStep(index) {
+      if (!isSpotlightActive) return;
       if (index < 0 || index >= SPOTLIGHT_STEPS.length) return;
       currentSpotlightStep = index;
       const stepDef = SPOTLIGHT_STEPS[index];
@@ -2173,7 +2310,9 @@ export function getUiEnhancementsScript(): string {
         }
       }
 
-      setTimeout(() => {
+      if (spotlightStepTimeout) clearTimeout(spotlightStepTimeout);
+      spotlightStepTimeout = setTimeout(() => {
+        if (!isSpotlightActive) return;
         const targetEl = document.querySelector(stepDef.selector);
         if (currentHighlightEl) {
           currentHighlightEl.classList.remove('oc-tour-highlight-el');
@@ -2197,6 +2336,7 @@ export function getUiEnhancementsScript(): string {
         const prevLabel = document.getElementById('oc-spotlight-prev-label');
         const nextBtn = document.getElementById('oc-spotlight-next-btn');
         const nextLabel = document.getElementById('oc-spotlight-next-label');
+        const skipLabel = document.getElementById('oc-spotlight-skip-label');
         const dotsContainer = document.getElementById('oc-spotlight-dots');
 
         if (badgeEl) badgeEl.textContent = dict.badge;
@@ -2208,6 +2348,7 @@ export function getUiEnhancementsScript(): string {
           helperContainer.style.display = stepDef.showHelper ? 'block' : 'none';
         }
         if (fillLabel) fillLabel.textContent = dict.btnFillDemo;
+        if (skipLabel) skipLabel.textContent = dict.btnSkip || (currentLang === 'en' ? 'Skip' : 'Salta');
 
         if (prevBtn) {
           prevBtn.disabled = (index === 0);
@@ -2220,7 +2361,12 @@ export function getUiEnhancementsScript(): string {
 
         if (dotsContainer) {
           dotsContainer.innerHTML = SPOTLIGHT_STEPS.map((_, i) => \`
-            <span class="w-2 h-2 rounded-full transition-all \${i === index ? 'bg-indigo-400 w-4.5' : 'bg-gray-700'}"></span>
+            <button
+              type="button"
+              onclick="renderSpotlightStep(\${i})"
+              class="w-2.5 h-2.5 rounded-full transition-all cursor-pointer \${i === index ? 'bg-indigo-400 w-5' : 'bg-gray-700 hover:bg-gray-500'}"
+              aria-label="Passo \${i + 1}"
+            ></button>
           \`).join('');
         }
       }, 50);
@@ -2237,29 +2383,64 @@ export function getUiEnhancementsScript(): string {
       const ring = document.getElementById('oc-spotlight-ring');
       const card = document.getElementById('oc-spotlight-card');
 
-      if (backdrop) backdrop.classList.remove('hidden');
-      if (ring) ring.classList.remove('hidden');
-      if (card) card.classList.remove('hidden');
+      if (backdrop) {
+        backdrop.classList.remove('hidden');
+        backdrop.style.display = 'block';
+      }
+      if (ring) {
+        ring.classList.remove('hidden');
+        ring.style.display = 'block';
+      }
+      if (card) {
+        card.classList.remove('hidden');
+        card.style.display = 'flex';
+      }
 
       renderSpotlightStep(0);
     }
 
-    function stopGuidedDemo() {
+    function stopGuidedDemo(e) {
+      if (e) {
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+      }
       isSpotlightActive = false;
+      if (spotlightStepTimeout) {
+        clearTimeout(spotlightStepTimeout);
+        spotlightStepTimeout = null;
+      }
+
       const backdrop = document.getElementById('oc-spotlight-backdrop');
       const ring = document.getElementById('oc-spotlight-ring');
       const card = document.getElementById('oc-spotlight-card');
 
-      if (backdrop) backdrop.classList.add('hidden');
-      if (ring) ring.classList.add('hidden');
-      if (card) card.classList.add('hidden');
+      if (backdrop) {
+        backdrop.classList.add('hidden');
+        backdrop.style.display = 'none';
+      }
+      if (ring) {
+        ring.classList.add('hidden');
+        ring.style.display = 'none';
+      }
+      if (card) {
+        card.classList.add('hidden');
+        card.style.display = 'none';
+      }
 
       if (currentHighlightEl) {
         currentHighlightEl.classList.remove('oc-tour-highlight-el');
         currentHighlightEl = null;
       }
 
-      if (typeof closeModal === 'function') closeModal();
+      // Automatically close the Job Modal if it was opened by the tour
+      const modal = document.getElementById('job-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+      if (typeof closeModal === 'function') {
+        try { closeModal(); } catch (_) {}
+      }
       localStorage.setItem('oc_cron_tour_seen', '1');
     }
 
