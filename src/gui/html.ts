@@ -2904,7 +2904,8 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       const curlPre = document.getElementById('webhook-modal-curl');
       if (!urlInput || !curlPre) return;
       const url = urlInput.value || '';
-      curlPre.textContent = 'curl -X POST "' + url + '" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"event":"trigger","timestamp":' + Date.now() + '}\'';
+      const payloadStr = JSON.stringify({ event: "trigger", timestamp: Date.now() });
+      curlPre.textContent = "curl -X POST " + JSON.stringify(url) + " -H " + JSON.stringify("Content-Type: application/json") + " -d " + JSON.stringify(payloadStr);
     }
 
     function copyWebhookUrl() {
@@ -3151,7 +3152,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                     '</div>' +
                     '<p class="text-[10px] text-gray-500 mt-0.5">In coda da: ' + new Date(item.enqueuedAt).toLocaleTimeString() + ' | Sorgente: ' + escapeHtml(item.source) + '</p>' +
                   '</div>' +
-                  '<button onclick="cancelQueuedJob(\'' + escapeHtml(item.jobId) + '\')" class="px-2 py-1 bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 rounded text-[10px] font-semibold transition-colors cursor-pointer flex items-center gap-1">' +
+                  '<button onclick="cancelQueuedJob(&quot;' + escapeHtml(item.jobId) + '&quot;)" class="px-2 py-1 bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 rounded text-[10px] font-semibold transition-colors cursor-pointer flex items-center gap-1">' +
                     '<i class="fa-solid fa-xmark text-[9px]"></i> Rimuovi' +
                   '</button>' +
                 '</div>';
@@ -3298,13 +3299,13 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                     '<p class="text-[10px] text-gray-500 mt-0.5">Quarantena: ' + safeDate + ' | Fallimenti consecutivi: ' + item.consecutiveFailures + '</p>' +
                   '</div>' +
                   '<div class="flex items-center gap-1.5">' +
-                    (!isResolved ? '<button onclick="retryDlqJob(\'' + safeJobId + '\')" class="px-2.5 py-1 bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 border border-amber-500/30 rounded text-[10px] font-semibold transition-colors cursor-pointer flex items-center gap-1">' +
+                    (!isResolved ? '<button onclick="retryDlqJob(&quot;' + safeJobId + '&quot;)" class="px-2.5 py-1 bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 border border-amber-500/30 rounded text-[10px] font-semibold transition-colors cursor-pointer flex items-center gap-1">' +
                       '<i class="fa-solid fa-flask text-[9px]"></i> ' + (typeof t === 'function' ? t('dlq.retryBtn') : 'Riprova (Canary)') +
                     '</button>' : '') +
-                    (!isResolved ? '<button onclick="resolveDlqJob(\'' + escapeHtml(item.id) + '\')" class="px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 rounded text-[10px] font-semibold transition-colors cursor-pointer flex items-center gap-1">' +
+                    (!isResolved ? '<button onclick="resolveDlqJob(&quot;' + escapeHtml(item.id) + '&quot;)" class="px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 rounded text-[10px] font-semibold transition-colors cursor-pointer flex items-center gap-1">' +
                       '<i class="fa-solid fa-check text-[9px]"></i> ' + (typeof t === 'function' ? t('dlq.resolveBtn') : 'Risolvi') +
                     '</button>' : '') +
-                    '<button onclick="deleteDlqEntry(\'' + escapeHtml(item.id) + '\')" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded text-[10px] transition-colors cursor-pointer" title="' + (typeof t === 'function' ? t('dlq.deleteBtn') : 'Elimina') + '">' +
+                    '<button onclick="deleteDlqEntry(&quot;' + escapeHtml(item.id) + '&quot;)" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded text-[10px] transition-colors cursor-pointer" title="' + (typeof t === 'function' ? t('dlq.deleteBtn') : 'Elimina') + '">' +
                       '<i class="fa-solid fa-trash text-[9px]"></i>' +
                     '</button>' +
                   '</div>' +
