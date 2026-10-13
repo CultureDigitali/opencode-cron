@@ -2,6 +2,7 @@ import { loadJobs, saveJobs, computeNextRun, assertJobId, applyAdaptiveTransitio
 import { readMemory, writeMemory, buildTickPrompt } from "./memory.ts";
 import { acquireLock, releaseLock } from "./runner.ts";
 import { recordRunEntry } from "./history.ts";
+import { triggerPipelineDownstream } from "./pipeline.ts";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
@@ -17,10 +18,17 @@ function flightKey(directory: string, jobId: string): string {
   return `${directory}::${jobId}`;
 }
 
+export interface ExecuteTickPipelineContext {
+  depth?: number;
+  rootMaxDepth?: number;
+  visited?: Set<string>;
+}
+
 export async function executeTick(
   directory: string,
   jobId: string,
-  prompt: PromptFn
+  prompt: PromptFn,
+  pipelineContext?: ExecuteTickPipelineContext
 ): Promise<{ ok: boolean; skipped?: string }> {
   assertJobId(jobId);
   const jobs = await loadJobs(directory);
@@ -103,6 +111,19 @@ export async function executeTick(
       error: null,
       source: "recorded",
     }).catch(() => {});
+    const currentDepth = pipelineContext?.depth ?? 0;
+    const rootMaxDepth = pipelineContext?.rootMaxDepth;
+    const visited = pipelineContext?.visited ?? new Set<string>();
+
+    await triggerPipelineDownstream({
+      directory,
+      parentJobId: job.id,
+      status: "success",
+      depth: currentDepth,
+      rootMaxDepth,
+      visited,
+      executeFn: (id, nextCtx) => executeTick(directory, id, prompt, nextCtx).then((r) => (r.ok ? "success" : "failed")),
+    }).catch((e) => console.error(`[Pipeline] downstream error: ${e.message}`));
     return { ok: true };
   } catch (err: any) {
     const finishedAtMs = Date.now();
@@ -141,6 +162,20 @@ export async function executeTick(
       error: errMsg,
       source: "recorded",
     }).catch(() => {});
+
+    const currentDepth = pipelineContext?.depth ?? 0;
+    const rootMaxDepth = pipelineContext?.rootMaxDepth;
+    const visited = pipelineContext?.visited ?? new Set<string>();
+
+    await triggerPipelineDownstream({
+      directory,
+      parentJobId: job.id,
+      status: "failed",
+      depth: currentDepth,
+      rootMaxDepth,
+      visited,
+      executeFn: (id, nextCtx) => executeTick(directory, id, prompt, nextCtx).then((r) => (r.ok ? "success" : "failed")),
+    }).catch((e) => console.error(`[Pipeline] downstream error: ${e.message}`));
     return { ok: false, skipped: "error" };
   } finally {
     prompt.inFlight?.delete(key);

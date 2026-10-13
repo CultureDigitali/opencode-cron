@@ -192,6 +192,9 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           <p class="text-xs text-gray-400" data-i18n="jobs.subheading">Task ricorrenti che scrivono direttamente nelle sessioni di OpenCode</p>
         </div>
         <div class="flex items-center space-x-2">
+          <button onclick="openPipelineModal()" data-tooltip="tt.pipelineBtn" class="bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-800/60 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer">
+            <i class="fa-solid fa-diagram-project text-[10px]"></i> <span data-i18n="pipeline.headerBtn">Workflow & DAG</span>
+          </button>
           <button onclick="runAllDue()" data-tooltip="tt.runDueBtn" class="bg-gray-800 hover:bg-gray-700 text-gray-200 border border-darkborder px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
             <i class="fa-solid fa-play text-[10px]"></i> <span data-i18n="jobs.runDueNow">Esegui Scaduti Ora</span>
           </button>
@@ -639,6 +642,34 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
               </div>
             </div>
           </div>
+
+          <!-- Pipeline & Multi-Job Workflows (DAG) Section -->
+          <div class="p-3 rounded-xl bg-gray-950/70 border border-darkborder space-y-2 mt-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-diagram-project text-cyan-400 text-xs"></i>
+                <label for="form-pipeline-enabled" class="text-xs font-bold text-gray-200 cursor-pointer" data-i18n="modal.pipelineTitle">Pipeline & Trigger Multi-Job (Workflow DAG)</label>
+              </div>
+              <input type="checkbox" id="form-pipeline-enabled" onchange="togglePipelineFields()" class="w-4 h-4 rounded text-cyan-600 bg-gray-900 border-gray-700 cursor-pointer">
+            </div>
+            <p class="text-[11px] text-gray-400 leading-relaxed" data-i18n="modal.pipelineHelp">Collega questo job ad altri job: esegui automaticamente i successivi al termine con successo o su errore.</p>
+            <div id="pipeline-fields" class="space-y-2 pt-1 hidden">
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label for="form-pipeline-success" class="text-[10px] text-gray-400 block mb-0.5" data-i18n="modal.pipelineOnSuccess">Esegui su Successo (Job IDs)</label>
+                  <input type="text" id="form-pipeline-success" placeholder="job_id_1, job_id_2" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1 text-xs text-gray-100 font-mono focus:outline-none focus:border-cyan-500">
+                </div>
+                <div>
+                  <label for="form-pipeline-failure" class="text-[10px] text-gray-400 block mb-0.5" data-i18n="modal.pipelineOnFailure">Esegui su Errore (Job IDs)</label>
+                  <input type="text" id="form-pipeline-failure" placeholder="job_alert, job_fallback" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1 text-xs text-gray-100 font-mono focus:outline-none focus:border-cyan-500">
+                </div>
+              </div>
+              <div class="flex items-center space-x-2 pt-1">
+                <input type="checkbox" id="form-pipeline-payload" checked class="w-3.5 h-3.5 rounded text-cyan-600 bg-gray-900 border-gray-700 cursor-pointer">
+                <label for="form-pipeline-payload" class="text-[11px] text-gray-300 cursor-pointer" data-i18n="modal.pipelinePassPayload">Inietta contesto/memoria del job padre nei job a valle</label>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -690,6 +721,35 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       <div class="flex items-center justify-end space-x-2 pt-4 mt-3 border-t border-darkborder">
         <button type="button" onclick="closeConfirmModal()" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 text-xs font-medium" data-i18n="modal.cancel">Annulla</button>
         <button type="button" id="confirm-modal-btn" class="px-3 py-1.5 rounded-lg bg-rose-600 text-white font-semibold hover:bg-rose-500 text-xs shadow-md shadow-rose-600/30" data-i18n="job.deleteTitle">Elimina Job</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: WORKFLOW & DAG PIPELINE GRAPH           -->
+  <!-- ============================================== -->
+  <div id="pipeline-modal" role="dialog" aria-modal="true" aria-labelledby="pipeline-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-3xl w-full p-6 shadow-2xl relative flex flex-col max-h-[85vh]">
+      <div class="flex items-center justify-between pb-4 border-b border-darkborder mb-4">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+            <i class="fa-solid fa-diagram-project text-sm"></i>
+          </div>
+          <div>
+            <h3 id="pipeline-modal-title" class="text-base font-bold text-white" data-i18n="pipeline.modalTitle">Grafo Workflow Pipeline (DAG)</h3>
+            <p class="text-[11px] text-gray-400">Dipendenze di trigger success/failure e propagazione memoria</p>
+          </div>
+        </div>
+        <button onclick="closePipelineModal()" aria-label="Chiudi finestra" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div id="pipeline-graph-content" class="flex-1 overflow-y-auto space-y-4 pr-1">
+        <!-- Rendered dynamically via openPipelineModal() -->
+      </div>
+
+      <div class="flex items-center justify-between pt-4 mt-2 border-t border-darkborder text-xs text-gray-400">
+        <span id="pipeline-cycle-status" class="flex items-center gap-1.5 font-mono text-[11px]"></span>
+        <button type="button" onclick="closePipelineModal()" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-200 hover:bg-gray-700 font-medium">Chiudi</button>
       </div>
     </div>
   </div>
@@ -852,6 +912,12 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           }
         }
 
+        let pipelineBadge = '';
+        if (job.pipeline && job.pipeline.enabled) {
+          const okCount = job.pipeline.onSuccess ? job.pipeline.onSuccess.length : 0;
+          pipelineBadge = \`<span data-tooltip="tt.pipelineBtn" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center gap-1"><i class="fa-solid fa-diagram-project text-cyan-400"></i> \${escapeHtml(t('job.pipelineBadge'))}\${okCount > 0 ? ' [' + okCount + '→]' : ''}</span>\`;
+        }
+
         const schedDesc = job.schedule.kind === 'interval'
           ? formatInterval(job.schedule.everyMs)
           : 'Cron: ' + escapeHtml(job.schedule.cron || '');
@@ -870,6 +936,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                     <h3 class="text-sm font-bold text-white tracking-tight">\${safeTitle}</h3>
                     \${statusBadge}
                     \${adaptiveBadge}
+                    \${pipelineBadge}
                   </div>
                   <p class="text-[11px] font-mono text-indigo-400 mt-0.5">\${safeId}</p>
                 </div>
@@ -903,6 +970,21 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                 <div class="col-span-2 pt-1 border-t border-darkborder/50 text-[10px] text-gray-400 flex items-center justify-between">
                   <span><i class="fa-solid fa-gauge-high text-indigo-400 mr-1"></i>\${escapeHtml(t('job.cadence'))}: <strong class="text-gray-200">\${job.adaptive.currentCadence}</strong> (quiet: \${job.adaptive.consecutiveQuietTicks ?? 0}/\${job.adaptive.quietThreshold ?? 3})</span>
                   <span>burst: <strong class="text-amber-300">\${formatInterval(job.adaptive.burstEveryMs)}</strong> | idle: <strong class="text-indigo-300">\${formatInterval(job.adaptive.idleEveryMs)}</strong></span>
+                </div>
+                \` : ''}
+                \${job.pipeline && job.pipeline.enabled ? \`
+                <div class="col-span-2 pt-1 border-t border-darkborder/50 text-[10px] text-gray-400 flex flex-wrap items-center justify-between gap-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <i class="fa-solid fa-diagram-project text-cyan-400"></i>
+                    <span class="text-cyan-300 font-medium">\${escapeHtml(t('job.pipelineBadge'))}:</span>
+                    \${(job.pipeline.onSuccess && job.pipeline.onSuccess.length > 0) ? \`
+                      <span class="text-emerald-400 font-mono"><strong class="text-gray-400">\${escapeHtml(t('job.pipelineOk'))}</strong> \${escapeHtml(job.pipeline.onSuccess.join(', '))}</span>
+                    \` : ''}
+                    \${(job.pipeline.onFailure && job.pipeline.onFailure.length > 0) ? \`
+                      <span class="text-rose-400 font-mono"><strong class="text-gray-400">\${escapeHtml(t('job.pipelineErr'))}</strong> \${escapeHtml(job.pipeline.onFailure.join(', '))}</span>
+                    \` : ''}
+                  </div>
+                  \${job.pipeline.passPayload ? \`<span class="text-indigo-300 font-mono text-[9px] bg-indigo-950/60 px-1.5 py-0.5 rounded border border-indigo-800/40">📦 payload</span>\` : ''}
                 </div>
                 \` : ''}
               </div>
@@ -2183,6 +2265,15 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       }
     }
 
+    function togglePipelineFields() {
+      const enabled = document.getElementById('form-pipeline-enabled')?.checked;
+      const fields = document.getElementById('pipeline-fields');
+      if (fields) {
+        if (enabled) fields.classList.remove('hidden');
+        else fields.classList.add('hidden');
+      }
+    }
+
     function openNewJobModal(presetSessionId) {
       const titleEl = document.getElementById('modal-title');
       if (titleEl) {
@@ -2206,6 +2297,18 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       if (idleInput) idleInput.value = '30m';
       const threshInput = document.getElementById('form-adaptive-threshold');
       if (threshInput) threshInput.value = '3';
+
+      const pipelineCheck = document.getElementById('form-pipeline-enabled');
+      if (pipelineCheck) {
+        pipelineCheck.checked = false;
+        togglePipelineFields();
+      }
+      const successInput = document.getElementById('form-pipeline-success');
+      if (successInput) successInput.value = '';
+      const failureInput = document.getElementById('form-pipeline-failure');
+      if (failureInput) failureInput.value = '';
+      const payloadCheck = document.getElementById('form-pipeline-payload');
+      if (payloadCheck) payloadCheck.checked = true;
 
       const targetSessionId = presetSessionId || (currentTab === 'chat' ? activeSessionId : '');
       if (targetSessionId) {
@@ -2259,6 +2362,18 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       const threshInput = document.getElementById('form-adaptive-threshold');
       if (threshInput) threshInput.value = String(job.adaptive?.quietThreshold || 3);
 
+      const pipelineCheck = document.getElementById('form-pipeline-enabled');
+      if (pipelineCheck) {
+        pipelineCheck.checked = Boolean(job.pipeline && job.pipeline.enabled);
+        togglePipelineFields();
+      }
+      const successInput = document.getElementById('form-pipeline-success');
+      if (successInput) successInput.value = job.pipeline?.onSuccess ? job.pipeline.onSuccess.join(', ') : '';
+      const failureInput = document.getElementById('form-pipeline-failure');
+      if (failureInput) failureInput.value = job.pipeline?.onFailure ? job.pipeline.onFailure.join(', ') : '';
+      const payloadCheck = document.getElementById('form-pipeline-payload');
+      if (payloadCheck) payloadCheck.checked = job.pipeline?.passPayload !== false;
+
       const modal = document.getElementById('job-modal');
       if (modal) {
         modal.classList.remove('hidden');
@@ -2302,6 +2417,16 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         quietThreshold: parseInt(document.getElementById('form-adaptive-threshold')?.value, 10) || 3,
       } : (id ? { enabled: false } : undefined);
 
+      const isPipeline = Boolean(document.getElementById('form-pipeline-enabled')?.checked);
+      const pipelinePayload = isPipeline ? {
+        enabled: true,
+        onSuccess: (document.getElementById('form-pipeline-success')?.value || '')
+          .split(',').map(s => s.trim()).filter(Boolean),
+        onFailure: (document.getElementById('form-pipeline-failure')?.value || '')
+          .split(',').map(s => s.trim()).filter(Boolean),
+        passPayload: Boolean(document.getElementById('form-pipeline-payload')?.checked),
+      } : (id ? { enabled: false } : undefined);
+
       const payload = {
         title: document.getElementById('form-title').value.trim(),
         scheduleStr: schedStr,
@@ -2311,6 +2436,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         systemPrompt: document.getElementById('form-system-prompt').value.trim(),
         followupPrompt: document.getElementById('form-followup-prompt').value.trim(),
         adaptive: adaptivePayload,
+        pipeline: pipelinePayload,
       };
 
       try {
@@ -2331,6 +2457,75 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         }
       } catch (err) {
         showToast((typeof t === 'function' ? t('toast.netError') : 'Errore rete: ') + err.message, 'error');
+      }
+    }
+
+    async function openPipelineModal() {
+      const modal = document.getElementById('pipeline-modal');
+      const content = document.getElementById('pipeline-graph-content');
+      const statusEl = document.getElementById('pipeline-cycle-status');
+      if (!modal || !content) return;
+
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+      content.innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fa-solid fa-spinner fa-spin text-xl text-cyan-400 mb-2"></i><p>' + (typeof t === 'function' ? t('loading.jobs') : 'Caricamento...') + '</p></div>';
+
+      try {
+        const res = await fetch('/api/pipeline');
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Errore pipeline');
+        const graph = data.graph;
+
+        if (statusEl) {
+          if (graph.hasCycle) {
+            statusEl.innerHTML = '<span class="text-rose-400 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Ciclo rilevato nel grafo!</span>';
+          } else {
+            statusEl.innerHTML = '<span class="text-emerald-400 font-medium"><i class="fa-solid fa-check"></i> Grafo DAG valido (senza cicli)</span>';
+          }
+        }
+
+        if (!graph.nodes || graph.nodes.length === 0) {
+          content.innerHTML = '<div class="py-12 text-center text-gray-500 bg-gray-950/60 rounded-xl border border-darkborder"><i class="fa-solid fa-diagram-project text-2xl mb-2 text-gray-600"></i><p>' + escapeHtml(t('pipeline.emptyGraph')) + '</p></div>';
+          return;
+        }
+
+        content.innerHTML = '<div class="space-y-3">' + graph.nodes.map(node => {
+          const outEdges = (graph.edges || []).filter(e => e.from === node.id);
+          const inEdges = (graph.edges || []).filter(e => e.to === node.id);
+          const isRoot = (graph.roots || []).includes(node.id);
+
+          return '<div class="bg-gray-950/80 border border-darkborder rounded-xl p-4 shadow-sm hover:border-gray-700 transition-colors">' +
+            '<div class="flex items-center justify-between">' +
+              '<div class="flex items-center space-x-2">' +
+                '<span class="font-bold text-white text-sm">' + escapeHtml(node.title) + '</span>' +
+                '<span class="text-[10px] font-mono text-cyan-400 bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-800/40">' + escapeHtml(node.id) + '</span>' +
+                (isRoot ? '<span class="text-[9px] font-bold text-indigo-300 bg-indigo-950/60 px-1.5 py-0.5 rounded border border-indigo-700/40">ROOT</span>' : '') +
+              '</div>' +
+              (node.passPayload ? '<span class="text-[10px] font-mono text-amber-300 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/40">📦 passPayload</span>' : '') +
+            '</div>' +
+            '<div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">' +
+              '<div class="bg-gray-900/50 p-2.5 rounded-lg border border-darkborder/60">' +
+                '<div class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mb-1 flex items-center gap-1"><i class="fa-solid fa-arrow-right-to-bracket text-gray-400"></i> Trigger a Monte (Inbound)</div>' +
+                (inEdges.length ? inEdges.map(e => '<div class="font-mono text-[11px] text-gray-300 flex items-center gap-1.5"><span class="' + (e.type === 'onSuccess' ? 'text-emerald-400' : 'text-rose-400') + '">' + (e.type === 'onSuccess' ? '✓' : '✕') + '</span> ' + escapeHtml(e.from) + ' <span class="text-[10px] text-gray-500">(' + e.type + ')</span></div>').join('') : '<span class="text-[11px] text-gray-600 italic">Nessun trigger in entrata (Root Job)</span>') +
+              '</div>' +
+              '<div class="bg-gray-900/50 p-2.5 rounded-lg border border-darkborder/60">' +
+                '<div class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mb-1 flex items-center gap-1"><i class="fa-solid fa-arrow-right-from-bracket text-cyan-400"></i> Trigger a Valle (Downstream)</div>' +
+                (outEdges.length ? outEdges.map(e => '<div class="font-mono text-[11px] text-gray-300 flex items-center gap-1.5"><span class="' + (e.type === 'onSuccess' ? 'text-emerald-400' : 'text-rose-400') + '">' + (e.type === 'onSuccess' ? '✓' : '✕') + '</span> ➔ ' + escapeHtml(e.to) + ' <span class="text-[10px] text-gray-500">(' + e.type + ')</span></div>').join('') : '<span class="text-[11px] text-gray-600 italic">Nessun job a valle (Foglia terminale)</span>') +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('') + '</div>';
+
+      } catch (err) {
+        content.innerHTML = '<div class="py-8 text-center text-rose-400"><i class="fa-solid fa-triangle-exclamation mb-2"></i><p>' + escapeHtml(err.message) + '</p></div>';
+      }
+    }
+
+    function closePipelineModal() {
+      const modal = document.getElementById('pipeline-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
       }
     }
 

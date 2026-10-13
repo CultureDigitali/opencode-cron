@@ -5,6 +5,7 @@ import { spawn } from "node:child_process";
 import { loadJobs, saveJobs, computeNextRun, assertJobId, applyAdaptiveTransition } from "./store.ts";
 import { readMemory, writeMemory, buildTickPrompt } from "./memory.ts";
 import { recordRunEntry } from "./history.ts";
+import { triggerPipelineDownstream } from "./pipeline.ts";
 
 export async function acquireLock(directory: string, jobId: string): Promise<boolean> {
   assertJobId(jobId);
@@ -221,10 +222,17 @@ export function tickArgs(job: { sessionID: string; agent?: string; model?: strin
   return args;
 }
 
+export interface RunJobPipelineContext {
+  depth?: number;
+  rootMaxDepth?: number;
+  visited?: Set<string>;
+}
+
 export async function runJobHeadless(
   directory: string,
   jobId: string,
-  spawnFn: SpawnFn = defaultSpawn
+  spawnFn: SpawnFn = defaultSpawn,
+  pipelineContext?: RunJobPipelineContext
 ): Promise<number> {
   assertJobId(jobId);
   const jobs = await loadJobs(directory);
@@ -339,6 +347,19 @@ export async function runJobHeadless(
       error: errMsg,
       source: "recorded",
     }).catch(() => {});
+    const currentDepth = pipelineContext?.depth ?? 0;
+    const rootMaxDepth = pipelineContext?.rootMaxDepth;
+    const visited = pipelineContext?.visited ?? new Set<string>();
+
+    await triggerPipelineDownstream({
+      directory,
+      parentJobId: job.id,
+      status: code === 0 ? "success" : "failed",
+      depth: currentDepth,
+      rootMaxDepth,
+      visited,
+      executeFn: (id, nextCtx) => runJobHeadless(directory, id, spawnFn, nextCtx).then((c) => (c === 0 ? "success" : "failed")),
+    }).catch((e) => console.error(`[Pipeline] downstream runner error: ${e.message}`));
     return code;
   } finally {
     await releaseLock(directory, jobId);

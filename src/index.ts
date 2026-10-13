@@ -5,6 +5,7 @@ import { normalizeSchedule, parseEveryToMs } from "./schedule.ts";
 import { initialMemoryMd, readMemory, writeMemory } from "./memory.ts";
 import { CronScheduler } from "./scheduler.ts";
 import { executeTick } from "./executor.ts";
+import { validatePipelineDAG, getPipelineGraph } from "./pipeline.ts";
 
 function slug(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "job";
@@ -96,6 +97,9 @@ export const CronPlugin = Plugin.define({
             burst: optStrProp("Adaptive burst interval (e.g. 1m, 2m, min 60s)"),
             idle: optStrProp("Adaptive idle interval when quiet (e.g. 30m, 1h)"),
             quietThreshold: { type: "number", description: "Quiet checks before backing off to idle (default 3)" },
+            onSuccess: { type: "array", items: { type: "string" }, description: "Downstream job IDs to trigger when this job succeeds" },
+            onFailure: { type: "array", items: { type: "string" }, description: "Downstream job IDs to trigger when this job fails" },
+            passPayload: { type: "boolean", description: "Inject upstream memory execution context into downstream jobs" },
           },
           required: ["title", "systemPrompt", "followupPrompt"],
           additionalProperties: false,
@@ -130,16 +134,33 @@ export const CronPlugin = Plugin.define({
             };
           }
 
+          let pipeline: any = undefined;
+          if (Array.isArray(input.onSuccess) || Array.isArray(input.onFailure) || input.passPayload === true) {
+            pipeline = {
+              enabled: true,
+              onSuccess: Array.isArray(input.onSuccess) ? input.onSuccess.map(String) : [],
+              onFailure: Array.isArray(input.onFailure) ? input.onFailure.map(String) : [],
+              passPayload: input.passPayload === true,
+              maxDepth: 5,
+            };
+          }
+
           const job = CronJobSchema.parse({
             id, sessionID, directory: dir,
             title: input.title, systemPrompt: input.systemPrompt, followupPrompt: input.followupPrompt,
             schedule: { kind: norm.kind, everyMs: norm.everyMs, cron: norm.cron },
             adaptive,
+            pipeline,
             agent: input.agent, model: input.model,
             enabled: true, catchUp: input.catchUp === true, skipIfRunning: true,
             maxRuns: 0, maxConsecutiveFailures: 5, runCount: 0, consecutiveFailures: 0,
             createdAt: now, lastRunAt: null, nextRunAt: null,
           });
+
+          // Validate pipeline DAG acyclic integrity across all jobs in project
+          const allJobs = [...existing.filter((x) => x.id !== job.id), job];
+          validatePipelineDAG(allJobs);
+
           job.nextRunAt = computeNextRun(job, new Date());
           await ensureCronDir(dir);
           await upsertJob(dir, job);
@@ -148,7 +169,8 @@ export const CronPlugin = Plugin.define({
           });
           await resync(dir);
           const adaptiveMsg = adaptive ? ` [adaptive: burst ${Math.round(adaptive.burstEveryMs/1000)}s, idle ${Math.round(adaptive.idleEveryMs/1000)}s]` : "";
-          return { content: `Cron created: ${id} every ${input.every ?? input.cron}${adaptiveMsg} bound to this session.\nFor persistence with TUI closed, run: npx @culturedigitali/opencode-cron os-install --dir "${dir}".\nMemory initialized at .opencode/cron/memory/${id}.md` };
+          const pipelineMsg = pipeline ? ` [pipeline: onSuccess=[${pipeline.onSuccess.join(",")}], onFailure=[${pipeline.onFailure.join(",")}]]` : "";
+          return { content: `Cron created: ${id} every ${input.every ?? input.cron}${adaptiveMsg}${pipelineMsg} bound to this session.\nFor persistence with TUI closed, run: npx @culturedigitali/opencode-cron os-install --dir "${dir}".\nMemory initialized at .opencode/cron/memory/${id}.md` };
         },
       });
 
@@ -262,6 +284,38 @@ export const CronPlugin = Plugin.define({
           await saveJobs(dir, jobs);
           await resync(dir);
           return { content: `Burst mode activated for job ${input.id} until ${until} (cadence: ${Math.round(j.adaptive.burstEveryMs / 1000)}s, next run: ${j.nextRunAt})` };
+        },
+      });
+
+      add({
+        name: "pipeline",
+        description: "Inspect the Multi-Job Pipeline DAG workflows, dependencies, and execution triggers",
+        input: {
+          type: "object",
+          properties: {
+            id: optStrProp("Optional job id to filter upstream triggers and downstream targets"),
+          },
+          additionalProperties: false,
+        },
+        execute: async (input: any, tctx: any) => {
+          const dir = await sessionDir(String(tctx.sessionID));
+          const jobs = await loadJobs(dir);
+          const graph = getPipelineGraph(jobs);
+          if (input.id) {
+            assertJobId(String(input.id));
+            const node = graph.nodes.find((n) => n.id === String(input.id));
+            if (!node) return { content: `Job ${input.id} not found in pipeline` };
+            const incoming = graph.edges.filter((e) => e.to === String(input.id));
+            const outgoing = graph.edges.filter((e) => e.from === String(input.id));
+            return {
+              content: JSON.stringify({
+                job: node,
+                upstreamTriggers: incoming,
+                downstreamTriggers: outgoing,
+              }, null, 2),
+            };
+          }
+          return { content: JSON.stringify(graph, null, 2) };
         },
       });
 

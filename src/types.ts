@@ -29,6 +29,30 @@ export const AdaptiveScheduleSchema = z.object({
 
 export type AdaptiveSchedule = z.infer<typeof AdaptiveScheduleSchema>;
 
+export const PipelineTargetJobIdSchema = z.string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z0-9-]+$/, "Target Job ID must contain only lowercase alphanumeric characters and hyphens [a-z0-9-]");
+
+export const PipelineConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  onSuccess: z.array(PipelineTargetJobIdSchema)
+    .max(20)
+    .default([])
+    .transform((arr) => Array.from(new Set(arr))),
+  onFailure: z.array(PipelineTargetJobIdSchema)
+    .max(20)
+    .default([])
+    .transform((arr) => Array.from(new Set(arr))),
+  passPayload: z.boolean().default(false),
+  maxDepth: z.number().int().min(1).max(10).default(5),
+}).refine(
+  (d) => !d.onSuccess.some((id) => d.onFailure.includes(id)),
+  { message: "A job cannot be both in onSuccess and onFailure for the same step" }
+);
+
+export type PipelineConfig = z.infer<typeof PipelineConfigSchema>;
+
 export const CronJobSchema = z.object({
   id: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/),
   sessionID: z.string().min(1),
@@ -38,6 +62,7 @@ export const CronJobSchema = z.object({
   followupPrompt: z.string().min(1),
   schedule: ScheduleSchema,
   adaptive: AdaptiveScheduleSchema.optional(),
+  pipeline: PipelineConfigSchema.optional(),
   agent: z.string().optional(),
   model: z.string().optional(),
   enabled: z.boolean().default(true),
@@ -50,7 +75,10 @@ export const CronJobSchema = z.object({
   createdAt: z.string(),
   lastRunAt: z.string().nullable().default(null),
   nextRunAt: z.string().nullable().default(null),
-});
+}).refine(
+  (job) => !job.pipeline || (!job.pipeline.onSuccess.includes(job.id) && !job.pipeline.onFailure.includes(job.id)),
+  { message: "A job cannot trigger itself in its pipeline (self-loop detected)" }
+);
 
 export type Schedule = z.infer<typeof ScheduleSchema>;
 export type CronJob = z.infer<typeof CronJobSchema>;

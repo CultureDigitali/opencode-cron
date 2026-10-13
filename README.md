@@ -154,21 +154,30 @@ Run OpenCode Cron as an elegant, native desktop application that lives quietly i
   bun run dist:all    # Matrix package for all platforms
   ```
 
+### 🔗 Multi-Job Pipeline & Directed Acyclic Graph (DAG) Workflows
+Chain independent cron jobs into resilient, multi-step agent pipelines:
+- **`onSuccess` & `onFailure` Triggers:** Automatically launch downstream jobs when a parent step completes or errors out (e.g. `Scrape Data` ➔ `Analyze News` ➔ `Generate Summary Report` ➔ on failure `Alert Discord/Slack`).
+- **Interactive DAG Graph Visualizer:** Click **"Workflow DAG"** in the Web GUI navigation bar to inspect the topological tree with root nodes, directed edges, cycle safety checks, and real-time execution states.
+- **Cross-Job Memory Propagation (`passPayload`):** Automatically injects the upstream step's markdown summary into the child job's persistent memory file, passing vital context without monotonic memory bloat (auto-pruned sliding window).
+- **Formal DFS 3-Color Cycle Prevention:** Circular dependencies and self-loops are mathematically rejected at configuration time with descriptive error paths.
+
 ---
 
-## 🛠️ Complete Tool Reference (9 Tools)
+## 🛠️ Complete Tool Reference (11 Tools)
 
-Agents equipped with `@culturedigitali/opencode-cron` have access to 9 native tools:
+Agents equipped with `@culturedigitali/opencode-cron` have access to 11 native tools:
 
 | Tool | Purpose | Key Parameters |
 |---|---|---|
-| `cron_add` | Create recurring scheduled task bound to current session | `title`, `every` (e.g. `5m`) or `cron` (e.g. `*/15 * * * *`), `systemPrompt`, `followupPrompt`, `maxRuns`, `catchUp` |
+| `cron_add` | Create recurring scheduled task bound to current session | `title`, `every` (e.g. `5m`) or `cron` (e.g. `*/15 * * * *`), `systemPrompt`, `followupPrompt`, `maxRuns`, `catchUp`, `pipeline` |
 | `cron_list` | List all active and paused jobs for the project | *None* |
 | `cron_get` | Inspect detailed job state and metadata | `id` |
 | `cron_pause` | Temporarily pause automated execution | `id` |
 | `cron_resume` | Resume scheduled execution | `id` |
 | `cron_remove` | Delete job and clean up persistent memory | `id` |
 | `cron_run_now` | Trigger immediate test tick without waiting | `id` |
+| `cron_burst` | Trigger high-frequency Burst Mode for rapid monitoring | `id`, `durationMinutes` |
+| `cron_pipeline` | Inspect Multi-Job Pipeline DAG workflows, dependencies, and execution triggers | `id` (optional) |
 | `cron_memory_read` | Read persistent markdown memory for job | `id` |
 | `cron_memory_save` | Persist findings, update facts, append `seenHashes` | `id`, `fattiChiave`, `nuoviVisti`, `lastRunSummary`, `domandeAperte` |
 

@@ -13,6 +13,7 @@ import { readMemory, writeMemory, initialMemoryMd } from "../memory.ts";
 import { runJobHeadless, checkDue } from "../runner.ts";
 import { getUnifiedRuns } from "../history.ts";
 import { CronJobSchema } from "../types.ts";
+import { validatePipelineDAG, getPipelineGraph } from "../pipeline.ts";
 
 let DatabaseClass: any = null;
 async function getSqliteDatabase() {
@@ -65,9 +66,10 @@ export function startGuiServer(opts: ServerOpts = {}) {
     const pathname = url.pathname;
     const method = req.method;
 
-      // Validate Host header against DNS rebinding
+      // Validate Host header against DNS rebinding (strictly match localhost or 127.0.0.1)
       const host = req.headers.get("host") || "";
-      const isAllowedHost = host.startsWith("localhost") || host.startsWith("127.0.0.1") || host === "";
+      const hostname = host.split(":")[0];
+      const isAllowedHost = hostname === "localhost" || hostname === "127.0.0.1" || host === "";
       if (!isAllowedHost) {
         return new Response(JSON.stringify({ ok: false, error: "Invalid Host header" }), { status: 400, headers: { "Content-Type": "application/json" } });
       }
@@ -165,6 +167,21 @@ export function startGuiServer(opts: ServerOpts = {}) {
             };
           }
 
+          let pipeline: any = undefined;
+          if (body.pipeline && typeof body.pipeline === "object" && body.pipeline.enabled) {
+            const rawSuccess = Array.isArray(body.pipeline.onSuccess) ? body.pipeline.onSuccess.map(String) : [];
+            const rawFailure = Array.isArray(body.pipeline.onFailure) ? body.pipeline.onFailure.map(String) : [];
+            for (const s of rawSuccess) assertJobId(s);
+            for (const f of rawFailure) assertJobId(f);
+            pipeline = {
+              enabled: true,
+              onSuccess: rawSuccess,
+              onFailure: rawFailure,
+              passPayload: body.pipeline.passPayload === true,
+              maxDepth: Math.min(10, Math.max(1, parseInt(body.pipeline.maxDepth) || 5)),
+            };
+          }
+
           const job = CronJobSchema.parse({
             id,
             sessionID: body.sessionID,
@@ -174,6 +191,7 @@ export function startGuiServer(opts: ServerOpts = {}) {
             followupPrompt: body.followupPrompt,
             schedule: { kind: norm.kind, everyMs: norm.everyMs, cron: norm.cron },
             adaptive,
+            pipeline,
             agent: body.agent || "build",
             model: body.model || undefined,
             enabled: true,
@@ -187,6 +205,11 @@ export function startGuiServer(opts: ServerOpts = {}) {
             lastRunAt: null,
             nextRunAt: null,
           });
+
+          const existingJobs = await loadJobs(directory);
+          const allJobs = [...existingJobs.filter((x) => x.id !== id), job];
+          validatePipelineDAG(allJobs);
+
           job.nextRunAt = computeNextRun(job, new Date());
 
           await ensureCronDir(directory);
@@ -245,6 +268,24 @@ export function startGuiServer(opts: ServerOpts = {}) {
             }
           }
 
+          if (body.pipeline !== undefined) {
+            if (body.pipeline === null || body.pipeline.enabled === false) {
+              j.pipeline = undefined;
+            } else {
+              const rawSuccess = Array.isArray(body.pipeline.onSuccess) ? body.pipeline.onSuccess.map(String) : [];
+              const rawFailure = Array.isArray(body.pipeline.onFailure) ? body.pipeline.onFailure.map(String) : [];
+              for (const s of rawSuccess) assertJobId(s);
+              for (const f of rawFailure) assertJobId(f);
+              j.pipeline = {
+                enabled: true,
+                onSuccess: rawSuccess,
+                onFailure: rawFailure,
+                passPayload: body.pipeline.passPayload === true,
+                maxDepth: Math.min(10, Math.max(1, parseInt(body.pipeline.maxDepth) || 5)),
+              };
+            }
+          }
+
           if (body.scheduleStr) {
             const norm = normalizeSchedule(parseScheduleStr(body.scheduleStr));
             j.schedule = { kind: norm.kind, everyMs: norm.everyMs, cron: norm.cron };
@@ -253,6 +294,7 @@ export function startGuiServer(opts: ServerOpts = {}) {
             j.nextRunAt = computeNextRun(j, new Date());
           }
 
+          validatePipelineDAG(jobs);
           CronJobSchema.parse(j);
           await saveJobs(directory, jobs);
           return new Response(JSON.stringify({ ok: true, job: j }), { headers });
@@ -342,6 +384,53 @@ export function startGuiServer(opts: ServerOpts = {}) {
           return new Response(JSON.stringify({ ok: true, job: j, activeUntil: until, nextRunAt: j.nextRunAt }), { headers });
         } catch (e: any) {
           return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 8c. POST /api/jobs/:id/pipeline (Update pipeline workflow triggers)
+      if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/pipeline") && method === "POST") {
+        const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/pipeline".length));
+        try {
+          assertJobId(id);
+          const body: any = await req.json().catch(() => ({}));
+          const jobs = await loadJobs(directory);
+          const j = jobs.find((x) => x.id === id);
+          if (!j) return new Response(JSON.stringify({ ok: false, error: "Job non trovato" }), { status: 404, headers });
+
+          if (body.enabled === false) {
+            j.pipeline = undefined;
+          } else {
+            const rawSuccess = Array.isArray(body.onSuccess) ? body.onSuccess.map(String) : (j.pipeline?.onSuccess ?? []);
+            const rawFailure = Array.isArray(body.onFailure) ? body.onFailure.map(String) : (j.pipeline?.onFailure ?? []);
+            for (const s of rawSuccess) assertJobId(s);
+            for (const f of rawFailure) assertJobId(f);
+            j.pipeline = {
+              enabled: true,
+              onSuccess: rawSuccess,
+              onFailure: rawFailure,
+              passPayload: body.passPayload !== undefined ? Boolean(body.passPayload) : (j.pipeline?.passPayload ?? false),
+              maxDepth: Math.min(10, Math.max(1, parseInt(body.maxDepth) || 5)),
+            };
+          }
+
+          validatePipelineDAG(jobs);
+          CronJobSchema.parse(j);
+          await saveJobs(directory, jobs);
+          const graph = getPipelineGraph(jobs);
+          return new Response(JSON.stringify({ ok: true, job: j, pipeline: j.pipeline, graph }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 8d. GET /api/pipeline (Topological graph and DAG dependencies)
+      if (pathname === "/api/pipeline" && method === "GET") {
+        try {
+          const jobs = await loadJobs(directory);
+          const graph = getPipelineGraph(jobs);
+          return new Response(JSON.stringify({ ok: true, graph }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
         }
       }
 
