@@ -1,5 +1,5 @@
 import { Plugin } from "@opencode/plugin";
-import { CronJobSchema } from "./types.ts";
+import { CronJobSchema, JobPrioritySchema } from "./types.ts";
 import { loadJobs, saveJobs, upsertJob, removeJob, ensureCronDir, computeNextRun, assertJobId } from "./store.ts";
 import { normalizeSchedule, parseEveryToMs } from "./schedule.ts";
 import { initialMemoryMd, readMemory, writeMemory } from "./memory.ts";
@@ -7,6 +7,7 @@ import { CronScheduler } from "./scheduler.ts";
 import { executeTick } from "./executor.ts";
 import { validatePipelineDAG, getPipelineGraph } from "./pipeline.ts";
 import { generateWebhookToken } from "./webhook.ts";
+import { loadCronSettings, getActiveLocks } from "./concurrency.ts";
 
 function slug(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "job";
@@ -101,6 +102,7 @@ export const CronPlugin = Plugin.define({
             onSuccess: { type: "array", items: { type: "string" }, description: "Downstream job IDs to trigger when this job succeeds" },
             onFailure: { type: "array", items: { type: "string" }, description: "Downstream job IDs to trigger when this job fails" },
             passPayload: { type: "boolean", description: "Inject upstream memory execution context into downstream jobs" },
+            priority: { type: "string", enum: ["high", "normal", "low"], description: "Execution priority (default normal)" },
           },
           required: ["title", "systemPrompt", "followupPrompt"],
           additionalProperties: false,
@@ -152,6 +154,7 @@ export const CronPlugin = Plugin.define({
             schedule: { kind: norm.kind, everyMs: norm.everyMs, cron: norm.cron },
             adaptive,
             pipeline,
+            priority: input.priority ? JobPrioritySchema.parse(input.priority) : "normal",
             agent: input.agent, model: input.model,
             enabled: true, catchUp: input.catchUp === true, skipIfRunning: true,
             maxRuns: 0, maxConsecutiveFailures: 5, runCount: 0, consecutiveFailures: 0,
@@ -426,6 +429,63 @@ export const CronPlugin = Plugin.define({
             hasActivity: input.hasActivity === true,
           });
           return { content: `Memory ${input.id} saved` };
+        },
+      });
+
+      add({
+        name: "priority",
+        description: "Set job execution priority (high, normal, low)",
+        input: {
+          type: "object",
+          properties: {
+            id: idProp,
+            priority: { type: "string", enum: ["high", "normal", "low"], description: "New priority" },
+          },
+          required: ["id", "priority"],
+          additionalProperties: false,
+        },
+        execute: async (input: any, tctx: any) => {
+          assertJobId(String(input.id));
+          const priority = JobPrioritySchema.parse(input.priority);
+          const dir = await sessionDir(String(tctx.sessionID));
+          const jobs = await loadJobs(dir);
+          const j = jobs.find((x) => x.id === input.id);
+          if (!j) throw new Error(`Job not found: ${input.id}`);
+          j.priority = priority;
+          await saveJobs(dir, jobs);
+          return { content: `Priority for ${j.id} set to '${priority}'` };
+        },
+      });
+
+      add({
+        name: "queue",
+        description: "View active running jobs, worker pool status, and system concurrency limit",
+        input: {
+          type: "object",
+          properties: {},
+          additionalProperties: false,
+        },
+        execute: async (_input: any, tctx: any) => {
+          const dir = await sessionDir(String(tctx.sessionID));
+          const settings = await loadCronSettings(dir);
+          const activeLocks = await getActiveLocks(dir);
+          const jobs = await loadJobs(dir);
+          const dueList = jobs.filter((j) => j.enabled && (!j.nextRunAt || new Date(j.nextRunAt).getTime() <= Date.now()));
+          return {
+            content: JSON.stringify({
+              maxConcurrency: settings.maxConcurrency,
+              activeRunningJobs: activeLocks,
+              activeCount: activeLocks.length,
+              dueJobsCount: dueList.length,
+              jobs: jobs.map((j) => ({
+                id: j.id,
+                title: j.title,
+                priority: j.priority ?? "normal",
+                enabled: j.enabled,
+                nextRunAt: j.nextRunAt,
+              })),
+            }, null, 2),
+          };
         },
       });
     });

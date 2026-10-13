@@ -14,6 +14,37 @@ export const ScheduleSchema = z.object({
 export const AdaptiveCadenceSchema = z.enum(["burst", "normal", "idle"]);
 export type AdaptiveCadence = z.infer<typeof AdaptiveCadenceSchema>;
 
+export const JobPrioritySchema = z.enum(["high", "normal", "low"]).default("normal");
+export type JobPriority = z.infer<typeof JobPrioritySchema>;
+
+export const CronSettingsSchema = z.object({
+  maxConcurrency: z.number().int().min(1).max(10).default(2),
+});
+export type CronSettings = z.infer<typeof CronSettingsSchema>;
+
+export type QueueSource = "schedule" | "manual" | "webhook" | "pipeline";
+export type QueueItemStatus = "queued" | "running" | "completed" | "failed" | "skipped";
+
+export interface QueueItem {
+  id: string;
+  jobId: string;
+  priority: JobPriority;
+  source: QueueSource;
+  enqueuedAt: string;
+  startedAt?: string;
+  finishedAt?: string;
+  status: QueueItemStatus;
+  error?: string;
+}
+
+export interface QueueStatus {
+  maxConcurrency: number;
+  activeCount: number;
+  queuedCount: number;
+  running: QueueItem[];
+  queued: QueueItem[];
+}
+
 export const AdaptiveScheduleSchema = z.object({
   enabled: z.boolean().default(false),
   burstEveryMs: z.number().int().min(60_000).default(60_000),
@@ -75,6 +106,7 @@ export const CronJobSchema = z.object({
   adaptive: AdaptiveScheduleSchema.optional(),
   pipeline: PipelineConfigSchema.optional(),
   webhook: WebhookConfigSchema.optional(),
+  priority: JobPrioritySchema.optional(),
   agent: z.string().optional(),
   model: z.string().optional(),
   enabled: z.boolean().default(true),

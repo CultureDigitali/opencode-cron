@@ -6,6 +6,7 @@ import { loadJobs, saveJobs, computeNextRun, assertJobId, applyAdaptiveTransitio
 import { readMemory, writeMemory, buildTickPrompt } from "./memory.ts";
 import { recordRunEntry } from "./history.ts";
 import { triggerPipelineDownstream } from "./pipeline.ts";
+import { loadCronSettings, compareJobPriority, runWithConcurrencyPool } from "./concurrency.ts";
 
 export async function acquireLock(directory: string, jobId: string): Promise<boolean> {
   assertJobId(jobId);
@@ -26,20 +27,35 @@ export async function acquireLock(directory: string, jobId: string): Promise<boo
         const content = await fs.readFile(lock, "utf-8");
         const pid = parseInt(content.split(" ")[0], 10);
         if (Number.isFinite(pid) && pid > 0) {
-          process.kill(pid, 0);
-          isHolderAlive = true;
+          try {
+            process.kill(pid, 0);
+            isHolderAlive = true;
+          } catch (kErr: any) {
+            if (kErr && kErr.code === "EPERM") {
+              // Process is alive but owned by another user/process
+              isHolderAlive = true;
+            } else {
+              isHolderAlive = false;
+            }
+          }
         }
       } catch {
         isHolderAlive = false;
       }
 
-      if (isHolderAlive) {
+      if (isHolderAlive && !isOlderThan10Min) {
         return false;
       }
 
+      // Safe lock replacement: unlink stale/dead lock and re-create atomically
       await fs.unlink(lock).catch(() => {});
-      await fs.writeFile(lock, `${process.pid} ${new Date().toISOString()}`, { flag: "wx", encoding: "utf-8" });
-      return true;
+      try {
+        await fs.writeFile(lock, `${process.pid} ${new Date().toISOString()}`, { flag: "wx", encoding: "utf-8" });
+        return true;
+      } catch {
+        // Lost race to another concurrent process
+        return false;
+      }
     } catch {
       return false;
     }
@@ -319,12 +335,9 @@ export async function runJobHeadless(
     const latest = await loadJobs(directory);
     const diskJob = latest.find((j) => j.id === job.id);
     if (diskJob) {
-      if (diskJob.webhook) {
-        job.webhook = diskJob.webhook;
-      }
-      if (diskJob.pipeline) {
-        job.pipeline = diskJob.pipeline;
-      }
+      job.priority = diskJob.priority;
+      job.webhook = diskJob.webhook;
+      job.pipeline = diskJob.pipeline;
       if (diskJob.adaptive?.activeUntil && (!job.adaptive?.activeUntil || new Date(diskJob.adaptive.activeUntil).getTime() > new Date(job.adaptive.activeUntil).getTime())) {
         if (!job.adaptive) job.adaptive = diskJob.adaptive;
         else job.adaptive.activeUntil = diskJob.adaptive.activeUntil;
@@ -374,23 +387,42 @@ export async function runJobHeadless(
   }
 }
 
-/** Run all due jobs. Returns the ids that were executed. */
-export async function checkDue(directory: string, spawnFn: SpawnFn = defaultSpawn): Promise<string[]> {
+/** Run all due jobs sorted by priority and constrained by concurrency limit. Returns the ids executed. */
+export async function checkDue(
+  directory: string,
+  spawnFn: SpawnFn = defaultSpawn,
+  concurrencyLimit?: number
+): Promise<string[]> {
   const jobs = await loadJobs(directory);
   const now = Date.now();
-  const ran: string[] = [];
-  for (const j of jobs) {
-    if (!j.enabled) continue;
+  const settings = await loadCronSettings(directory).catch(() => ({ maxConcurrency: 2 }));
+  const rawLimit =
+    typeof concurrencyLimit === "number" && Number.isFinite(concurrencyLimit)
+      ? concurrencyLimit
+      : (settings?.maxConcurrency ?? 2);
+  const limit = Math.max(1, Math.min(Math.floor(rawLimit), 10));
+
+  const dueJobs = jobs.filter((j) => {
+    if (!j.enabled) return false;
     // Authoritative skip checks also live in runJobHeadless; this keeps
     // the returned list to jobs actually executed.
-    if (j.maxRuns > 0 && j.runCount >= j.maxRuns) continue;
+    if (j.maxRuns > 0 && j.runCount >= j.maxRuns) return false;
     const due = !j.nextRunAt || new Date(j.nextRunAt).getTime() <= now;
-    if (due) {
-      await runJobHeadless(directory, j.id, spawnFn);
-      ran.push(j.id);
-    } else {
+    if (!due) {
       console.log(`not due ${j.id} next=${j.nextRunAt}`);
+      return false;
     }
-  }
+    return true;
+  });
+
+  // Sort due jobs strictly by priority (high > normal > low, then earliest due)
+  dueJobs.sort(compareJobPriority);
+
+  const ran: string[] = [];
+  await runWithConcurrencyPool(dueJobs, limit, async (j) => {
+    await runJobHeadless(directory, j.id, spawnFn);
+    ran.push(j.id);
+  });
+
   return ran;
 }

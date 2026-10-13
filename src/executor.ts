@@ -84,11 +84,16 @@ export async function executeTick(
     job.nextRunAt = computeNextRun(job, new Date(finishedAtMs));
     const latest = await loadJobs(directory);
     const diskJob = latest.find((j) => j.id === job.id);
-    if (diskJob?.adaptive?.activeUntil && (!job.adaptive?.activeUntil || new Date(diskJob.adaptive.activeUntil).getTime() > new Date(job.adaptive.activeUntil).getTime())) {
-      if (!job.adaptive) job.adaptive = diskJob.adaptive;
-      else job.adaptive.activeUntil = diskJob.adaptive.activeUntil;
-      job.adaptive.currentCadence = "burst";
-      job.nextRunAt = computeNextRun(job, new Date(finishedAtMs));
+    if (diskJob) {
+      job.priority = diskJob.priority;
+      job.webhook = diskJob.webhook;
+      job.pipeline = diskJob.pipeline;
+      if (diskJob.adaptive?.activeUntil && (!job.adaptive?.activeUntil || new Date(diskJob.adaptive.activeUntil).getTime() > new Date(job.adaptive.activeUntil).getTime())) {
+        if (!job.adaptive) job.adaptive = diskJob.adaptive;
+        else job.adaptive.activeUntil = diskJob.adaptive.activeUntil;
+        job.adaptive.currentCadence = "burst";
+        job.nextRunAt = computeNextRun(job, new Date(finishedAtMs));
+      }
     }
     const updated = latest.some((j) => j.id === job.id)
       ? latest.map((j) => (j.id === job.id ? job : j))
@@ -134,11 +139,16 @@ export async function executeTick(
     job.nextRunAt = computeNextRun(job, new Date(finishedAtMs));
     const latest = await loadJobs(directory);
     const diskJob = latest.find((j) => j.id === job.id);
-    if (diskJob?.adaptive?.activeUntil && (!job.adaptive?.activeUntil || new Date(diskJob.adaptive.activeUntil).getTime() > new Date(job.adaptive.activeUntil).getTime())) {
-      if (!job.adaptive) job.adaptive = diskJob.adaptive;
-      else job.adaptive.activeUntil = diskJob.adaptive.activeUntil;
-      job.adaptive.currentCadence = "burst";
-      job.nextRunAt = computeNextRun(job, new Date(finishedAtMs));
+    if (diskJob) {
+      if (diskJob.priority) job.priority = diskJob.priority;
+      if (diskJob.webhook) job.webhook = diskJob.webhook;
+      if (diskJob.pipeline) job.pipeline = diskJob.pipeline;
+      if (diskJob.adaptive?.activeUntil && (!job.adaptive?.activeUntil || new Date(diskJob.adaptive.activeUntil).getTime() > new Date(job.adaptive.activeUntil).getTime())) {
+        if (!job.adaptive) job.adaptive = diskJob.adaptive;
+        else job.adaptive.activeUntil = diskJob.adaptive.activeUntil;
+        job.adaptive.currentCadence = "burst";
+        job.nextRunAt = computeNextRun(job, new Date(finishedAtMs));
+      }
     }
     const updated = latest.some((j) => j.id === job.id)
       ? latest.map((j) => (j.id === job.id ? job : j))

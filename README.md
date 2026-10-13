@@ -169,21 +169,30 @@ Trigger scheduled agent workflows on-demand from external services without waiti
 - **Anti-Spam Rate-Limiting & Debounce:** Built-in configurable cooldowns prevent webhook flood attacks and token-spend exhaustion.
 - **Web GUI Token Management:** Regenerate secret tokens with 1 click, copy formatted cURL snippets, or trigger immediate test events directly from the Web GUI modal.
 
+### ⚡ Execution Concurrency & Priority Worker Pool
+Manage parallel task throughput, prevent system overload, and ensure critical workflows run first:
+- **Priority-Weighted Queue (`high`, `normal`, `low`):** Mark urgent tasks as `high` (3x priority weight) so they execute before normal or low background jobs.
+- **Bounded Parallel Worker Pool (1 to 10 Workers):** Run multiple due jobs simultaneously up to your configured `maxConcurrency` limit (default 2), eliminating queue head-of-line blocking.
+- **Live Process Lock Validation (`.opencode/cron/locks/`):** Mutual exclusion across terminal sessions and OS daemons via POSIX-safe PID inspection (`process.kill(pid, 0)`), preventing duplicate runs while automatically pruning dead process locks.
+- **Interactive Web GUI Queue Manager:** Real-time `#queue-modal` displaying active workers, in-flight jobs, queued tasks with priority badges, dynamic concurrency slider, and one-click task cancellation or queue flushing.
+
 ---
 
-## 🛠️ Complete Tool Reference (12 Tools)
+## 🛠️ Complete Tool Reference (14 Tools)
 
-Agents equipped with `@culturedigitali/opencode-cron` have access to 12 native tools:
+Agents equipped with `@culturedigitali/opencode-cron` have access to 14 native tools:
 
 | Tool | Purpose | Key Parameters |
 |---|---|---|
-| `cron_add` | Create recurring scheduled task bound to current session | `title`, `every` (e.g. `5m`) or `cron` (e.g. `*/15 * * * *`), `systemPrompt`, `followupPrompt`, `maxRuns`, `catchUp`, `pipeline`, `webhook` |
+| `cron_add` | Create recurring scheduled task bound to current session | `title`, `every` (e.g. `5m`) or `cron` (e.g. `*/15 * * * *`), `systemPrompt`, `followupPrompt`, `maxRuns`, `catchUp`, `priority`, `pipeline`, `webhook` |
 | `cron_list` | List all active and paused jobs for the project | *None* |
 | `cron_get` | Inspect detailed job state and metadata | `id` |
 | `cron_pause` | Temporarily pause automated execution | `id` |
 | `cron_resume` | Resume scheduled execution | `id` |
 | `cron_remove` | Delete job and clean up persistent memory | `id` |
 | `cron_run_now` | Trigger immediate test tick without waiting | `id` |
+| `cron_priority` | Inspect or update execution priority level (`high`, `normal`, `low`) | `id`, `priority` (optional) |
+| `cron_queue` | View active worker slots, in-flight tasks, and priority queue status | *None* |
 | `cron_burst` | Trigger high-frequency Burst Mode for rapid monitoring | `id`, `durationMinutes` |
 | `cron_pipeline` | Inspect Multi-Job Pipeline DAG workflows, dependencies, and execution triggers | `id` (optional) |
 | `cron_webhook` | Manage inbound HTTP Webhook trigger endpoint and authorization token | `id`, `action` (`get`, `enable`, `disable`, `rotate-token`), `secret`, `rateLimitSeconds`, `passPayload` |

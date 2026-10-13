@@ -106,6 +106,11 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       <!-- Action buttons + Language + Guide -->
       <div class="flex items-center gap-2">
         ${getHeaderControlsHtml()}
+        <button id="btn-header-queue" onclick="openQueueModal()" data-tooltip="tt.queueBtn" class="bg-darkcard hover:bg-gray-800 text-amber-300 border border-darkborder hover:border-amber-500/40 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer">
+          <i class="fa-solid fa-layer-group text-amber-400"></i>
+          <span class="hidden md:inline" data-i18n="nav.queue">Coda & Worker</span>
+          <span id="header-queue-badge" class="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">0/2</span>
+        </button>
         <button id="btn-header-new-job" onclick="openNewJobModal()" data-tooltip="tt.tabJobs" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition-all cursor-pointer">
           <i class="fa-solid fa-plus text-[10px]"></i> <span class="hidden sm:inline" data-i18n="nav.newJob">Nuovo Job</span>
         </button>
@@ -595,14 +600,22 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
             <button type="button" onclick="applySchedulePreset('0 9 * * 1-5')" class="px-2 py-0.5 rounded-md bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder text-[10px] font-medium transition-colors cursor-pointer">🏢 Lun-Ven 09:00</button>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 pt-1">
+          <div class="grid grid-cols-3 gap-3 pt-1">
             <div data-tooltip="tt.formSchedule">
               <label for="form-schedule" class="text-[10px] text-gray-400 block mb-0.5"><span data-i18n="modal.fieldSchedule">Espressione</span> <span class="oc-help-badge">?</span></label>
-              <input type="text" id="form-schedule" required placeholder="5m, 1h, */5 * * * *" oninput="debounceSchedulePreview(this.value)" class="w-full bg-gray-950 border border-darkborder rounded-lg px-3 py-1.5 text-gray-100 font-mono text-xs focus:outline-none focus:border-indigo-500">
+              <input type="text" id="form-schedule" required placeholder="5m, 1h, */5 * * * *" oninput="debounceSchedulePreview(this.value)" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1.5 text-gray-100 font-mono text-xs focus:outline-none focus:border-indigo-500">
             </div>
             <div data-tooltip="tt.formMaxRuns">
               <label for="form-max-runs" class="text-[10px] text-gray-400 block mb-0.5"><span data-i18n="modal.fieldMaxRuns">Max Runs (0 = illimitato)</span> <span class="oc-help-badge">?</span></label>
-              <input type="number" id="form-max-runs" value="0" class="w-full bg-gray-950 border border-darkborder rounded-lg px-3 py-1.5 text-gray-100 focus:outline-none focus:border-indigo-500">
+              <input type="number" id="form-max-runs" value="0" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1.5 text-gray-100 text-xs focus:outline-none focus:border-indigo-500">
+            </div>
+            <div data-tooltip="tt.priorityNormal">
+              <label for="form-priority" class="text-[10px] text-gray-400 block mb-0.5"><span data-i18n="priority.label">Priorità Job</span> <span class="oc-help-badge">?</span></label>
+              <select id="form-priority" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1.5 text-gray-100 text-xs focus:outline-none focus:border-indigo-500">
+                <option value="high">🔥 Alta (High)</option>
+                <option value="normal" selected>⚡ Normale (Normal)</option>
+                <option value="low">💤 Bassa (Low)</option>
+              </select>
             </div>
           </div>
 
@@ -865,6 +878,80 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
     </div>
   </div>
 
+  <!-- Modal: Concurrency Manager & Priority Queue -->
+  <div id="queue-modal" role="dialog" aria-modal="true" aria-labelledby="queue-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-4 border-b border-darkborder mb-4">
+        <div>
+          <h3 id="queue-modal-title" class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-layer-group text-amber-400"></i>
+            <span data-i18n="queue.modalTitle">Concorrenza & Coda di Priorità</span>
+          </h3>
+          <p class="text-xs text-gray-400" data-i18n="queue.concurrencyHelp">Numero massimo di job eseguiti contemporaneamente (1-10)</p>
+        </div>
+        <button onclick="closeQueueModal()" aria-label="Chiudi finestra modale" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Settings Controls: Max Concurrency -->
+      <div class="bg-gray-950/70 border border-darkborder rounded-xl p-4 mb-4 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+            <i class="fa-solid fa-bolt text-lg"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-white" data-i18n="queue.concurrencyTitle">Limite Concorrenza (Max Workers)</h4>
+            <p class="text-[11px] text-gray-400" id="queue-concurrency-status-sub">2 worker paralleli attivi</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="number" id="queue-max-workers" min="1" max="10" value="2" class="w-16 bg-gray-900 border border-darkborder rounded-lg px-2.5 py-1.5 text-xs text-center text-white font-bold focus:outline-none focus:border-amber-500">
+          <button onclick="saveConcurrencySettings()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all cursor-pointer" data-i18n="queue.saveSettings">Salva</button>
+        </div>
+      </div>
+
+      <!-- Scrollable lists: Running and Queued -->
+      <div class="overflow-y-auto flex-1 space-y-4 pr-1 text-xs">
+        <!-- Active running jobs -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="font-bold text-gray-200 flex items-center gap-1.5 text-xs">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
+              <span data-i18n="queue.activeTitle">Job Attivi in Esecuzione</span>
+              <span id="queue-running-count" class="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-500/15 text-emerald-400 font-mono">0</span>
+            </h4>
+          </div>
+          <div id="queue-running-list" class="space-y-2">
+            <!-- populated by JS -->
+          </div>
+        </div>
+
+        <!-- Waiting Queue -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="font-bold text-gray-200 flex items-center gap-1.5 text-xs">
+              <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+              <span data-i18n="queue.queuedTitle">Job in Coda d'Attesa</span>
+              <span id="queue-waiting-count" class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/15 text-amber-300 font-mono">0</span>
+            </h4>
+            <button onclick="clearQueue()" id="queue-clear-btn" class="text-[11px] text-rose-400 hover:text-rose-300 transition-colors flex items-center gap-1 cursor-pointer">
+              <i class="fa-solid fa-trash-can text-[10px]"></i> <span data-i18n="queue.clearBtn">Svuota Coda</span>
+            </button>
+          </div>
+          <div id="queue-waiting-list" class="space-y-2">
+            <!-- populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-4 mt-4 border-t border-darkborder">
+        <button onclick="refreshQueueModal()" class="px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer">
+          <i class="fa-solid fa-arrows-rotate text-[10px]"></i> Aggiorna
+        </button>
+        <button onclick="closeQueueModal()" class="px-4 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 text-xs font-semibold transition-colors cursor-pointer">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Client JavaScript Logic -->
   <script>
     ${getUiEnhancementsScript()}
@@ -974,6 +1061,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         const res = await fetch('/api/jobs');
         currentJobs = await res.json();
         renderJobs();
+        refreshQueueBadge().catch(() => {});
       } catch (err) {
         showToast((typeof t === 'function' ? t('toast.loadJobsError') : 'Errore nel caricamento dei job: ') + err.message, 'error');
       }
@@ -1034,6 +1122,13 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           webhookBadge = \`<button onclick="openWebhookModal('\${safeId}')" data-tooltip="tt.webhookBtn" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 border border-violet-500/20 flex items-center gap-1 cursor-pointer"><i class="fa-solid fa-satellite-dish text-violet-400"></i> \${escapeHtml(t('job.webhookBadge'))}</button>\`;
         }
 
+        const prio = job.priority || 'normal';
+        const priorityBadge = prio === 'high'
+          ? \`<span data-tooltip="tt.priorityHigh" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30 flex items-center gap-1"><i class="fa-solid fa-fire text-rose-400"></i> \${escapeHtml(t('priority.high'))}</span>\`
+          : prio === 'low'
+            ? \`<span data-tooltip="tt.priorityLow" class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-800 text-gray-400 border border-gray-700 flex items-center gap-1"><i class="fa-solid fa-bed text-gray-400"></i> \${escapeHtml(t('priority.low'))}</span>\`
+            : \`<span data-tooltip="tt.priorityNormal" class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-300 border border-blue-500/20 flex items-center gap-1"><i class="fa-solid fa-bolt text-blue-400"></i> \${escapeHtml(t('priority.normal'))}</span>\`;
+
         const schedDesc = job.schedule.kind === 'interval'
           ? formatInterval(job.schedule.everyMs)
           : 'Cron: ' + escapeHtml(job.schedule.cron || '');
@@ -1051,6 +1146,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                   <div class="flex items-center space-x-2">
                     <h3 class="text-sm font-bold text-white tracking-tight">\${safeTitle}</h3>
                     \${statusBadge}
+                    \${priorityBadge}
                     \${adaptiveBadge}
                     \${pipelineBadge}
                     \${webhookBadge}
@@ -2468,6 +2564,8 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         if (sessionSelect) sessionSelect.value = targetSessionId;
       }
       document.getElementById('form-model').value = 'nvidia/z-ai/glm-5.3';
+      const prioInput = document.getElementById('form-priority');
+      if (prioInput) prioInput.value = 'normal';
       const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
       document.getElementById('form-system-prompt').value = isEn
         ? 'You are an autonomous scheduled assistant. Perform the task with precision and log the findings.'
@@ -2497,6 +2595,8 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       document.getElementById('form-schedule').value = schedVal;
       updateSchedulePreview(schedVal);
       document.getElementById('form-max-runs').value = job.maxRuns || 0;
+      const editPrioInput = document.getElementById('form-priority');
+      if (editPrioInput) editPrioInput.value = job.priority || 'normal';
       document.getElementById('form-session-id').value = job.sessionID;
       document.getElementById('form-model').value = job.model || '';
       document.getElementById('form-system-prompt').value = job.systemPrompt || '';
@@ -2605,6 +2705,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         maxRuns: parseInt(document.getElementById('form-max-runs').value) || 0,
         sessionID: sessionID,
         model: document.getElementById('form-model').value.trim() || undefined,
+        priority: document.getElementById('form-priority')?.value || 'normal',
         systemPrompt: document.getElementById('form-system-prompt').value.trim(),
         followupPrompt: document.getElementById('form-followup-prompt').value.trim(),
         adaptive: adaptivePayload,
@@ -2885,6 +2986,184 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         if (currentTab === 'chat' && activeSessionId) await loadSessionChat(activeSessionId);
       } catch (err) {
         showToast((typeof t === 'function' ? t('toast.genericError') : 'Errore: ') + err.message, 'error');
+      }
+    }
+
+    // Concurrency Manager & Priority Queue logic
+    async function refreshQueueBadge() {
+      try {
+        const res = await fetch('/api/queue');
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          const badge = document.getElementById('header-queue-badge');
+          if (badge) {
+            badge.textContent = (data.activeCount || 0) + '/' + (data.maxConcurrency || 2);
+            if (data.queuedCount > 0) {
+              badge.textContent += ' (+' + data.queuedCount + ')';
+              badge.className = 'px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500/30 text-amber-200 border border-amber-500/50 animate-pulse';
+            } else {
+              badge.className = 'px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+            }
+          }
+        }
+      } catch {}
+    }
+
+    async function openQueueModal() {
+      const modal = document.getElementById('queue-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
+      await refreshQueueModal();
+    }
+
+    function closeQueueModal() {
+      const modal = document.getElementById('queue-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+    }
+
+    async function refreshQueueModal() {
+      try {
+        const [qRes, setRes] = await Promise.all([
+          fetch('/api/queue').then(r => r.json()),
+          fetch('/api/settings').then(r => r.json())
+        ]);
+
+        if (setRes && setRes.ok && setRes.settings) {
+          const maxIn = document.getElementById('queue-max-workers');
+          if (maxIn) maxIn.value = setRes.settings.maxConcurrency || 2;
+        }
+
+        if (qRes && qRes.ok) {
+          await refreshQueueBadge();
+
+          const statusSub = document.getElementById('queue-concurrency-status-sub');
+          if (statusSub) {
+            statusSub.textContent = (qRes.activeCount || 0) + ' worker attivi su ' + (qRes.maxConcurrency || 2) + ' max';
+          }
+
+          // Render running jobs
+          const runList = document.getElementById('queue-running-list');
+          const runCount = document.getElementById('queue-running-count');
+          if (runCount) runCount.textContent = String(qRes.running ? qRes.running.length : 0);
+          if (runList) {
+            if (!qRes.running || !qRes.running.length) {
+              runList.innerHTML = '<div class="p-3 rounded-lg bg-gray-950/50 border border-darkborder/50 text-gray-500 text-center text-xs">' + (typeof t === 'function' ? t('queue.emptyRunning') : 'Nessun job in esecuzione') + '</div>';
+            } else {
+              runList.innerHTML = qRes.running.map(item => {
+                const job = currentJobs.find(j => j.id === item.jobId);
+                const title = job ? job.title : item.jobId;
+                const prio = item.priority || 'normal';
+                const prioBadge = prio === 'high' ? '🔥 Alta' : (prio === 'low' ? '💤 Bassa' : '⚡ Normale');
+                return '<div class="p-2.5 rounded-lg bg-gray-950 border border-emerald-500/30 flex items-center justify-between">' +
+                  '<div>' +
+                    '<div class="flex items-center gap-2">' +
+                      '<span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>' +
+                      '<span class="font-bold text-white text-xs">' + escapeHtml(title) + '</span>' +
+                      '<span class="text-[10px] px-1.5 py-0.2 rounded bg-gray-800 text-gray-300 font-mono">' + escapeHtml(item.jobId) + '</span>' +
+                      '<span class="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/15 text-indigo-300 font-bold">' + prioBadge + '</span>' +
+                    '</div>' +
+                    '<p class="text-[10px] text-gray-400 mt-0.5">Avviato: ' + new Date(item.startedAt).toLocaleTimeString() + ' | Sorgente: ' + escapeHtml(item.source) + '</p>' +
+                  '</div>' +
+                  '<span class="text-[10px] text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">IN ESECUZIONE</span>' +
+                '</div>';
+              }).join('');
+            }
+          }
+
+          // Render queued jobs
+          const waitList = document.getElementById('queue-waiting-list');
+          const waitCount = document.getElementById('queue-waiting-count');
+          if (waitCount) waitCount.textContent = String(qRes.queued ? qRes.queued.length : 0);
+          if (waitList) {
+            if (!qRes.queued || !qRes.queued.length) {
+              waitList.innerHTML = '<div class="p-3 rounded-lg bg-gray-950/50 border border-darkborder/50 text-gray-500 text-center text-xs">' + (typeof t === 'function' ? t('queue.emptyQueued') : 'Nessun job in attesa') + '</div>';
+            } else {
+              waitList.innerHTML = qRes.queued.map(item => {
+                const job = currentJobs.find(j => j.id === item.jobId);
+                const title = job ? job.title : item.jobId;
+                const prio = item.priority || 'normal';
+                const prioColor = prio === 'high' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' : (prio === 'low' ? 'bg-gray-800 text-gray-400 border-gray-700' : 'bg-blue-500/20 text-blue-300 border-blue-500/30');
+                const prioLabel = prio === 'high' ? '🔥 Alta' : (prio === 'low' ? '💤 Bassa' : '⚡ Normale');
+                return '<div class="p-2.5 rounded-lg bg-gray-950 border border-darkborder flex items-center justify-between">' +
+                  '<div>' +
+                    '<div class="flex items-center gap-2">' +
+                      '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>' +
+                      '<span class="font-bold text-gray-200 text-xs">' + escapeHtml(title) + '</span>' +
+                      '<span class="text-[10px] px-1.5 py-0.2 rounded bg-gray-800 text-gray-400 font-mono">' + escapeHtml(item.jobId) + '</span>' +
+                      '<span class="text-[10px] px-1.5 py-0.2 rounded border font-bold ' + prioColor + '">' + prioLabel + '</span>' +
+                    '</div>' +
+                    '<p class="text-[10px] text-gray-500 mt-0.5">In coda da: ' + new Date(item.enqueuedAt).toLocaleTimeString() + ' | Sorgente: ' + escapeHtml(item.source) + '</p>' +
+                  '</div>' +
+                  '<button onclick="cancelQueuedJob(\'' + escapeHtml(item.jobId) + '\')" class="px-2 py-1 bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 rounded text-[10px] font-semibold transition-colors cursor-pointer flex items-center gap-1">' +
+                    '<i class="fa-solid fa-xmark text-[9px]"></i> Rimuovi' +
+                  '</button>' +
+                '</div>';
+              }).join('');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error refreshing queue modal:', err);
+      }
+    }
+
+    async function saveConcurrencySettings() {
+      const input = document.getElementById('queue-max-workers');
+      const val = parseInt(input?.value, 10);
+      if (!val || val < 1 || val > 10) {
+        showToast('Inserisci un valore compreso tra 1 e 10', 'error');
+        return;
+      }
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ maxConcurrency: val })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast(typeof t === 'function' ? t('toast.queueSaved') : 'Limite di concorrenza salvato!', 'success');
+          await refreshQueueModal();
+        } else {
+          showToast('Errore: ' + (data.error || 'Impossibile salvare'), 'error');
+        }
+      } catch (err) {
+        showToast('Errore rete: ' + err.message, 'error');
+      }
+    }
+
+    async function cancelQueuedJob(jobId) {
+      try {
+        const res = await fetch('/api/queue/' + encodeURIComponent(jobId), { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast(typeof t === 'function' ? t('toast.queueCancelled') : 'Job rimosso dalla coda', 'info');
+          await refreshQueueModal();
+        } else {
+          showToast('Errore: ' + (data.error || 'Impossibile rimuovere'), 'error');
+        }
+      } catch (err) {
+        showToast('Errore rete: ' + err.message, 'error');
+      }
+    }
+
+    async function clearQueue() {
+      try {
+        const res = await fetch('/api/queue/clear', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast(typeof t === 'function' ? t('toast.queueCleared') : 'Coda svuotata con successo', 'info');
+          await refreshQueueModal();
+        } else {
+          showToast('Errore: ' + (data.error || 'Impossibile svuotare'), 'error');
+        }
+      } catch (err) {
+        showToast('Errore rete: ' + err.message, 'error');
       }
     }
 

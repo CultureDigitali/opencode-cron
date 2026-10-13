@@ -12,9 +12,10 @@ import { normalizeSchedule, explainSchedule, explainAdaptive, parseEveryToMs } f
 import { readMemory, writeMemory, initialMemoryMd } from "../memory.ts";
 import { runJobHeadless, checkDue } from "../runner.ts";
 import { getUnifiedRuns } from "../history.ts";
-import { CronJobSchema } from "../types.ts";
+import { CronJobSchema, JobPrioritySchema, CronSettingsSchema } from "../types.ts";
 import { validatePipelineDAG, getPipelineGraph } from "../pipeline.ts";
 import { generateWebhookToken, verifyWebhookAuth, formatWebhookSummary, triggerWebhookJob } from "../webhook.ts";
+import { ConcurrencyManager, loadCronSettings, saveCronSettings, getActiveLocks } from "../concurrency.ts";
 
 let DatabaseClass: any = null;
 async function getSqliteDatabase() {
@@ -64,6 +65,9 @@ export function startGuiServer(opts: ServerOpts = {}) {
 
   // In-memory rate-limit cache to prevent race conditions on parallel burst requests
   const webhookRateLimitTracker = new Map<string, number>();
+
+  const concurrencyManager = new ConcurrencyManager(directory);
+  concurrencyManager.init().catch(() => {});
 
   const handler = async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
@@ -211,6 +215,7 @@ export function startGuiServer(opts: ServerOpts = {}) {
             adaptive,
             pipeline,
             webhook,
+            priority: body.priority ? JobPrioritySchema.parse(body.priority) : "normal",
             agent: body.agent || "build",
             model: body.model || undefined,
             enabled: true,
@@ -266,6 +271,7 @@ export function startGuiServer(opts: ServerOpts = {}) {
           if (body.followupPrompt) j.followupPrompt = body.followupPrompt;
           if (body.sessionID) j.sessionID = body.sessionID;
           if (body.model !== undefined) j.model = body.model || undefined;
+          if (body.priority) j.priority = JobPrioritySchema.parse(body.priority);
           if (typeof body.maxRuns === "number") j.maxRuns = body.maxRuns;
 
           if (body.adaptive !== undefined) {
@@ -349,7 +355,7 @@ export function startGuiServer(opts: ServerOpts = {}) {
         }
       }
 
-      // 7. POST /api/jobs/:id/run (Run tick now)
+      // 7. POST /api/jobs/:id/run (Run tick now through Priority & Concurrency Manager)
       if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/run") && method === "POST") {
         const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/run".length));
         try {
@@ -361,8 +367,26 @@ export function startGuiServer(opts: ServerOpts = {}) {
           if (j.maxRuns > 0 && j.runCount >= j.maxRuns) {
             return new Response(JSON.stringify({ ok: false, error: `Limite Max Runs raggiunto (${j.runCount}/${j.maxRuns}). Aumenta Max Runs o imposta 0.` }), { status: 400, headers });
           }
-          const code = await runJobHeadless(directory, id);
-          return new Response(JSON.stringify({ ok: code === 0, code }), { headers });
+
+          const isAsync = url.searchParams.get("async") === "true";
+          const enqueuePromise = concurrencyManager.enqueue({
+            jobId: id,
+            priority: j.priority ?? "normal",
+            source: "manual",
+            skipIfRunning: j.skipIfRunning ?? true,
+            execute: () => runJobHeadless(directory, id),
+          });
+
+          if (isAsync) {
+            return new Response(JSON.stringify({ ok: true, queued: true, jobId: id }), { headers });
+          }
+
+          const res = await enqueuePromise;
+          if (res.status === "skipped") {
+            return new Response(JSON.stringify({ ok: false, error: res.error || "Job già in esecuzione o saltato", skipped: true }), { status: 409, headers });
+          }
+          const code = typeof res.result === "number" ? res.result : (res.status === "completed" ? 0 : 1);
+          return new Response(JSON.stringify({ ok: code === 0, code, status: res.status, error: res.error }), { headers });
         } catch (e: any) {
           return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
         }
@@ -619,6 +643,13 @@ export function startGuiServer(opts: ServerOpts = {}) {
             jobId: id,
             summary,
             asyncDispatch: !isSync,
+            executeFn: () => concurrencyManager.enqueue({
+              jobId: id,
+              priority: j.priority ?? "normal",
+              source: "webhook",
+              skipIfRunning: j.skipIfRunning ?? true,
+              execute: () => runJobHeadless(directory, id),
+            }),
           });
 
           if (!trigRes.ok) {
@@ -637,13 +668,90 @@ export function startGuiServer(opts: ServerOpts = {}) {
         }
       }
 
-      // 9. POST /api/check (Run all due jobs)
+      // 9. POST /api/check (Run all due jobs with concurrency limiter)
       if (pathname === "/api/check" && method === "POST") {
         try {
-          await checkDue(directory);
-          return new Response(JSON.stringify({ ok: true }), { headers });
+          const concParam = url.searchParams.get("concurrency");
+          const parsed = concParam ? parseInt(concParam, 10) : undefined;
+          const limit = typeof parsed === "number" && Number.isFinite(parsed) ? parsed : undefined;
+          const ran = await checkDue(directory, undefined, limit);
+          return new Response(JSON.stringify({ ok: true, ran }), { headers });
         } catch (e: any) {
           return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
+      // 9b. POST /api/jobs/:id/priority (Set job priority)
+      if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/priority") && method === "POST") {
+        const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/priority".length));
+        try {
+          assertJobId(id);
+          const body: any = await req.json();
+          const priority = JobPrioritySchema.parse(body.priority);
+          const jobs = await loadJobs(directory);
+          const j = jobs.find((x) => x.id === id);
+          if (!j) return new Response(JSON.stringify({ ok: false, error: "Job non trovato" }), { status: 404, headers });
+          j.priority = priority;
+          await saveJobs(directory, jobs);
+          return new Response(JSON.stringify({ ok: true, jobId: id, priority }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 9c. GET /api/queue (Inspect running tasks and priority queue)
+      if (pathname === "/api/queue" && method === "GET") {
+        try {
+          const qStatus = concurrencyManager.getStatus();
+          const activeLocks = await getActiveLocks(directory);
+          return new Response(JSON.stringify({ ok: true, ...qStatus, activeLocks }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
+      // 9d. DELETE /api/queue/:jobId (Cancel a queued task)
+      if (pathname.startsWith("/api/queue/") && method === "DELETE") {
+        const jobId = decodeURIComponent(pathname.slice("/api/queue/".length));
+        try {
+          assertJobId(jobId);
+          const cancelled = concurrencyManager.cancelQueued(jobId);
+          return new Response(JSON.stringify({ ok: true, jobId, cancelled }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 9e. POST /api/queue/clear (Clear all waiting queue items)
+      if (pathname === "/api/queue/clear" && method === "POST") {
+        try {
+          const cleared = concurrencyManager.clearQueue();
+          return new Response(JSON.stringify({ ok: true, cleared }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
+      // 9f. GET /api/settings (System settings: maxConcurrency)
+      if (pathname === "/api/settings" && method === "GET") {
+        try {
+          const settings = await loadCronSettings(directory);
+          return new Response(JSON.stringify({ ok: true, settings }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
+      // 9g. POST /api/settings (Update maxConcurrency)
+      if (pathname === "/api/settings" && method === "POST") {
+        try {
+          const body: any = await req.json();
+          const parsed = CronSettingsSchema.parse(body);
+          const updated = await saveCronSettings(directory, parsed);
+          concurrencyManager.setMaxConcurrency(updated.maxConcurrency);
+          return new Response(JSON.stringify({ ok: true, settings: updated }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
         }
       }
 
@@ -1077,6 +1185,7 @@ export function startGuiServer(opts: ServerOpts = {}) {
       fetch: handler,
     });
     console.log(`OpenCode Cron GUI server running at: http://127.0.0.1:${server.port}`);
+    (server as any).concurrencyManager = concurrencyManager;
     return server;
   }
 
@@ -1084,6 +1193,7 @@ export function startGuiServer(opts: ServerOpts = {}) {
   let nodeServerInstance: any = null;
   const serverObj = {
     port,
+    concurrencyManager,
     stop: (_closeActive?: boolean) => {
       if (nodeServerInstance) nodeServerInstance.close();
     },

@@ -57,7 +57,11 @@ async function osInstall(directory: string): Promise<void> {
 async function main(): Promise<void> {
   const cmd = process.argv[2] || "check";
   const dir = arg("--dir") ?? process.cwd();
-  if (cmd === "check") await checkDue(dir);
+  if (cmd === "check") {
+    const conc = arg("--concurrency");
+    const limit = conc ? parseInt(conc, 10) : undefined;
+    await checkDue(dir, undefined, limit);
+  }
   else if (cmd === "run") {
     const id = process.argv[3];
     if (!id || id.startsWith("--")) {
@@ -162,14 +166,64 @@ async function main(): Promise<void> {
     console.log(`Webhook URL: ${url}`);
     console.log(`Token: ${j.webhook.token}`);
     console.log(`curl snippet:\ncurl -X POST "${url}" -H "Content-Type: application/json" -d '{"event":"cli-trigger"}'`);
+  } else if (cmd === "concurrency") {
+    const { loadCronSettings, saveCronSettings } = await import("../src/concurrency.ts");
+    const limitStr = process.argv[3];
+    if (!limitStr || limitStr.startsWith("--")) {
+      const settings = await loadCronSettings(dir);
+      console.log(`Current max concurrency: ${settings.maxConcurrency}`);
+    } else {
+      const n = parseInt(limitStr, 10);
+      if (Number.isNaN(n) || n < 1 || n > 10) {
+        console.error("Concurrency must be an integer between 1 and 10");
+        process.exit(2);
+      }
+      const saved = await saveCronSettings(dir, { maxConcurrency: n });
+      console.log(`Max concurrency updated to: ${saved.maxConcurrency}`);
+    }
+  } else if (cmd === "priority") {
+    const { JobPrioritySchema } = await import("../src/types.ts");
+    const { saveJobs: saveStoreJobs } = await import("../src/store.ts");
+    const id = process.argv[3];
+    const prio = process.argv[4];
+    if (!id || id.startsWith("--")) {
+      console.error("Usage: opencode-cron priority <jobId> [high|normal|low] [--dir <dir>]");
+      process.exit(2);
+    }
+    const jobs = await loadJobs(dir);
+    const j = jobs.find((x) => x.id === id);
+    if (!j) {
+      console.error(`Job ${id} not found`);
+      process.exit(1);
+    }
+    if (!prio || prio.startsWith("--")) {
+      console.log(`Job '${id}' priority: ${j.priority ?? "normal"}`);
+    } else {
+      j.priority = JobPrioritySchema.parse(prio);
+      await saveStoreJobs(dir, jobs);
+      console.log(`Job '${id}' priority updated to: ${j.priority}`);
+    }
+  } else if (cmd === "queue") {
+    const { loadCronSettings, getActiveLocks } = await import("../src/concurrency.ts");
+    const settings = await loadCronSettings(dir);
+    const activeLocks = await getActiveLocks(dir);
+    const jobs = await loadJobs(dir);
+    console.log(`=== Concurrency & Queue Status ===`);
+    console.log(`Max Concurrency: ${settings.maxConcurrency}`);
+    console.log(`Active Running Jobs (${activeLocks.length}): ${activeLocks.join(", ") || "(none)"}`);
+    console.log(`Total Configured Jobs: ${jobs.length}`);
+    for (const j of jobs) {
+      const state = activeLocks.includes(j.id) ? "RUNNING" : (j.enabled ? "IDLE" : "PAUSED");
+      console.log(`- [${state}] ${j.id} (${j.title}) | Priority: ${j.priority ?? "normal"} | Next: ${j.nextRunAt ?? "not scheduled"}`);
+    }
   } else {
-    console.error(`Commands: check | run <id> | os-install | refresh-creds | list | gui | desktop | tray | webhook-token <id> [--port <port>] [--dir ...]`);
+    console.error(`Commands: check [--concurrency N] | run <id> | os-install | refresh-creds | list | gui | desktop | tray | webhook-token <id> | concurrency [N] | priority <id> [level] | queue [--dir ...]`);
     process.exit(2);
   }
 }
 
 if (has("--help") || has("-h")) {
-  console.log("opencode-cron check|run <id>|os-install|refresh-creds|list|gui|desktop|tray|webhook-token <id> [--port <port>] [--dir ...]");
+  console.log("opencode-cron check [--concurrency N] | run <id> | os-install | refresh-creds | list | gui | desktop | tray | webhook-token <id> | concurrency [N] | priority <id> [level] | queue [--dir ...]");
   process.exit(0);
 }
 await main();
