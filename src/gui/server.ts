@@ -16,6 +16,16 @@ import { CronJobSchema, JobPrioritySchema, CronSettingsSchema } from "../types.t
 import { validatePipelineDAG, getPipelineGraph } from "../pipeline.ts";
 import { generateWebhookToken, verifyWebhookAuth, formatWebhookSummary, triggerWebhookJob } from "../webhook.ts";
 import { ConcurrencyManager, loadCronSettings, saveCronSettings, getActiveLocks } from "../concurrency.ts";
+import {
+  loadDLQ,
+  saveDLQ,
+  clearDLQ,
+  retryDLQJob,
+  resolveDLQEntry,
+  resetCircuitBreaker,
+  tripCircuitBreaker,
+  setHalfOpen,
+} from "../dlq.ts";
 
 let DatabaseClass: any = null;
 async function getSqliteDatabase() {
@@ -750,6 +760,133 @@ export function startGuiServer(opts: ServerOpts = {}) {
           const updated = await saveCronSettings(directory, parsed);
           concurrencyManager.setMaxConcurrency(updated.maxConcurrency);
           return new Response(JSON.stringify({ ok: true, settings: updated }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 9h. GET /api/dlq (List Dead Letter Queue entries and stats)
+      if (pathname === "/api/dlq" && method === "GET") {
+        try {
+          const dlq = await loadDLQ(directory);
+          const unresolvedCount = dlq.filter((e) => e.status === "quarantined").length;
+          return new Response(JSON.stringify({
+            ok: true,
+            entries: dlq,
+            dlq,
+            totalEntries: dlq.length,
+            unresolvedCount,
+            quarantinedCount: unresolvedCount,
+          }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
+      // 9i. POST /api/dlq/:jobId/retry (Retry quarantined job via canary run)
+      if (pathname.startsWith("/api/dlq/") && pathname.endsWith("/retry") && method === "POST") {
+        const id = decodeURIComponent(pathname.slice("/api/dlq/".length, -"/retry".length));
+        try {
+          assertJobId(id);
+          const res = await retryDLQJob(directory, id, async (dir, jId) => {
+            const enq = await concurrencyManager.enqueue({
+              jobId: jId,
+              priority: "high",
+              source: "manual",
+              skipIfRunning: false,
+              execute: () => runJobHeadless(dir, jId),
+            });
+            return enq.status === "completed" ? 0 : 1;
+          });
+          return new Response(JSON.stringify({ ok: res.ok, status: res.status, error: res.error }), {
+            status: res.ok ? 200 : 400,
+            headers,
+          });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 9j. POST /api/dlq/:idOrJobId/resolve (Mark DLQ entries as resolved)
+      if (pathname.startsWith("/api/dlq/") && pathname.endsWith("/resolve") && method === "POST") {
+        const idOrEntryId = decodeURIComponent(pathname.slice("/api/dlq/".length, -"/resolve".length));
+        try {
+          if (!idOrEntryId || idOrEntryId.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(idOrEntryId)) {
+            return new Response(JSON.stringify({ ok: false, error: "Invalid identifier" }), { status: 400, headers });
+          }
+          const dlq = await loadDLQ(directory);
+          const matchedEntry = dlq.find((e) => e.id === idOrEntryId || e.jobId === idOrEntryId);
+          const targetJobId = matchedEntry ? matchedEntry.jobId : idOrEntryId;
+          assertJobId(targetJobId);
+
+          const ok = await resolveDLQEntry(directory, idOrEntryId);
+          const jobs = await loadJobs(directory);
+          const j = jobs.find((x) => x.id === targetJobId);
+          if (j) {
+            resetCircuitBreaker(j);
+            j.enabled = true;
+            await saveJobs(directory, jobs);
+          }
+          return new Response(JSON.stringify({ ok: true, resolved: ok }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 9k. DELETE /api/dlq/:id (Delete a single DLQ entry)
+      if (pathname.startsWith("/api/dlq/") && method === "DELETE") {
+        const id = decodeURIComponent(pathname.slice("/api/dlq/".length));
+        try {
+          if (!id || id.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(id)) {
+            return new Response(JSON.stringify({ ok: false, error: "Invalid identifier" }), { status: 400, headers });
+          }
+          const dlq = await loadDLQ(directory);
+          const filtered = dlq.filter((e) => e.id !== id && e.jobId !== id);
+          const removed = dlq.length - filtered.length;
+          await saveDLQ(directory, filtered);
+          return new Response(JSON.stringify({ ok: true, removed }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 9l. POST /api/dlq/clear (Clear DLQ entries)
+      if (pathname === "/api/dlq/clear" && method === "POST") {
+        try {
+          const body: any = await req.json().catch(() => ({}));
+          const filter = body.filter === "all" ? "all" : "resolved";
+          const cleared = await clearDLQ(directory, filter);
+          return new Response(JSON.stringify({ ok: true, cleared }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
+      // 9m. POST /api/jobs/:id/circuit (Set or reset circuit breaker state)
+      if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/circuit") && method === "POST") {
+        const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/circuit".length));
+        try {
+          assertJobId(id);
+          const body: any = await req.json();
+          const action = String(body.action);
+          const jobs = await loadJobs(directory);
+          const j = jobs.find((x) => x.id === id);
+          if (!j) return new Response(JSON.stringify({ ok: false, error: "Job non trovato" }), { status: 404, headers });
+
+          if (action === "reset") {
+            resetCircuitBreaker(j);
+            j.enabled = true;
+            await resolveDLQEntry(directory, id);
+          } else if (action === "trip") {
+            tripCircuitBreaker(j, body.reason || "Intervento manuale da Web GUI");
+          } else if (action === "half-open") {
+            setHalfOpen(j);
+          } else {
+            return new Response(JSON.stringify({ ok: false, error: "Azione circuit non valida (reset, trip, half-open)" }), { status: 400, headers });
+          }
+
+          await saveJobs(directory, jobs);
+          return new Response(JSON.stringify({ ok: true, circuitBreaker: j.circuitBreaker }), { headers });
         } catch (e: any) {
           return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
         }

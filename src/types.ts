@@ -95,6 +95,35 @@ export const WebhookConfigSchema = z.object({
 
 export type WebhookConfig = z.infer<typeof WebhookConfigSchema>;
 
+export const CircuitStateSchema = z.enum(["closed", "open", "half-open"]);
+export type CircuitState = z.infer<typeof CircuitStateSchema>;
+
+export const CircuitBreakerConfigSchema = z.object({
+  state: CircuitStateSchema.default("closed"),
+  trippedAt: z.string().nullable().optional().default(null),
+  resetTimeoutMs: z.number().int().min(60_000).max(86_400_000).default(1800_000),
+  halfOpenAt: z.string().nullable().optional().default(null),
+  lastFailureReason: z.string().nullable().optional().default(null),
+});
+export type CircuitBreakerConfig = z.infer<typeof CircuitBreakerConfigSchema>;
+
+export const DLQEntrySchema = z.object({
+  id: z.string().min(1),
+  jobId: z.string().min(1),
+  jobTitle: z.string(),
+  sessionID: z.string(),
+  directory: z.string(),
+  failedAt: z.string(),
+  exitCode: z.number().nullable().optional().default(null),
+  errorMessage: z.string(),
+  consecutiveFailures: z.number().int().default(1),
+  lastPayload: z.record(z.any()).optional(),
+  status: z.enum(["quarantined", "resolved", "ignored"]).default("quarantined"),
+  resolvedAt: z.string().nullable().optional().default(null),
+  retryCount: z.number().int().default(0),
+});
+export type DLQEntry = z.infer<typeof DLQEntrySchema>;
+
 export const CronJobSchema = z.object({
   id: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/),
   sessionID: z.string().min(1),
@@ -107,6 +136,7 @@ export const CronJobSchema = z.object({
   pipeline: PipelineConfigSchema.optional(),
   webhook: WebhookConfigSchema.optional(),
   priority: JobPrioritySchema.optional(),
+  circuitBreaker: CircuitBreakerConfigSchema.optional(),
   agent: z.string().optional(),
   model: z.string().optional(),
   enabled: z.boolean().default(true),

@@ -42,12 +42,12 @@ describe("v2 plugin module", () => {
     expect(CronPlugin).toBe(CronModule);
   });
 
-  it("registers 14 tools with valid JSON-schema inputs", async () => {
+  it("registers 15 tools with valid JSON-schema inputs", async () => {
     const { ctx, tools, hooks } = mockCtx();
     const cleanup = await (CronModule as any).setup(ctx);
     const names = tools.map((t) => t.id).sort();
     expect(names).toEqual(
-      ["cron_add", "cron_burst", "cron_get", "cron_list", "cron_memory_read", "cron_memory_save", "cron_pause", "cron_pipeline", "cron_priority", "cron_queue", "cron_remove", "cron_resume", "cron_run_now", "cron_webhook"].sort()
+      ["cron_add", "cron_burst", "cron_dlq", "cron_get", "cron_list", "cron_memory_read", "cron_memory_save", "cron_pause", "cron_pipeline", "cron_priority", "cron_queue", "cron_remove", "cron_resume", "cron_run_now", "cron_webhook"].sort()
     );
     for (const t of tools) {
       expect(t.description.length).toBeGreaterThan(0);

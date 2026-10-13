@@ -7,6 +7,13 @@ import { readMemory, writeMemory, buildTickPrompt } from "./memory.ts";
 import { recordRunEntry } from "./history.ts";
 import { triggerPipelineDownstream } from "./pipeline.ts";
 import { loadCronSettings, compareJobPriority, runWithConcurrencyPool } from "./concurrency.ts";
+import {
+  getCircuitBreakerStatus,
+  tripCircuitBreaker,
+  resetCircuitBreaker,
+  quarantineJob,
+  resolveDLQEntry,
+} from "./dlq.ts";
 
 export async function acquireLock(directory: string, jobId: string): Promise<boolean> {
   assertJobId(jobId);
@@ -253,12 +260,21 @@ export async function runJobHeadless(
   assertJobId(jobId);
   const jobs = await loadJobs(directory);
   const job = jobs.find((j) => j.id === jobId);
-  if (!job || !job.enabled) {
-    console.log(`skip ${jobId}: not found/disabled`);
+  if (!job) {
+    console.log(`skip ${jobId}: not found`);
+    return 0;
+  }
+  const cbStatus = getCircuitBreakerStatus(job);
+  if (!job.enabled && !cbStatus.isCanary) {
+    console.log(`skip ${jobId}: disabled`);
     return 0;
   }
   if (job.maxRuns > 0 && job.runCount >= job.maxRuns) {
     console.log(`skip ${jobId}: max-runs reached`);
+    return 0;
+  }
+  if (!cbStatus.canExecute) {
+    console.log(`skip ${jobId}: circuit breaker OPEN (${cbStatus.reason})`);
     return 0;
   }
   if (!(await acquireLock(directory, jobId))) {
@@ -310,6 +326,8 @@ export async function runJobHeadless(
       job.runCount += 1;
       job.consecutiveFailures = 0;
       job.lastRunAt = now;
+      resetCircuitBreaker(job);
+      await resolveDLQEntry(directory, job.id).catch(() => {});
       const { md: postMd, state: postState } = await readMemory(directory, jobId).catch(() => ({ md: "", state: prevState }));
       const prevCounts = (prevState.counts ?? {}) as Record<string, number>;
       const postCounts = (postState.counts ?? {}) as Record<string, number>;
@@ -326,9 +344,11 @@ export async function runJobHeadless(
       applyAdaptiveTransition(job, hasActivity, new Date(finishedAtMs));
     } else {
       job.consecutiveFailures += 1;
-      if (job.consecutiveFailures >= job.maxConsecutiveFailures) {
+      if (job.consecutiveFailures >= job.maxConsecutiveFailures || cbStatus.isCanary) {
+        tripCircuitBreaker(job, errMsg ?? `Exit code ${code}`);
+        await quarantineJob(directory, job, errMsg ?? `Exit code ${code}`, code).catch(() => {});
         job.enabled = false;
-        console.log(`auto-paused ${jobId} after ${job.consecutiveFailures} failures`);
+        console.log(`auto-quarantined ${jobId} (circuit breaker open) after ${job.consecutiveFailures} failures`);
       }
       applyAdaptiveTransition(job, false, new Date(finishedAtMs));
     }
@@ -338,6 +358,9 @@ export async function runJobHeadless(
       job.priority = diskJob.priority;
       job.webhook = diskJob.webhook;
       job.pipeline = diskJob.pipeline;
+      if (diskJob.circuitBreaker && diskJob.circuitBreaker.state === "closed" && job.circuitBreaker?.state === "open") {
+        job.circuitBreaker = diskJob.circuitBreaker;
+      }
       if (diskJob.adaptive?.activeUntil && (!job.adaptive?.activeUntil || new Date(diskJob.adaptive.activeUntil).getTime() > new Date(job.adaptive.activeUntil).getTime())) {
         if (!job.adaptive) job.adaptive = diskJob.adaptive;
         else job.adaptive.activeUntil = diskJob.adaptive.activeUntil;
@@ -403,9 +426,10 @@ export async function checkDue(
   const limit = Math.max(1, Math.min(Math.floor(rawLimit), 10));
 
   const dueJobs = jobs.filter((j) => {
-    if (!j.enabled) return false;
-    // Authoritative skip checks also live in runJobHeadless; this keeps
-    // the returned list to jobs actually executed.
+    const cbStatus = getCircuitBreakerStatus(j);
+    // Allow canary probe even if auto-quarantined/disabled by previous failure
+    if (!j.enabled && !cbStatus.isCanary) return false;
+    if (!cbStatus.canExecute) return false;
     if (j.maxRuns > 0 && j.runCount >= j.maxRuns) return false;
     const due = !j.nextRunAt || new Date(j.nextRunAt).getTime() <= now;
     if (!due) {

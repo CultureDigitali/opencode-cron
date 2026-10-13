@@ -3,6 +3,13 @@ import { readMemory, writeMemory, buildTickPrompt } from "./memory.ts";
 import { acquireLock, releaseLock } from "./runner.ts";
 import { recordRunEntry } from "./history.ts";
 import { triggerPipelineDownstream } from "./pipeline.ts";
+import {
+  getCircuitBreakerStatus,
+  tripCircuitBreaker,
+  resetCircuitBreaker,
+  quarantineJob,
+  resolveDLQEntry,
+} from "./dlq.ts";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
@@ -34,8 +41,15 @@ export async function executeTick(
   const jobs = await loadJobs(directory);
   const job = jobs.find((j) => j.id === jobId);
   if (!job) return { ok: false, skipped: "job-not-found" };
-  if (!job.enabled) return { ok: false, skipped: "disabled" };
+
+  const cbStatus = getCircuitBreakerStatus(job);
+  if (!job.enabled && !cbStatus.isCanary) return { ok: false, skipped: "disabled" };
   if (job.maxRuns > 0 && job.runCount >= job.maxRuns) return { ok: false, skipped: "max-runs" };
+
+  if (!cbStatus.canExecute) {
+    await appendRunLog(directory, jobId, `SKIP circuit breaker OPEN (${cbStatus.reason}) at ${new Date().toISOString()}\n`);
+    return { ok: false, skipped: "circuit-breaker-open" };
+  }
 
   const key = flightKey(directory, jobId);
   if (prompt.inFlight?.has(key)) {
@@ -66,6 +80,8 @@ export async function executeTick(
     job.runCount += 1;
     job.consecutiveFailures = 0;
     job.lastRunAt = now;
+    resetCircuitBreaker(job);
+    await resolveDLQEntry(directory, job.id).catch(() => {});
 
     const { md: postMd, state: postState } = await readMemory(directory, jobId).catch(() => ({ md: "", state: prevState }));
     const prevCounts = (prevState.counts ?? {}) as Record<string, number>;
@@ -88,6 +104,9 @@ export async function executeTick(
       job.priority = diskJob.priority;
       job.webhook = diskJob.webhook;
       job.pipeline = diskJob.pipeline;
+      if (diskJob.circuitBreaker && diskJob.circuitBreaker.state === "closed" && job.circuitBreaker?.state === "open") {
+        job.circuitBreaker = diskJob.circuitBreaker;
+      }
       if (diskJob.adaptive?.activeUntil && (!job.adaptive?.activeUntil || new Date(diskJob.adaptive.activeUntil).getTime() > new Date(job.adaptive.activeUntil).getTime())) {
         if (!job.adaptive) job.adaptive = diskJob.adaptive;
         else job.adaptive.activeUntil = diskJob.adaptive.activeUntil;
@@ -133,16 +152,24 @@ export async function executeTick(
   } catch (err: any) {
     const finishedAtMs = Date.now();
     const now = new Date(finishedAtMs).toISOString();
+    const errMsg = String(err?.message ?? err);
     job.consecutiveFailures += 1;
-    if (job.consecutiveFailures >= job.maxConsecutiveFailures) job.enabled = false;
+    if (job.consecutiveFailures >= job.maxConsecutiveFailures || cbStatus.isCanary) {
+      tripCircuitBreaker(job, errMsg);
+      await quarantineJob(directory, job, errMsg, 1).catch(() => {});
+      job.enabled = false;
+    }
     applyAdaptiveTransition(job, false, new Date(finishedAtMs));
     job.nextRunAt = computeNextRun(job, new Date(finishedAtMs));
     const latest = await loadJobs(directory);
     const diskJob = latest.find((j) => j.id === job.id);
     if (diskJob) {
-      if (diskJob.priority) job.priority = diskJob.priority;
-      if (diskJob.webhook) job.webhook = diskJob.webhook;
-      if (diskJob.pipeline) job.pipeline = diskJob.pipeline;
+      job.priority = diskJob.priority;
+      job.webhook = diskJob.webhook;
+      job.pipeline = diskJob.pipeline;
+      if (diskJob.circuitBreaker && diskJob.circuitBreaker.state === "closed" && job.circuitBreaker?.state === "open") {
+        job.circuitBreaker = diskJob.circuitBreaker;
+      }
       if (diskJob.adaptive?.activeUntil && (!job.adaptive?.activeUntil || new Date(diskJob.adaptive.activeUntil).getTime() > new Date(job.adaptive.activeUntil).getTime())) {
         if (!job.adaptive) job.adaptive = diskJob.adaptive;
         else job.adaptive.activeUntil = diskJob.adaptive.activeUntil;
@@ -154,7 +181,6 @@ export async function executeTick(
       ? latest.map((j) => (j.id === job.id ? job : j))
       : [...latest, job];
     await saveJobs(directory, updated);
-    const errMsg = String(err?.message ?? err);
     await appendRunLog(directory, jobId, `ERR at ${now}: ${errMsg}\n`);
     await recordRunEntry(directory, {
       id: `exec_${job.id}_${startedAtMs}`,

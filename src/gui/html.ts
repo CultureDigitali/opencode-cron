@@ -111,6 +111,11 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           <span class="hidden md:inline" data-i18n="nav.queue">Coda & Worker</span>
           <span id="header-queue-badge" class="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">0/2</span>
         </button>
+        <button id="btn-header-dlq" onclick="openDlqModal()" data-tooltip="tt.dlqBtn" class="bg-darkcard hover:bg-gray-800 text-rose-300 border border-darkborder hover:border-rose-500/40 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer">
+          <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
+          <span class="hidden md:inline" data-i18n="nav.dlq">DLQ & Circuit</span>
+          <span id="header-dlq-badge" class="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">0</span>
+        </button>
         <button id="btn-header-new-job" onclick="openNewJobModal()" data-tooltip="tt.tabJobs" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition-all cursor-pointer">
           <i class="fa-solid fa-plus text-[10px]"></i> <span class="hidden sm:inline" data-i18n="nav.newJob">Nuovo Job</span>
         </button>
@@ -952,6 +957,42 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
     </div>
   </div>
 
+  <!-- Modal: Dead Letter Queue (DLQ) & Quarantine -->
+  <div id="dlq-modal" role="dialog" aria-modal="true" aria-labelledby="dlq-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-3xl w-full p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-4 border-b border-darkborder mb-4">
+        <div>
+          <h3 id="dlq-modal-title" class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
+            <span data-i18n="dlq.modalTitle">Dead Letter Queue & Quarantena</span>
+          </h3>
+          <p class="text-xs text-gray-400" data-i18n="dlq.subtitle">Job bloccati per troppi fallimenti consecutivi. Esegui canary run o rimuovi la quarantena.</p>
+        </div>
+        <button onclick="closeDlqModal()" aria-label="Chiudi finestra modale" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Action bar -->
+      <div class="flex items-center justify-between mb-3 text-xs">
+        <span id="dlq-count-label" class="text-gray-400">0 job in quarantena</span>
+        <button onclick="clearAllDlq()" id="dlq-clear-all-btn" class="text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1 cursor-pointer">
+          <i class="fa-solid fa-trash-can text-[10px]"></i> <span data-i18n="dlq.clearAllBtn">Svuota DLQ</span>
+        </button>
+      </div>
+
+      <!-- Scrollable list of quarantined entries -->
+      <div class="overflow-y-auto flex-1 space-y-3 pr-1 text-xs" id="dlq-entries-list">
+        <!-- Populated by JS -->
+      </div>
+
+      <div class="flex items-center justify-between pt-4 mt-4 border-t border-darkborder">
+        <button onclick="refreshDlqModal()" class="px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer">
+          <i class="fa-solid fa-arrows-rotate text-[10px]"></i> Aggiorna
+        </button>
+        <button onclick="closeDlqModal()" class="px-4 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 text-xs font-semibold transition-colors cursor-pointer">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Client JavaScript Logic -->
   <script>
     ${getUiEnhancementsScript()}
@@ -1062,6 +1103,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         currentJobs = await res.json();
         renderJobs();
         refreshQueueBadge().catch(() => {});
+        refreshDlqBadge().catch(() => {});
       } catch (err) {
         showToast((typeof t === 'function' ? t('toast.loadJobsError') : 'Errore nel caricamento dei job: ') + err.message, 'error');
       }
@@ -1122,6 +1164,15 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           webhookBadge = \`<button onclick="openWebhookModal('\${safeId}')" data-tooltip="tt.webhookBtn" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 border border-violet-500/20 flex items-center gap-1 cursor-pointer"><i class="fa-solid fa-satellite-dish text-violet-400"></i> \${escapeHtml(t('job.webhookBadge'))}</button>\`;
         }
 
+        let circuitBadge = '';
+        if (job.circuitBreaker) {
+          if (job.circuitBreaker.state === 'open') {
+            circuitBadge = \`<button onclick="openDlqModal()" data-tooltip="tt.circuitOpen" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1 animate-pulse cursor-pointer"><i class="fa-solid fa-triangle-exclamation text-rose-400"></i> \${escapeHtml(t('circuit.open'))}</button>\`;
+          } else if (job.circuitBreaker.state === 'half-open') {
+            circuitBadge = \`<button onclick="openDlqModal()" data-tooltip="tt.circuitHalfOpen" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 cursor-pointer"><i class="fa-solid fa-flask text-amber-400"></i> \${escapeHtml(t('circuit.halfOpen'))}</button>\`;
+          }
+        }
+
         const prio = job.priority || 'normal';
         const priorityBadge = prio === 'high'
           ? \`<span data-tooltip="tt.priorityHigh" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30 flex items-center gap-1"><i class="fa-solid fa-fire text-rose-400"></i> \${escapeHtml(t('priority.high'))}</span>\`
@@ -1146,6 +1197,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                   <div class="flex items-center space-x-2">
                     <h3 class="text-sm font-bold text-white tracking-tight">\${safeTitle}</h3>
                     \${statusBadge}
+                    \${circuitBadge}
                     \${priorityBadge}
                     \${adaptiveBadge}
                     \${pipelineBadge}
@@ -3159,6 +3211,173 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         if (res.ok && data.ok) {
           showToast(typeof t === 'function' ? t('toast.queueCleared') : 'Coda svuotata con successo', 'info');
           await refreshQueueModal();
+        } else {
+          showToast('Errore: ' + (data.error || 'Impossibile svuotare'), 'error');
+        }
+      } catch (err) {
+        showToast('Errore rete: ' + err.message, 'error');
+      }
+    }
+
+    // Dead Letter Queue (DLQ) & Circuit Breaker Logic
+    async function refreshDlqBadge() {
+      try {
+        const res = await fetch('/api/dlq');
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          const badge = document.getElementById('header-dlq-badge');
+          if (badge) {
+            const count = data.unresolvedCount || 0;
+            badge.textContent = String(count);
+            if (count > 0) {
+              badge.className = 'px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-rose-500/30 text-rose-200 border border-rose-500/50 animate-pulse';
+            } else {
+              badge.className = 'px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30';
+            }
+          }
+        }
+      } catch {}
+    }
+
+    async function openDlqModal() {
+      const modal = document.getElementById('dlq-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
+      await refreshDlqModal();
+    }
+
+    function closeDlqModal() {
+      const modal = document.getElementById('dlq-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+    }
+
+    async function refreshDlqModal() {
+      try {
+        const res = await fetch('/api/dlq');
+        const data = await res.json();
+        if (!res.ok || !data.ok) return;
+
+        await refreshDlqBadge();
+
+        const countLabel = document.getElementById('dlq-count-label');
+        if (countLabel) {
+          countLabel.textContent = (data.unresolvedCount || 0) + ' job in quarantena (' + (data.totalEntries || 0) + ' totali)';
+        }
+
+        const list = document.getElementById('dlq-entries-list');
+        if (list) {
+          const entries = data.entries || [];
+          if (!entries.length) {
+            list.innerHTML = '<div class="p-6 rounded-xl bg-gray-950/50 border border-dashed border-darkborder text-gray-500 text-center text-xs">' +
+              '<i class="fa-solid fa-circle-check text-2xl text-emerald-500 mb-2 block"></i>' +
+              (typeof t === 'function' ? t('dlq.empty') : 'Nessun job in quarantena. Tutti i cron job funzionano regolarmente!') +
+            '</div>';
+          } else {
+            list.innerHTML = entries.map(item => {
+              const safeJobId = escapeHtml(item.jobId);
+              const safeErr = escapeHtml(item.errorMessage || item.error || 'Errore sconosciuto');
+              const safeDate = new Date(item.failedAt || item.quarantinedAt || Date.now()).toLocaleString();
+              const isResolved = item.status === 'resolved' || item.resolved === true;
+              const borderCls = isResolved ? 'border-gray-800 bg-gray-950/40 opacity-70' : 'border-rose-500/40 bg-gray-950';
+
+              return '<div class="p-3 rounded-xl border ' + borderCls + ' space-y-2">' +
+                '<div class="flex items-start justify-between gap-2">' +
+                  '<div>' +
+                    '<div class="flex items-center gap-2">' +
+                      '<span class="font-bold text-white text-xs">' + escapeHtml(item.jobTitle || item.title || item.jobId) + '</span>' +
+                      '<span class="text-[10px] px-1.5 py-0.2 rounded bg-gray-800 text-indigo-300 font-mono">' + safeJobId + '</span>' +
+                      (isResolved
+                        ? '<span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 font-bold border border-emerald-500/30">RISOLTO</span>'
+                        : '<span class="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 animate-pulse">IN QUARANTENA</span>') +
+                    '</div>' +
+                    '<p class="text-[10px] text-gray-500 mt-0.5">Quarantena: ' + safeDate + ' | Fallimenti consecutivi: ' + item.consecutiveFailures + '</p>' +
+                  '</div>' +
+                  '<div class="flex items-center gap-1.5">' +
+                    (!isResolved ? '<button onclick="retryDlqJob(\'' + safeJobId + '\')" class="px-2.5 py-1 bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 border border-amber-500/30 rounded text-[10px] font-semibold transition-colors cursor-pointer flex items-center gap-1">' +
+                      '<i class="fa-solid fa-flask text-[9px]"></i> ' + (typeof t === 'function' ? t('dlq.retryBtn') : 'Riprova (Canary)') +
+                    '</button>' : '') +
+                    (!isResolved ? '<button onclick="resolveDlqJob(\'' + escapeHtml(item.id) + '\')" class="px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 rounded text-[10px] font-semibold transition-colors cursor-pointer flex items-center gap-1">' +
+                      '<i class="fa-solid fa-check text-[9px]"></i> ' + (typeof t === 'function' ? t('dlq.resolveBtn') : 'Risolvi') +
+                    '</button>' : '') +
+                    '<button onclick="deleteDlqEntry(\'' + escapeHtml(item.id) + '\')" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded text-[10px] transition-colors cursor-pointer" title="' + (typeof t === 'function' ? t('dlq.deleteBtn') : 'Elimina') + '">' +
+                      '<i class="fa-solid fa-trash text-[9px]"></i>' +
+                    '</button>' +
+                  '</div>' +
+                '</div>' +
+                '<div class="p-2 rounded bg-gray-900 border border-darkborder/80 text-[11px] font-mono text-rose-300/90 break-words">' +
+                  safeErr +
+                '</div>' +
+              '</div>';
+            }).join('');
+          }
+        }
+      } catch (err) {
+        showToast('Errore DLQ: ' + err.message, 'error');
+      }
+    }
+
+    async function retryDlqJob(jobId) {
+      try {
+        const res = await fetch('/api/dlq/' + encodeURIComponent(jobId) + '/retry', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast(typeof t === 'function' ? t('toast.dlqRetried') : 'Canary run completata con successo!', 'success');
+          await refreshDlqModal();
+          await loadJobs();
+        } else {
+          showToast('Canary fallita: ' + (data.error || 'Errore sconosciuto'), 'error');
+          await refreshDlqModal();
+        }
+      } catch (err) {
+        showToast('Errore rete: ' + err.message, 'error');
+      }
+    }
+
+    async function resolveDlqJob(entryId) {
+      try {
+        const res = await fetch('/api/dlq/' + encodeURIComponent(entryId) + '/resolve', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast(typeof t === 'function' ? t('toast.dlqResolved') : 'Job rimosso dalla quarantena!', 'success');
+          await refreshDlqModal();
+          await loadJobs();
+        } else {
+          showToast('Errore: ' + (data.error || 'Impossibile risolvere'), 'error');
+        }
+      } catch (err) {
+        showToast('Errore rete: ' + err.message, 'error');
+      }
+    }
+
+    async function deleteDlqEntry(entryId) {
+      try {
+        const res = await fetch('/api/dlq/' + encodeURIComponent(entryId), { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast(typeof t === 'function' ? t('toast.dlqDeleted') : 'Entry rimossa', 'info');
+          await refreshDlqModal();
+        } else {
+          showToast('Errore: ' + (data.error || 'Impossibile eliminare'), 'error');
+        }
+      } catch (err) {
+        showToast('Errore rete: ' + err.message, 'error');
+      }
+    }
+
+    async function clearAllDlq() {
+      if (!confirm('Sei sicuro di voler svuotare tutta la Dead Letter Queue?')) return;
+      try {
+        const res = await fetch('/api/dlq/clear', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast(typeof t === 'function' ? t('toast.dlqCleared') : 'DLQ svuotata con successo', 'success');
+          await refreshDlqModal();
+          await loadJobs();
         } else {
           showToast('Errore: ' + (data.error || 'Impossibile svuotare'), 'error');
         }

@@ -8,6 +8,7 @@ import { executeTick } from "./executor.ts";
 import { validatePipelineDAG, getPipelineGraph } from "./pipeline.ts";
 import { generateWebhookToken } from "./webhook.ts";
 import { loadCronSettings, getActiveLocks } from "./concurrency.ts";
+import { loadDLQ, resolveDLQEntry, clearDLQ, resetCircuitBreaker, setHalfOpen } from "./dlq.ts";
 
 function slug(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "job";
@@ -486,6 +487,110 @@ export const CronPlugin = Plugin.define({
               })),
             }, null, 2),
           };
+        },
+      });
+
+      add({
+        name: "dlq",
+        description: "Inspect Dead Letter Queue (quarantined jobs), retry failed jobs, or reset circuit breakers",
+        input: {
+          type: "object",
+          properties: {
+            action: {
+              type: "string",
+              enum: ["list", "get", "retry", "resolve", "clear"],
+              description: "DLQ operation: 'list' (all entries), 'get' (single entry), 'retry' (run canary probe), 'resolve' (mark resolved), 'clear' (empty DLQ)",
+            },
+            id: optStrProp("Job ID or DLQ entry ID"),
+          },
+          required: ["action"],
+          additionalProperties: false,
+        },
+        execute: async (input: any, tctx: any) => {
+          const dir = await sessionDir(String(tctx.sessionID));
+          const dlq = await loadDLQ(dir);
+          const jobs = await loadJobs(dir);
+
+          if (input.action === "list") {
+            const quarantined = dlq.filter((e) => e.status === "quarantined");
+            return {
+              content: JSON.stringify({
+                quarantinedCount: quarantined.length,
+                totalEntries: dlq.length,
+                entries: dlq,
+                circuitBreakers: jobs.map((j) => ({
+                  id: j.id,
+                  title: j.title,
+                  state: j.circuitBreaker?.state ?? "closed",
+                  consecutiveFailures: j.consecutiveFailures,
+                  lastFailureReason: j.circuitBreaker?.lastFailureReason ?? null,
+                })),
+              }, null, 2),
+            };
+          }
+
+          if (input.action === "get") {
+            if (!input.id) throw new Error("Missing required 'id'");
+            const idStr = String(input.id);
+            const entry = dlq.find((e) => e.id === idStr || e.jobId === idStr);
+            const targetJobId = entry ? entry.jobId : idStr;
+            const job = jobs.find((j) => j.id === targetJobId);
+            return {
+              content: JSON.stringify({
+                dlqEntry: entry ?? null,
+                job: job ? {
+                  id: job.id,
+                  title: job.title,
+                  circuitBreaker: job.circuitBreaker ?? { state: "closed" },
+                  consecutiveFailures: job.consecutiveFailures,
+                } : null,
+              }, null, 2),
+            };
+          }
+
+          if (input.action === "retry") {
+            if (!input.id) throw new Error("Missing required 'id'");
+            const idStr = String(input.id);
+            const entry = dlq.find((e) => e.id === idStr || e.jobId === idStr);
+            const targetJobId = entry ? entry.jobId : idStr;
+            assertJobId(targetJobId);
+            const j = jobs.find((x) => x.id === targetJobId);
+            if (!j) throw new Error(`Job '${targetJobId}' not found`);
+            setHalfOpen(j);
+            j.enabled = true;
+            await saveJobs(dir, jobs);
+            const r = await executeTick(dir, j.id, { promptSession, inFlight });
+            await resync(dir);
+            return {
+              content: r.ok
+                ? `Canary retry for '${j.id}' succeeded! Circuit breaker reset to closed.`
+                : `Canary retry for '${j.id}' failed or skipped: ${r.skipped}`,
+            };
+          }
+
+          if (input.action === "resolve") {
+            if (!input.id) throw new Error("Missing required 'id'");
+            const idStr = String(input.id);
+            const entry = dlq.find((e) => e.id === idStr || e.jobId === idStr);
+            const targetJobId = entry ? entry.jobId : idStr;
+            assertJobId(targetJobId);
+            await resolveDLQEntry(dir, idStr);
+            const j = jobs.find((x) => x.id === targetJobId);
+            if (j) {
+              resetCircuitBreaker(j);
+              j.enabled = true;
+              await saveJobs(dir, jobs);
+            }
+            await resync(dir);
+            return { content: `DLQ entry and circuit breaker for '${input.id}' resolved` };
+          }
+
+          if (input.action === "clear") {
+            const count = await clearDLQ(dir, "all");
+            return { content: `Cleared ${count} entries from DLQ` };
+          }
+
+          throw new Error(`Unsupported action: ${input.action}`);
         },
       });
     });

@@ -176,11 +176,18 @@ Manage parallel task throughput, prevent system overload, and ensure critical wo
 - **Live Process Lock Validation (`.opencode/cron/locks/`):** Mutual exclusion across terminal sessions and OS daemons via POSIX-safe PID inspection (`process.kill(pid, 0)`), preventing duplicate runs while automatically pruning dead process locks.
 - **Interactive Web GUI Queue Manager:** Real-time `#queue-modal` displaying active workers, in-flight jobs, queued tasks with priority badges, dynamic concurrency slider, and one-click task cancellation or queue flushing.
 
+### 🛡️ Dead Letter Queue (DLQ) & Failure Circuit Breaker
+Protect LLM token budgets and avoid infinite crash loops when external services or sessions fail:
+- **Automatic Failure Quarantine:** Jobs that exceed their consecutive failure threshold (`maxConsecutiveFailures`, default 5) are automatically quarantined into `.opencode/cron/dlq.json` (atomic writes with mode `0600`) and assigned `circuitBreaker: { state: "open" }`.
+- **Canary Probe Recovery:** After a cooldown timeout (`resetTimeoutMs`, default 30m) or manual operator intervention, the circuit breaker automatically transitions to `half-open`, allowing exactly one canary run to test service health. If successful, the circuit closes and DLQ quarantine clears; if failed, the circuit re-opens immediately.
+- **Dedicated Web GUI DLQ Hub:** Real-time `#dlq-modal` showing quarantined jobs, failure reasons, error traces, timestamp history, and 1-click **"Retry (Canary)"**, **"Resolve & Resume"**, and **"Clear DLQ"** controls.
+- **CLI & OpenCode Tool Control:** Inspect, retry, resolve, or purge DLQ entries directly via `opencode-cron dlq` or the `cron_dlq` agent tool.
+
 ---
 
-## 🛠️ Complete Tool Reference (14 Tools)
+## 🛠️ Complete Tool Reference (15 Tools)
 
-Agents equipped with `@culturedigitali/opencode-cron` have access to 14 native tools:
+Agents equipped with `@culturedigitali/opencode-cron` have access to 15 native tools:
 
 | Tool | Purpose | Key Parameters |
 |---|---|---|
@@ -193,6 +200,7 @@ Agents equipped with `@culturedigitali/opencode-cron` have access to 14 native t
 | `cron_run_now` | Trigger immediate test tick without waiting | `id` |
 | `cron_priority` | Inspect or update execution priority level (`high`, `normal`, `low`) | `id`, `priority` (optional) |
 | `cron_queue` | View active worker slots, in-flight tasks, and priority queue status | *None* |
+| `cron_dlq` | Manage Dead Letter Queue quarantined jobs and circuit breaker state | `action` (`list`, `get`, `retry`, `resolve`, `clear`), `jobId` |
 | `cron_burst` | Trigger high-frequency Burst Mode for rapid monitoring | `id`, `durationMinutes` |
 | `cron_pipeline` | Inspect Multi-Job Pipeline DAG workflows, dependencies, and execution triggers | `id` (optional) |
 | `cron_webhook` | Manage inbound HTTP Webhook trigger endpoint and authorization token | `id`, `action` (`get`, `enable`, `disable`, `rotate-token`), `secret`, `rateLimitSeconds`, `passPayload` |

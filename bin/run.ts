@@ -216,14 +216,105 @@ async function main(): Promise<void> {
       const state = activeLocks.includes(j.id) ? "RUNNING" : (j.enabled ? "IDLE" : "PAUSED");
       console.log(`- [${state}] ${j.id} (${j.title}) | Priority: ${j.priority ?? "normal"} | Next: ${j.nextRunAt ?? "not scheduled"}`);
     }
+  } else if (cmd === "dlq") {
+    const { loadDLQ, clearDLQ, retryDLQJob, resolveDLQEntry } = await import("../src/dlq.ts");
+    const sub = process.argv[3];
+    if (sub === "clear") {
+      const count = await clearDLQ(dir, "all");
+      console.log(`Cleared ${count} entries from DLQ.`);
+    } else if (sub === "retry") {
+      const id = process.argv[4];
+      if (!id) {
+        console.error("Usage: opencode-cron dlq retry <jobId>");
+        process.exit(2);
+      }
+      console.log(`Retrying quarantined job '${id}' (canary probe)...`);
+      const res = await retryDLQJob(dir, id, async (d, jId) => runJobHeadless(d, jId));
+      if (res.ok) {
+        console.log(`Canary retry succeeded! Job '${id}' recovered and marked resolved in DLQ.`);
+      } else {
+        console.error(`Canary retry failed: ${res.error}`);
+        process.exit(1);
+      }
+    } else if (sub === "resolve") {
+      const id = process.argv[4];
+      if (!id) {
+        console.error("Usage: opencode-cron dlq resolve <jobId>");
+        process.exit(2);
+      }
+      const { resetCircuitBreaker } = await import("../src/dlq.ts");
+      const { saveJobs: saveStoreJobs } = await import("../src/store.ts");
+      const ok = await resolveDLQEntry(dir, id);
+      const jobs = await loadJobs(dir);
+      const dlq = await loadDLQ(dir);
+      const matched = dlq.find((e) => e.id === id || e.jobId === id);
+      const targetJobId = matched ? matched.jobId : id;
+      const j = jobs.find((x) => x.id === targetJobId);
+      if (j) {
+        resetCircuitBreaker(j);
+        j.enabled = true;
+        await saveStoreJobs(dir, jobs);
+      }
+      console.log(ok ? `Marked DLQ entries for '${id}' as resolved and reset circuit breaker.` : `No quarantined entries found for '${id}'.`);
+    } else {
+      const dlq = await loadDLQ(dir);
+      const jobs = await loadJobs(dir);
+      console.log(`=== Dead Letter Queue (DLQ) ===`);
+      console.log(`Total Entries: ${dlq.length} | Quarantined: ${dlq.filter((e) => e.status === "quarantined").length}`);
+      if (dlq.length === 0) {
+        console.log("(DLQ is empty - all jobs healthy)");
+      } else {
+        for (const e of dlq) {
+          console.log(`- [${e.status.toUpperCase()}] Job: ${e.jobId} (${e.jobTitle}) | Failures: ${e.consecutiveFailures} | FailedAt: ${e.failedAt}`);
+          console.log(`  Error: ${e.errorMessage}`);
+        }
+      }
+    }
+  } else if (cmd === "circuit") {
+    const { resetCircuitBreaker, tripCircuitBreaker, setHalfOpen } = await import("../src/dlq.ts");
+    const { saveJobs: saveStoreJobs } = await import("../src/store.ts");
+    const id = process.argv[3];
+    const action = process.argv[4];
+    if (!id || id.startsWith("--")) {
+      console.error("Usage: opencode-cron circuit <jobId> [reset|trip|half-open] [--dir <dir>]");
+      process.exit(2);
+    }
+    const jobs = await loadJobs(dir);
+    const j = jobs.find((x) => x.id === id);
+    if (!j) {
+      console.error(`Job '${id}' not found`);
+      process.exit(1);
+    }
+    if (!action || action.startsWith("--")) {
+      const state = j.circuitBreaker?.state ?? "closed";
+      console.log(`Circuit Breaker for '${id}': ${state.toUpperCase()}`);
+      if (j.circuitBreaker?.lastFailureReason) console.log(`Last Failure Reason: ${j.circuitBreaker.lastFailureReason}`);
+      if (j.circuitBreaker?.trippedAt) console.log(`Tripped At: ${j.circuitBreaker.trippedAt}`);
+    } else if (action === "reset") {
+      resetCircuitBreaker(j);
+      j.enabled = true;
+      await saveStoreJobs(dir, jobs);
+      console.log(`Circuit breaker for '${id}' reset to CLOSED and job re-enabled.`);
+    } else if (action === "trip") {
+      tripCircuitBreaker(j, "Manually tripped via CLI");
+      await saveStoreJobs(dir, jobs);
+      console.log(`Circuit breaker for '${id}' manually set to OPEN.`);
+    } else if (action === "half-open") {
+      setHalfOpen(j);
+      await saveStoreJobs(dir, jobs);
+      console.log(`Circuit breaker for '${id}' set to HALF-OPEN (canary probe ready).`);
+    } else {
+      console.error(`Unknown circuit action: ${action}. Use reset, trip, or half-open.`);
+      process.exit(2);
+    }
   } else {
-    console.error(`Commands: check [--concurrency N] | run <id> | os-install | refresh-creds | list | gui | desktop | tray | webhook-token <id> | concurrency [N] | priority <id> [level] | queue [--dir ...]`);
+    console.error(`Commands: check [--concurrency N] | run <id> | os-install | refresh-creds | list | gui | desktop | tray | webhook-token <id> | concurrency [N] | priority <id> [level] | queue | dlq [retry|clear|resolve] | circuit <id> [reset|trip|half-open] [--dir ...]`);
     process.exit(2);
   }
 }
 
 if (has("--help") || has("-h")) {
-  console.log("opencode-cron check [--concurrency N] | run <id> | os-install | refresh-creds | list | gui | desktop | tray | webhook-token <id> | concurrency [N] | priority <id> [level] | queue [--dir ...]");
+  console.log("opencode-cron check [--concurrency N] | run <id> | os-install | refresh-creds | list | gui | desktop | tray | webhook-token <id> | concurrency [N] | priority <id> [level] | queue | dlq [retry|clear|resolve] | circuit <id> [reset|trip|half-open] [--dir ...]");
   process.exit(0);
 }
 await main();
