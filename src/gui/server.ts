@@ -8,7 +8,7 @@ import { getHtml } from "./html.ts";
 import { getRunsHtml } from "./runs-html.ts";
 import { getInstructionsHtml } from "./instructions-html.ts";
 import { loadJobs, saveJobs, upsertJob, removeJob, ensureCronDir, computeNextRun, assertJobId } from "../store.ts";
-import { normalizeSchedule, explainSchedule } from "../schedule.ts";
+import { normalizeSchedule, explainSchedule, explainAdaptive, parseEveryToMs } from "../schedule.ts";
 import { readMemory, writeMemory, initialMemoryMd } from "../memory.ts";
 import { runJobHeadless, checkDue } from "../runner.ts";
 import { getUnifiedRuns } from "../history.ts";
@@ -41,7 +41,7 @@ export interface ServerOpts {
 }
 
 export function assertSessionId(id: string): void {
-  if (!id || typeof id !== "string" || !/^[a-zA-Z0-9_.-]{1,128}$/.test(id)) {
+  if (!id || typeof id !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(id)) {
     throw new Error(`Invalid session ID "${id}"`);
   }
 }
@@ -64,6 +64,13 @@ export function startGuiServer(opts: ServerOpts = {}) {
     const url = new URL(req.url);
     const pathname = url.pathname;
     const method = req.method;
+
+      // Validate Host header against DNS rebinding
+      const host = req.headers.get("host") || "";
+      const isAllowedHost = host.startsWith("localhost") || host.startsWith("127.0.0.1") || host === "";
+      if (!isAllowedHost) {
+        return new Response(JSON.stringify({ ok: false, error: "Invalid Host header" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      }
 
       // Restrict CORS to local origins
       const origin = req.headers.get("origin") || "";
@@ -142,6 +149,22 @@ export function startGuiServer(opts: ServerOpts = {}) {
           const id = `${slug}-${Date.now().toString(36)}-${rand}`;
           const now = new Date().toISOString();
 
+          let adaptive: any = undefined;
+          if (body.adaptive && typeof body.adaptive === "object" && body.adaptive.enabled) {
+            const burstMs = body.adaptive.burst ? parseEveryToMs(String(body.adaptive.burst)) : (typeof body.adaptive.burstEveryMs === "number" ? body.adaptive.burstEveryMs : 60_000);
+            const idleMs = body.adaptive.idle ? parseEveryToMs(String(body.adaptive.idle)) : (typeof body.adaptive.idleEveryMs === "number" ? body.adaptive.idleEveryMs : 1_800_000);
+            const quietThreshold = typeof body.adaptive.quietThreshold === "number" ? Math.max(1, body.adaptive.quietThreshold) : 3;
+            adaptive = {
+              enabled: true,
+              burstEveryMs: Math.max(60_000, burstMs),
+              idleEveryMs: Math.max(60_000, idleMs),
+              quietThreshold,
+              consecutiveQuietTicks: 0,
+              currentCadence: "normal",
+              activeUntil: null,
+            };
+          }
+
           const job = CronJobSchema.parse({
             id,
             sessionID: body.sessionID,
@@ -150,6 +173,7 @@ export function startGuiServer(opts: ServerOpts = {}) {
             systemPrompt: body.systemPrompt,
             followupPrompt: body.followupPrompt,
             schedule: { kind: norm.kind, everyMs: norm.everyMs, cron: norm.cron },
+            adaptive,
             agent: body.agent || "build",
             model: body.model || undefined,
             enabled: true,
@@ -176,6 +200,7 @@ export function startGuiServer(opts: ServerOpts = {}) {
             counts: { news: 0, tweets: 0 },
             lastRunAt: null,
             consecutiveFailures: 0,
+            hasActivity: false,
           });
 
           return new Response(JSON.stringify({ ok: true, job }), { headers });
@@ -200,6 +225,25 @@ export function startGuiServer(opts: ServerOpts = {}) {
           if (body.sessionID) j.sessionID = body.sessionID;
           if (body.model !== undefined) j.model = body.model || undefined;
           if (typeof body.maxRuns === "number") j.maxRuns = body.maxRuns;
+
+          if (body.adaptive !== undefined) {
+            if (body.adaptive === null || body.adaptive.enabled === false) {
+              j.adaptive = undefined;
+            } else {
+              const burstMs = body.adaptive.burst ? parseEveryToMs(String(body.adaptive.burst)) : (typeof body.adaptive.burstEveryMs === "number" ? body.adaptive.burstEveryMs : (j.adaptive?.burstEveryMs ?? 60_000));
+              const idleMs = body.adaptive.idle ? parseEveryToMs(String(body.adaptive.idle)) : (typeof body.adaptive.idleEveryMs === "number" ? body.adaptive.idleEveryMs : (j.adaptive?.idleEveryMs ?? 1_800_000));
+              const quietThreshold = typeof body.adaptive.quietThreshold === "number" ? Math.max(1, body.adaptive.quietThreshold) : (j.adaptive?.quietThreshold ?? 3);
+              j.adaptive = {
+                enabled: true,
+                burstEveryMs: Math.max(60_000, burstMs),
+                idleEveryMs: Math.max(60_000, idleMs),
+                quietThreshold,
+                consecutiveQuietTicks: j.adaptive?.consecutiveQuietTicks ?? 0,
+                currentCadence: j.adaptive?.currentCadence ?? "normal",
+                activeUntil: j.adaptive?.activeUntil ?? null,
+              };
+            }
+          }
 
           if (body.scheduleStr) {
             const norm = normalizeSchedule(parseScheduleStr(body.scheduleStr));
@@ -265,6 +309,37 @@ export function startGuiServer(opts: ServerOpts = {}) {
           }
           await saveJobs(directory, jobs);
           return new Response(JSON.stringify({ ok: true, job: j }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 8b. POST /api/jobs/:id/burst (Force burst mode for N minutes)
+      if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/burst") && method === "POST") {
+        const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/burst".length));
+        try {
+          assertJobId(id);
+          const body: any = await req.json().catch(() => ({}));
+          const jobs = await loadJobs(directory);
+          const j = jobs.find((x) => x.id === id);
+          if (!j) return new Response(JSON.stringify({ ok: false, error: "Job non trovato" }), { status: 404, headers });
+          const minutes = Math.max(1, Math.min(1440, Number(body.minutes) || 15));
+          const until = new Date(Date.now() + minutes * 60_000).toISOString();
+          j.enabled = true;
+          j.consecutiveFailures = 0;
+          j.adaptive = {
+            enabled: true,
+            burstEveryMs: j.adaptive?.burstEveryMs ?? 60_000,
+            idleEveryMs: j.adaptive?.idleEveryMs ?? 1_800_000,
+            quietThreshold: j.adaptive?.quietThreshold ?? 3,
+            consecutiveQuietTicks: 0,
+            currentCadence: "burst",
+            activeUntil: until,
+          };
+          j.nextRunAt = computeNextRun(j, new Date());
+          CronJobSchema.parse(j);
+          await saveJobs(directory, jobs);
+          return new Response(JSON.stringify({ ok: true, job: j, activeUntil: until, nextRunAt: j.nextRunAt }), { headers });
         } catch (e: any) {
           return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
         }
@@ -595,6 +670,21 @@ export function startGuiServer(opts: ServerOpts = {}) {
         const q = (url.searchParams.get("q") ?? "").slice(0, 100);
         const lang = (url.searchParams.get("lang") ?? "it").slice(0, 5);
         const res = explainSchedule(q, new Date(), lang);
+
+        const adaptiveParam = url.searchParams.get("adaptive");
+        if (adaptiveParam === "true" || adaptiveParam === "1") {
+          const burstStr = url.searchParams.get("burst");
+          const idleStr = url.searchParams.get("idle");
+          const thresholdStr = url.searchParams.get("threshold");
+          let burstMs = 60_000;
+          let idleMs = 1_800_000;
+          let quietThreshold = 3;
+          try { if (burstStr) burstMs = parseEveryToMs(burstStr); } catch { /* default */ }
+          try { if (idleStr) idleMs = parseEveryToMs(idleStr); } catch { /* default */ }
+          if (thresholdStr) quietThreshold = Math.max(1, parseInt(thresholdStr, 10) || 3);
+          res.adaptiveInfo = explainAdaptive({ enabled: true, burstEveryMs: burstMs, idleEveryMs: idleMs, quietThreshold }, lang);
+        }
+
         return new Response(JSON.stringify(res), { headers });
       }
 
@@ -689,11 +779,12 @@ export function startGuiServer(opts: ServerOpts = {}) {
 
   if (typeof (globalThis as any).Bun !== "undefined") {
     const server = (globalThis as any).Bun.serve({
+      hostname: "127.0.0.1",
       port,
       idleTimeout: 255,
       fetch: handler,
     });
-    console.log(`OpenCode Cron GUI server running at: http://localhost:${server.port}`);
+    console.log(`OpenCode Cron GUI server running at: http://127.0.0.1:${server.port}`);
     return server;
   }
 
@@ -732,8 +823,8 @@ export function startGuiServer(opts: ServerOpts = {}) {
         nodeRes.end(JSON.stringify({ ok: false, error: err.message }));
       }
     });
-    nodeServerInstance.listen(port, () => {
-      console.log(`OpenCode Cron GUI server running at: http://localhost:${port}`);
+    nodeServerInstance.listen(port, "127.0.0.1", () => {
+      console.log(`OpenCode Cron GUI server running at: http://127.0.0.1:${port}`);
     });
   });
 

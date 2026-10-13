@@ -11,6 +11,24 @@ export const ScheduleSchema = z.object({
   { message: "Schedule must specify everyMs, every, or cron" }
 );
 
+export const AdaptiveCadenceSchema = z.enum(["burst", "normal", "idle"]);
+export type AdaptiveCadence = z.infer<typeof AdaptiveCadenceSchema>;
+
+export const AdaptiveScheduleSchema = z.object({
+  enabled: z.boolean().default(false),
+  burstEveryMs: z.number().int().min(60_000).default(60_000),
+  idleEveryMs: z.number().int().min(60_000).default(1_800_000),
+  quietThreshold: z.number().int().min(1).default(3),
+  consecutiveQuietTicks: z.number().int().min(0).default(0),
+  currentCadence: AdaptiveCadenceSchema.default("normal"),
+  activeUntil: z.string().nullable().optional().default(null),
+}).refine(
+  (d) => !d.enabled || d.burstEveryMs <= d.idleEveryMs,
+  { message: "burstEveryMs must be less than or equal to idleEveryMs" }
+);
+
+export type AdaptiveSchedule = z.infer<typeof AdaptiveScheduleSchema>;
+
 export const CronJobSchema = z.object({
   id: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/),
   sessionID: z.string().min(1),
@@ -19,6 +37,7 @@ export const CronJobSchema = z.object({
   systemPrompt: z.string().min(1),
   followupPrompt: z.string().min(1),
   schedule: ScheduleSchema,
+  adaptive: AdaptiveScheduleSchema.optional(),
   agent: z.string().optional(),
   model: z.string().optional(),
   enabled: z.boolean().default(true),
@@ -41,6 +60,7 @@ export const MemoryStateSchema = z.object({
   counts: z.record(z.string(), z.number()).default({ news: 0, tweets: 0 }),
   lastRunAt: z.string().nullable().default(null),
   consecutiveFailures: z.number().default(0),
+  hasActivity: z.boolean().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 

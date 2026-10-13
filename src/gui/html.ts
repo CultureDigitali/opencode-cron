@@ -1,4 +1,5 @@
 import {
+  escapeHtml,
   getUiEnhancementsHeadStyle,
   getUiEnhancementsBodyHtml,
   getUiEnhancementsScript,
@@ -12,7 +13,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${title}</title>
+  <title>${escapeHtml(title)}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
@@ -612,6 +613,32 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
               <!-- Prossimi 3 tick -->
             </div>
           </div>
+
+          <!-- Adaptive Cadence (Burst & Idle Mode) Section -->
+          <div class="p-3 rounded-xl bg-gray-950/70 border border-darkborder space-y-2 mt-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-gauge-high text-amber-400 text-xs"></i>
+                <label for="form-adaptive-enabled" class="text-xs font-bold text-gray-200 cursor-pointer" data-i18n="modal.adaptiveTitle">Cadenza Adattiva (Burst & Idle)</label>
+              </div>
+              <input type="checkbox" id="form-adaptive-enabled" onchange="toggleAdaptiveFields()" class="w-4 h-4 rounded text-indigo-600 bg-gray-900 border-gray-700 cursor-pointer">
+            </div>
+            <p class="text-[11px] text-gray-400 leading-relaxed" data-i18n="modal.adaptiveHelp">Accelera la frequenza durante l'attività e rallenta quando non ci sono novità per risparmiare risorse e token.</p>
+            <div id="adaptive-fields" class="grid grid-cols-3 gap-2 pt-1 hidden">
+              <div>
+                <label for="form-adaptive-burst" class="text-[10px] text-gray-400 block mb-0.5" data-i18n="modal.adaptiveBurst">Burst Interval</label>
+                <input type="text" id="form-adaptive-burst" placeholder="1m" value="1m" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1 text-xs text-gray-100 font-mono focus:outline-none focus:border-indigo-500">
+              </div>
+              <div>
+                <label for="form-adaptive-idle" class="text-[10px] text-gray-400 block mb-0.5" data-i18n="modal.adaptiveIdle">Idle Interval</label>
+                <input type="text" id="form-adaptive-idle" placeholder="30m" value="30m" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1 text-xs text-gray-100 font-mono focus:outline-none focus:border-indigo-500">
+              </div>
+              <div>
+                <label for="form-adaptive-threshold" class="text-[10px] text-gray-400 block mb-0.5" data-i18n="modal.adaptiveQuiet">Soglia Quiet (tick)</label>
+                <input type="number" id="form-adaptive-threshold" min="1" max="20" value="3" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1 text-xs text-gray-100 font-mono focus:outline-none focus:border-indigo-500">
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -811,6 +838,20 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
             ? \`<span data-tooltip="tt.kpiActive" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span>\${escapeHtml(t('job.active'))}</span>\`
             : \`<span data-tooltip="tt.toggleBtn" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-700 text-gray-400">\${escapeHtml(t('job.paused'))}</span>\`;
 
+        let adaptiveBadge = '';
+        if (job.adaptive && job.adaptive.enabled) {
+          const isForcedBurst = job.adaptive.activeUntil && new Date(job.adaptive.activeUntil).getTime() > Date.now();
+          const isBurst = job.adaptive.currentCadence === 'burst' || isForcedBurst;
+          const isIdle = job.adaptive.currentCadence === 'idle' && !isBurst;
+          if (isBurst) {
+            adaptiveBadge = \`<span data-tooltip="tt.burstBtn" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 animate-pulse"><i class="fa-solid fa-bolt text-amber-400"></i> \${escapeHtml(t('job.burstActive'))} (\${formatInterval(job.adaptive.burstEveryMs)})</span>\`;
+          } else if (isIdle) {
+            adaptiveBadge = \`<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1"><i class="fa-solid fa-moon text-indigo-400"></i> \${escapeHtml(t('job.idleActive'))} (\${formatInterval(job.adaptive.idleEveryMs)})</span>\`;
+          } else {
+            adaptiveBadge = \`<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 flex items-center gap-1"><i class="fa-solid fa-gauge text-indigo-400"></i> \${escapeHtml(t('job.adaptiveBadge'))}</span>\`;
+          }
+        }
+
         const schedDesc = job.schedule.kind === 'interval'
           ? formatInterval(job.schedule.everyMs)
           : 'Cron: ' + escapeHtml(job.schedule.cron || '');
@@ -828,20 +869,26 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                   <div class="flex items-center space-x-2">
                     <h3 class="text-sm font-bold text-white tracking-tight">\${safeTitle}</h3>
                     \${statusBadge}
+                    \${adaptiveBadge}
                   </div>
                   <p class="text-[11px] font-mono text-indigo-400 mt-0.5">\${safeId}</p>
                 </div>
                 <div class="flex items-center space-x-1">
-                  <button id="run-btn-\${safeId}" onclick="triggerRunNow('\${safeId}')" data-tooltip="tt.runNowBtn" aria-label="\${escapeHtml(t('job.runNowTitle'))}" class="p-2 text-indigo-400 hover:text-white hover:bg-indigo-600/20 rounded-lg transition-colors border border-darkborder">
+                  \${job.adaptive && job.adaptive.enabled ? \`
+                  <button id="burst-btn-\${safeId}" data-job-id="\${safeId}" onclick="triggerBurstNow(this.dataset.jobId)" data-tooltip="tt.burstBtn" aria-label="\${escapeHtml(t('job.burstTitle'))}" class="p-2 text-amber-400 hover:text-white hover:bg-amber-600/20 rounded-lg transition-colors border border-darkborder">
+                    <i class="fa-solid fa-bolt-lightning text-xs"></i>
+                  </button>
+                  \` : ''}
+                  <button id="run-btn-\${safeId}" data-job-id="\${safeId}" onclick="triggerRunNow(this.dataset.jobId)" data-tooltip="tt.runNowBtn" aria-label="\${escapeHtml(t('job.runNowTitle'))}" class="p-2 text-indigo-400 hover:text-white hover:bg-indigo-600/20 rounded-lg transition-colors border border-darkborder">
                     <i class="fa-solid fa-bolt text-xs"></i>
                   </button>
-                  <button onclick="toggleJob('\${safeId}', \${!job.enabled})" data-tooltip="tt.toggleBtn" aria-label="\${escapeHtml(job.enabled ? t('job.pauseTitle') : t('job.resumeTitle'))}" class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors border border-darkborder">
+                  <button data-job-id="\${safeId}" data-enabled="\${!job.enabled}" onclick="toggleJob(this.dataset.jobId, this.dataset.enabled === 'true')" data-tooltip="tt.toggleBtn" aria-label="\${escapeHtml(job.enabled ? t('job.pauseTitle') : t('job.resumeTitle'))}" class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors border border-darkborder">
                     <i class="fa-solid \${job.enabled ? 'fa-pause' : 'fa-play'} text-xs"></i>
                   </button>
-                  <button onclick="editJob('\${safeId}')" data-tooltip="tt.tabJobs" aria-label="\${escapeHtml(t('job.editBtn'))}" class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors border border-darkborder">
+                  <button data-job-id="\${safeId}" onclick="editJob(this.dataset.jobId)" data-tooltip="tt.tabJobs" aria-label="\${escapeHtml(t('job.editBtn'))}" class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors border border-darkborder">
                     <i class="fa-solid fa-pen text-xs"></i>
                   </button>
-                  <button onclick="deleteJob('\${safeId}')" data-tooltip="tt.deleteBtn" aria-label="\${escapeHtml(t('job.deleteTitle'))}" class="p-2 text-rose-400 hover:text-white hover:bg-rose-600/20 rounded-lg transition-colors border border-darkborder">
+                  <button data-job-id="\${safeId}" onclick="deleteJob(this.dataset.jobId)" data-tooltip="tt.deleteBtn" aria-label="\${escapeHtml(t('job.deleteTitle'))}" class="p-2 text-rose-400 hover:text-white hover:bg-rose-600/20 rounded-lg transition-colors border border-darkborder">
                     <i class="fa-solid fa-trash text-xs"></i>
                   </button>
                 </div>
@@ -852,6 +899,12 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                 <div><span class="text-gray-500">\${escapeHtml(t('job.executions'))}:</span> <span class="text-gray-200 font-medium font-mono">\${job.runCount}\${job.maxRuns ? '/' + job.maxRuns : ''}</span></div>
                 <div><span class="text-gray-500">\${escapeHtml(t('job.lastRun'))}:</span> <span class="text-gray-200 font-mono">\${job.lastRunAt ? new Date(job.lastRunAt).toLocaleTimeString() : '—'}</span></div>
                 <div><span class="text-gray-500">\${escapeHtml(t('job.nextRun'))}:</span> <span class="\${isMaxed ? 'text-amber-400' : 'text-emerald-400'} font-mono">\${(job.enabled && !isMaxed && job.nextRunAt) ? new Date(job.nextRunAt).toLocaleTimeString() : (isMaxed ? escapeHtml(t('job.completed')) : '—')}</span></div>
+                \${job.adaptive && job.adaptive.enabled ? \`
+                <div class="col-span-2 pt-1 border-t border-darkborder/50 text-[10px] text-gray-400 flex items-center justify-between">
+                  <span><i class="fa-solid fa-gauge-high text-indigo-400 mr-1"></i>\${escapeHtml(t('job.cadence'))}: <strong class="text-gray-200">\${job.adaptive.currentCadence}</strong> (quiet: \${job.adaptive.consecutiveQuietTicks ?? 0}/\${job.adaptive.quietThreshold ?? 3})</span>
+                  <span>burst: <strong class="text-amber-300">\${formatInterval(job.adaptive.burstEveryMs)}</strong> | idle: <strong class="text-indigo-300">\${formatInterval(job.adaptive.idleEveryMs)}</strong></span>
+                </div>
+                \` : ''}
               </div>
 
               <div class="mt-3 text-[11px] text-gray-400 line-clamp-2 italic bg-gray-900/40 p-2 rounded-lg border border-darkborder/50">
@@ -866,7 +919,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                   return matchedSes && matchedSes.title ? escapeHtml(matchedSes.title) : safeSession;
                 })()}
               </span>
-              <button onclick="jumpToChat('\${safeSession}')" data-tooltip="tt.tabChat" class="text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 cursor-pointer">
+              <button data-session-id="\${safeSession}" onclick="jumpToChat(this.dataset.sessionId)" data-tooltip="tt.tabChat" class="text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 cursor-pointer">
                 <span>\${escapeHtml(t('job.viewChat'))}</span> <i class="fa-solid fa-arrow-right rtl:rotate-180 text-[9px]"></i>
               </button>
             </div>
@@ -1195,7 +1248,8 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           <div
             role="option"
             aria-selected="\${isSelected}"
-            onclick="selectSession('\${safeId}')"
+            data-session-id="\${safeId}"
+            onclick="selectSession(this.dataset.sessionId)"
             class="p-2.5 rounded-xl border \${borderClass} transition-all cursor-pointer group flex items-start justify-between gap-2"
           >
             <div class="min-w-0 flex-1">
@@ -1383,13 +1437,13 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
             <button onclick="switchTab('jobs')" class="bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-500/30 px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 transition-colors cursor-pointer" data-tooltip="tt.tabJobs">
               <i class="fa-solid fa-gear text-[9px]"></i> Job: \${escapeHtml(firstJob.title)}
             </button>
-            <button onclick="openNewJobModal('\${s.id}')" class="bg-indigo-950/60 hover:bg-indigo-900 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 transition-colors cursor-pointer" data-tooltip="tt.setCronBtn">
+            <button data-session-id="\${escapeHtml(s.id)}" onclick="openNewJobModal(this.dataset.sessionId)" class="bg-indigo-950/60 hover:bg-indigo-900 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 transition-colors cursor-pointer" data-tooltip="tt.setCronBtn">
               <i class="fa-solid fa-plus text-[9px]"></i> <span data-i18n="chat.setCron">Imposta Cron</span>
             </button>
           \`;
         } else {
           bannerJobLink.innerHTML = \`
-            <button onclick="openNewJobModal('\${s.id}')" class="bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 px-2.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer" data-tooltip="tt.setCronBtn">
+            <button data-session-id="\${escapeHtml(s.id)}" onclick="openNewJobModal(this.dataset.sessionId)" class="bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 px-2.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer" data-tooltip="tt.setCronBtn">
               <i class="fa-solid fa-bolt text-amber-300 text-[10px]"></i> <span data-i18n="chat.setCron">Imposta Cron</span>
             </button>
           \`;
@@ -1593,8 +1647,9 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           outputText = msg.data;
         }
 
-        const rawMarkdown = marked.parse(outputText.trim() || '*(Nessun output di testo)*');
-        const cleanMarkdown = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawMarkdown) : rawMarkdown;
+        const cleanMarkdown = (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined')
+          ? DOMPurify.sanitize(marked.parse(outputText.trim() || '*(Nessun output di testo)*'))
+          : ('<pre class="whitespace-pre-wrap font-sans text-gray-200">' + escapeHtml(outputText.trim() || '*(Nessun output di testo)*') + '</pre>');
 
         wrapper.className = 'flex justify-start';
         wrapper.innerHTML = \`
@@ -1795,15 +1850,17 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
 
         editor.value = data.md || '';
         meta.textContent = 'Hashes visti: ' + (data.state?.seenHashes?.length || 0) + ' | Runs: ' + (data.state?.counts?.news || 0);
-        const rawHtml = marked.parse(data.md || '*(Memoria vuota)*');
-        preview.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
+        preview.innerHTML = (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined')
+          ? DOMPurify.sanitize(marked.parse(data.md || '*(Memoria vuota)*'))
+          : ('<pre class="whitespace-pre-wrap font-sans text-gray-200">' + escapeHtml(data.md || '*(Memoria vuota)*') + '</pre>');
 
         let debounceTimer = null;
         editor.oninput = () => {
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
-            const raw = marked.parse(editor.value);
-            preview.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(raw) : raw;
+            preview.innerHTML = (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined')
+              ? DOMPurify.sanitize(marked.parse(editor.value))
+              : ('<pre class="whitespace-pre-wrap font-sans text-gray-200">' + escapeHtml(editor.value) + '</pre>');
           }, 150);
         };
       } catch (err) {
@@ -2088,6 +2145,44 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
     // ==============================================
     // MODAL ADD / EDIT JOB
     // ==============================================
+    function toggleAdaptiveFields() {
+      const enabled = Boolean(document.getElementById('form-adaptive-enabled')?.checked);
+      const fields = document.getElementById('adaptive-fields');
+      if (fields) {
+        if (enabled) fields.classList.remove('hidden');
+        else fields.classList.add('hidden');
+      }
+    }
+
+    async function triggerBurstNow(id) {
+      const btn = document.getElementById('burst-btn-' + id);
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i>';
+      }
+      try {
+        const res = await fetch('/api/jobs/' + encodeURIComponent(id) + '/burst', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ minutes: 15 }),
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast(typeof t === 'function' ? t('toast.burstActivated') : 'Burst Mode attivato per 15 minuti!', 'success');
+          await loadJobs();
+        } else {
+          showToast((typeof t === 'function' ? t('toast.genericError') : 'Errore: ') + (data.error || 'Operazione fallita'), 'error');
+        }
+      } catch (err) {
+        showToast((typeof t === 'function' ? t('toast.netError') : 'Errore rete: ') + err.message, 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-bolt-lightning text-xs"></i>';
+        }
+      }
+    }
+
     function openNewJobModal(presetSessionId) {
       const titleEl = document.getElementById('modal-title');
       if (titleEl) {
@@ -2099,6 +2194,19 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       document.getElementById('form-schedule').value = '5m';
       applySchedulePreset('5m');
       document.getElementById('form-max-runs').value = '0';
+
+      const adaptiveCheck = document.getElementById('form-adaptive-enabled');
+      if (adaptiveCheck) {
+        adaptiveCheck.checked = false;
+        toggleAdaptiveFields();
+      }
+      const burstInput = document.getElementById('form-adaptive-burst');
+      if (burstInput) burstInput.value = '1m';
+      const idleInput = document.getElementById('form-adaptive-idle');
+      if (idleInput) idleInput.value = '30m';
+      const threshInput = document.getElementById('form-adaptive-threshold');
+      if (threshInput) threshInput.value = '3';
+
       const targetSessionId = presetSessionId || (currentTab === 'chat' ? activeSessionId : '');
       if (targetSessionId) {
         const sessionSelect = document.getElementById('form-session-id');
@@ -2138,6 +2246,19 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       document.getElementById('form-model').value = job.model || '';
       document.getElementById('form-system-prompt').value = job.systemPrompt || '';
       document.getElementById('form-followup-prompt').value = job.followupPrompt || '';
+
+      const adaptiveCheck = document.getElementById('form-adaptive-enabled');
+      if (adaptiveCheck) {
+        adaptiveCheck.checked = Boolean(job.adaptive && job.adaptive.enabled);
+        toggleAdaptiveFields();
+      }
+      const burstInput = document.getElementById('form-adaptive-burst');
+      if (burstInput) burstInput.value = job.adaptive?.burstEveryMs ? formatInterval(job.adaptive.burstEveryMs) : '1m';
+      const idleInput = document.getElementById('form-adaptive-idle');
+      if (idleInput) idleInput.value = job.adaptive?.idleEveryMs ? formatInterval(job.adaptive.idleEveryMs) : '30m';
+      const threshInput = document.getElementById('form-adaptive-threshold');
+      if (threshInput) threshInput.value = String(job.adaptive?.quietThreshold || 3);
+
       const modal = document.getElementById('job-modal');
       if (modal) {
         modal.classList.remove('hidden');
@@ -2173,6 +2294,14 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         return;
       }
 
+      const isAdaptive = Boolean(document.getElementById('form-adaptive-enabled')?.checked);
+      const adaptivePayload = isAdaptive ? {
+        enabled: true,
+        burst: document.getElementById('form-adaptive-burst')?.value.trim() || '1m',
+        idle: document.getElementById('form-adaptive-idle')?.value.trim() || '30m',
+        quietThreshold: parseInt(document.getElementById('form-adaptive-threshold')?.value, 10) || 3,
+      } : (id ? { enabled: false } : undefined);
+
       const payload = {
         title: document.getElementById('form-title').value.trim(),
         scheduleStr: schedStr,
@@ -2181,6 +2310,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         model: document.getElementById('form-model').value.trim() || undefined,
         systemPrompt: document.getElementById('form-system-prompt').value.trim(),
         followupPrompt: document.getElementById('form-followup-prompt').value.trim(),
+        adaptive: adaptivePayload,
       };
 
       try {

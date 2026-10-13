@@ -50,6 +50,36 @@ export interface ScheduleExplanation {
   description: string;
   humanDescription: string;
   nextRuns: string[];
+  adaptiveInfo?: string;
+}
+
+export function formatMsDuration(ms: number): string {
+  if (ms % 3_600_000 === 0) return `${ms / 3_600_000}h`;
+  if (ms % 60_000 === 0) return `${ms / 60_000}m`;
+  return `${Math.round(ms / 1000)}s`;
+}
+
+export function explainAdaptive(
+  adaptive?: {
+    enabled?: boolean;
+    burstEveryMs?: number;
+    idleEveryMs?: number;
+    quietThreshold?: number;
+    currentCadence?: string;
+    activeUntil?: string | null;
+  },
+  lang: string = "it"
+): string | undefined {
+  if (!adaptive || !adaptive.enabled) return undefined;
+  const isEn = lang === "en";
+  const burstStr = formatMsDuration(adaptive.burstEveryMs ?? 60_000);
+  const idleStr = formatMsDuration(adaptive.idleEveryMs ?? 1_800_000);
+  const thresh = adaptive.quietThreshold ?? 3;
+
+  if (isEn) {
+    return `Smart Adaptive: bursts every ${burstStr} during activity, backs off to ${idleStr} after ${thresh} quiet checks.`;
+  }
+  return `Cadenza Adattiva: burst ogni ${burstStr} se attivo, rallenta a ${idleStr} dopo ${thresh} verifiche senza novità.`;
 }
 
 export function explainSchedule(input: string, fromDate: Date = new Date(), lang: string = "it"): ScheduleExplanation {

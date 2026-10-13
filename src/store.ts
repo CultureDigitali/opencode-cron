@@ -64,7 +64,58 @@ export async function saveJobs(directory: string, jobs: CronJob[]): Promise<void
   }
 }
 
+export function applyAdaptiveTransition(
+  job: CronJob,
+  hasActivity: boolean,
+  from: Date = new Date()
+): void {
+  if (!job.adaptive || !job.adaptive.enabled) return;
+
+  const nowMs = from.getTime();
+  const isForcedBurst =
+    !!job.adaptive.activeUntil &&
+    new Date(job.adaptive.activeUntil).getTime() > nowMs;
+
+  if (job.adaptive.activeUntil && !isForcedBurst) {
+    job.adaptive.activeUntil = null;
+  }
+
+  if (hasActivity || isForcedBurst) {
+    job.adaptive.consecutiveQuietTicks = 0;
+    job.adaptive.currentCadence = "burst";
+  } else {
+    job.adaptive.consecutiveQuietTicks = (job.adaptive.consecutiveQuietTicks ?? 0) + 1;
+    const threshold = job.adaptive.quietThreshold ?? 3;
+    if (job.adaptive.consecutiveQuietTicks >= threshold) {
+      job.adaptive.currentCadence = "idle";
+    } else {
+      job.adaptive.currentCadence = "normal";
+    }
+  }
+}
+
 export function computeNextRun(job: CronJob, from: Date = new Date()): string {
+  // Check adaptive cadence if enabled
+  if (job.adaptive && job.adaptive.enabled) {
+    const nowMs = from.getTime();
+    const isForcedBurst =
+      !!job.adaptive.activeUntil &&
+      new Date(job.adaptive.activeUntil).getTime() > nowMs;
+
+    const cadence = isForcedBurst ? "burst" : job.adaptive.currentCadence;
+
+    if (cadence === "burst") {
+      const raw = job.adaptive.burstEveryMs ?? 60_000;
+      const burstMs = Number.isFinite(raw) && raw >= 60_000 ? raw : 60_000;
+      return new Date(from.getTime() + burstMs).toISOString();
+    } else if (cadence === "idle") {
+      const raw = job.adaptive.idleEveryMs ?? 1_800_000;
+      const idleMs = Number.isFinite(raw) && raw >= 60_000 ? raw : 1_800_000;
+      return new Date(from.getTime() + idleMs).toISOString();
+    }
+    // If "normal", continue below to standard schedule (cron or everyMs)
+  }
+
   if (job.schedule.cron) {
     try {
       return nextCronOccurrence(job.schedule.cron, from, job.schedule.timezone);

@@ -1,7 +1,7 @@
 import { Plugin } from "@opencode/plugin";
 import { CronJobSchema } from "./types.ts";
 import { loadJobs, saveJobs, upsertJob, removeJob, ensureCronDir, computeNextRun, assertJobId } from "./store.ts";
-import { normalizeSchedule } from "./schedule.ts";
+import { normalizeSchedule, parseEveryToMs } from "./schedule.ts";
 import { initialMemoryMd, readMemory, writeMemory } from "./memory.ts";
 import { CronScheduler } from "./scheduler.ts";
 import { executeTick } from "./executor.ts";
@@ -93,6 +93,9 @@ export const CronPlugin = Plugin.define({
             agent: optStrProp("Agent id (used by headless runner)"),
             model: optStrProp("provider/model (used by headless runner)"),
             catchUp: { type: "boolean", description: "Fire missed ticks after downtime (default false: skip backlog)" } as const,
+            burst: optStrProp("Adaptive burst interval (e.g. 1m, 2m, min 60s)"),
+            idle: optStrProp("Adaptive idle interval when quiet (e.g. 30m, 1h)"),
+            quietThreshold: { type: "number", description: "Quiet checks before backing off to idle (default 3)" },
           },
           required: ["title", "systemPrompt", "followupPrompt"],
           additionalProperties: false,
@@ -108,10 +111,30 @@ export const CronPlugin = Plugin.define({
           const rand = Math.random().toString(36).slice(2, 8);
           const id = `${slug(String(input.title))}-${Date.now().toString(36)}-${rand}`;
           const now = new Date().toISOString();
+
+          let adaptive: any = undefined;
+          if (input.burst || input.idle || typeof input.quietThreshold === "number") {
+            const burstMs = input.burst ? parseEveryToMs(String(input.burst)) : 60_000;
+            const idleMs = input.idle ? parseEveryToMs(String(input.idle)) : 1_800_000;
+            const quietThreshold = typeof input.quietThreshold === "number" && input.quietThreshold > 0
+              ? Math.floor(input.quietThreshold)
+              : 3;
+            adaptive = {
+              enabled: true,
+              burstEveryMs: Math.max(60_000, burstMs),
+              idleEveryMs: Math.max(60_000, idleMs),
+              quietThreshold,
+              consecutiveQuietTicks: 0,
+              currentCadence: "normal",
+              activeUntil: null,
+            };
+          }
+
           const job = CronJobSchema.parse({
             id, sessionID, directory: dir,
             title: input.title, systemPrompt: input.systemPrompt, followupPrompt: input.followupPrompt,
             schedule: { kind: norm.kind, everyMs: norm.everyMs, cron: norm.cron },
+            adaptive,
             agent: input.agent, model: input.model,
             enabled: true, catchUp: input.catchUp === true, skipIfRunning: true,
             maxRuns: 0, maxConsecutiveFailures: 5, runCount: 0, consecutiveFailures: 0,
@@ -121,10 +144,11 @@ export const CronPlugin = Plugin.define({
           await ensureCronDir(dir);
           await upsertJob(dir, job);
           await writeMemory(dir, id, initialMemoryMd({ title: String(input.title), systemPrompt: String(input.systemPrompt), followupPrompt: String(input.followupPrompt) }), {
-            seenHashes: [], counts: { news: 0, tweets: 0 }, lastRunAt: null, consecutiveFailures: 0,
+            seenHashes: [], counts: { news: 0, tweets: 0 }, lastRunAt: null, consecutiveFailures: 0, hasActivity: false,
           });
           await resync(dir);
-          return { content: `Cron created: ${id} every ${input.every ?? input.cron} bound to this session.\nFor persistence with TUI closed, run: npx @culturedigitali/opencode-cron os-install --dir "${dir}".\nMemory initialized at .opencode/cron/memory/${id}.md` };
+          const adaptiveMsg = adaptive ? ` [adaptive: burst ${Math.round(adaptive.burstEveryMs/1000)}s, idle ${Math.round(adaptive.idleEveryMs/1000)}s]` : "";
+          return { content: `Cron created: ${id} every ${input.every ?? input.cron}${adaptiveMsg} bound to this session.\nFor persistence with TUI closed, run: npx @culturedigitali/opencode-cron os-install --dir "${dir}".\nMemory initialized at .opencode/cron/memory/${id}.md` };
         },
       });
 
@@ -136,7 +160,7 @@ export const CronPlugin = Plugin.define({
           const dir = await sessionDir(String(tctx.sessionID));
           const jobs = await loadJobs(dir);
           if (!jobs.length) return { content: "No cron jobs. Use cron_add to create one." };
-          return { content: jobs.map((j) => `- ${j.id} | ${j.title} | enabled=${j.enabled} | everyMs=${j.schedule.everyMs ?? "-"} cron=${j.schedule.cron ?? "-"} | runs=${j.runCount} | next=${j.nextRunAt ?? "-"}`).join("\n") };
+          return { content: jobs.map((j) => `- ${j.id} | ${j.title} | enabled=${j.enabled} | everyMs=${j.schedule.everyMs ?? "-"} cron=${j.schedule.cron ?? "-"} | adaptive=${j.adaptive?.enabled ? `${j.adaptive.currentCadence}(burst=${j.adaptive.burstEveryMs}ms,idle=${j.adaptive.idleEveryMs}ms)` : "off"} | runs=${j.runCount} | next=${j.nextRunAt ?? "-"}`).join("\n") };
         },
       });
 
@@ -206,6 +230,42 @@ export const CronPlugin = Plugin.define({
       });
 
       add({
+        name: "burst",
+        description: "Force high-frequency burst mode on an adaptive cron job for a given duration in minutes (default 15m).",
+        input: {
+          type: "object",
+          properties: {
+            id: idProp,
+            minutes: { type: "number", description: "Duration in minutes to maintain burst cadence (default 15, max 1440)" },
+          },
+          required: ["id"],
+          additionalProperties: false,
+        },
+        execute: async (input: any, tctx: any) => {
+          assertJobId(String(input.id));
+          const dir = await sessionDir(String(tctx.sessionID));
+          const jobs = await loadJobs(dir);
+          const j = jobs.find((x) => x.id === String(input.id));
+          if (!j) return { content: `Job ${input.id} not found` };
+          const mins = Math.max(1, Math.min(1440, Number(input.minutes) || 15));
+          const until = new Date(Date.now() + mins * 60_000).toISOString();
+          j.adaptive = {
+            enabled: true,
+            burstEveryMs: j.adaptive?.burstEveryMs ?? 60_000,
+            idleEveryMs: j.adaptive?.idleEveryMs ?? 1_800_000,
+            quietThreshold: j.adaptive?.quietThreshold ?? 3,
+            consecutiveQuietTicks: 0,
+            currentCadence: "burst",
+            activeUntil: until,
+          };
+          j.nextRunAt = computeNextRun(j, new Date());
+          await saveJobs(dir, jobs);
+          await resync(dir);
+          return { content: `Burst mode activated for job ${input.id} until ${until} (cadence: ${Math.round(j.adaptive.burstEveryMs / 1000)}s, next run: ${j.nextRunAt})` };
+        },
+      });
+
+      add({
         name: "memory_read",
         description: "Read a job's persistent memory (use before every tick)",
         input: { type: "object", properties: { id: idProp }, required: ["id"], additionalProperties: false },
@@ -229,6 +289,7 @@ export const CronPlugin = Plugin.define({
             counts: { type: "object", additionalProperties: { type: "number" } },
             news: { type: "number" },
             tweets: { type: "number" },
+            hasActivity: { type: "boolean", description: "Set true if new meaningful activity or updates were detected" },
           },
           required: ["id", "md"],
           additionalProperties: false,
@@ -250,6 +311,7 @@ export const CronPlugin = Plugin.define({
             counts: mergedCounts,
             lastRunAt: new Date().toISOString(),
             consecutiveFailures: 0,
+            hasActivity: input.hasActivity === true,
           });
           return { content: `Memory ${input.id} saved` };
         },

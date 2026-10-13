@@ -2,8 +2,8 @@ import * as fs from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { spawn } from "node:child_process";
-import { loadJobs, saveJobs, computeNextRun, assertJobId } from "./store.ts";
-import { readMemory, buildTickPrompt } from "./memory.ts";
+import { loadJobs, saveJobs, computeNextRun, assertJobId, applyAdaptiveTransition } from "./store.ts";
+import { readMemory, writeMemory, buildTickPrompt } from "./memory.ts";
 import { recordRunEntry } from "./history.ts";
 
 export async function acquireLock(directory: string, jobId: string): Promise<boolean> {
@@ -244,7 +244,7 @@ export async function runJobHeadless(
   const startedAtMs = Date.now();
   const startedAt = new Date(startedAtMs).toISOString();
   try {
-    const { md } = await readMemory(directory, jobId);
+    const { md, state: prevState } = await readMemory(directory, jobId).catch(() => ({ md: "", state: { seenHashes: [], counts: {}, lastRunAt: null, consecutiveFailures: 0, hasActivity: false } }));
     const prompt = buildTickPrompt({ systemPrompt: job.systemPrompt, followupPrompt: job.followupPrompt, memoryMd: md });
     const cwd = job.directory || directory;
     const httpCfg = readHttpPromptConfig();
@@ -286,18 +286,39 @@ export async function runJobHeadless(
       job.runCount += 1;
       job.consecutiveFailures = 0;
       job.lastRunAt = now;
+      const { md: postMd, state: postState } = await readMemory(directory, jobId).catch(() => ({ md: "", state: prevState }));
+      const prevCounts = (prevState.counts ?? {}) as Record<string, number>;
+      const postCounts = (postState.counts ?? {}) as Record<string, number>;
+      const hasActivity =
+        postState.hasActivity === true ||
+        (postState.seenHashes?.length ?? 0) > (prevState.seenHashes?.length ?? 0) ||
+        (postCounts["news"] ?? 0) > (prevCounts["news"] ?? 0) ||
+        (postCounts["tweets"] ?? 0) > (prevCounts["tweets"] ?? 0);
+
+      if (postState.hasActivity) {
+        await writeMemory(directory, jobId, postMd ?? "", { ...postState, hasActivity: false }).catch(() => {});
+      }
+
+      applyAdaptiveTransition(job, hasActivity, new Date(finishedAtMs));
     } else {
       job.consecutiveFailures += 1;
       if (job.consecutiveFailures >= job.maxConsecutiveFailures) {
         job.enabled = false;
         console.log(`auto-paused ${jobId} after ${job.consecutiveFailures} failures`);
       }
+      applyAdaptiveTransition(job, false, new Date(finishedAtMs));
+    }
+    const latest = await loadJobs(directory);
+    const diskJob = latest.find((j) => j.id === job.id);
+    if (diskJob?.adaptive?.activeUntil && (!job.adaptive?.activeUntil || new Date(diskJob.adaptive.activeUntil).getTime() > new Date(job.adaptive.activeUntil).getTime())) {
+      if (!job.adaptive) job.adaptive = diskJob.adaptive;
+      else job.adaptive.activeUntil = diskJob.adaptive.activeUntil;
+      job.adaptive.currentCadence = "burst";
     }
     const candidateNext = computeNextRun(job, new Date(startedAtMs));
     job.nextRunAt = new Date(candidateNext).getTime() > finishedAtMs
       ? candidateNext
       : computeNextRun(job, new Date(finishedAtMs));
-    const latest = await loadJobs(directory);
     const updated = latest.some((j) => j.id === job.id)
       ? latest.map((j) => (j.id === job.id ? job : j))
       : [...latest, job];

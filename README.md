@@ -37,7 +37,7 @@ Traditional cron is **blind** — it runs an isolated shell script, forgets prev
 * 🪟 **Cross-Platform Desktop App & System Tray:** Native installable packages for **macOS (.dmg)**, **Windows (.exe)**, and **Linux (.AppImage, .deb)** with a live system tray icon showing real-time OpenCode connection and active cron status.
 * ⚡ **1-Click "Imposta Cron" Binding:** Bind an automated recurring schedule directly to any conversation session with visual schedule previews.
 * 📊 **Execution Timeline & Diagnostics (`/runs`):** Real-time visibility into every tick: duration, status, exit codes, trigger source, and error logs.
-* 🌍 **Global 10-Language i18n Suite:** English, Italiano, Español, Français, Deutsch, Português, 中文, 日本語, Русский, العربية (RTL).
+* ⚡ **Smart Adaptive Schedule & Burst Mode:** Dynamically accelerates into high-frequency cadence (e.g. 1m) upon activity/discoveries and backs off to idle (e.g. 30m) when quiet — conserving LLM tokens while reacting instantly. Includes 1-click 15m Burst trigger in the GUI and `cron_burst` Code Mode tool.
 * 🛡️ **Autonomous Background Daemon:** Keeps running overnight with your TUI or terminal closed via native `launchd`, `systemd`, or `schtasks`.
 
 ---

@@ -1,4 +1,5 @@
 import {
+  escapeHtml,
   getUiEnhancementsHeadStyle,
   getUiEnhancementsBodyHtml,
   getUiEnhancementsScript,
@@ -12,7 +13,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${title}</title>
+  <title>${escapeHtml(title)}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <script>
@@ -421,7 +422,8 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
         return \`
           <button
             type="button"
-            onclick="scrollToRun('\${escapeHtml(r.id)}')"
+            data-run-id="\${escapeHtml(r.id)}"
+            onclick="scrollToRun(this.dataset.runId)"
             data-tooltip-raw="\${label}"
             aria-label="\${label}"
             class="flex-1 min-w-[10px] max-w-[22px] rounded-t-md transition-all \${colorClass} flex items-start justify-center pt-0.5 text-[9px] font-black text-black/80"
@@ -470,11 +472,12 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
 
         return \`
           <div
-            onclick="setJobFilter('\${escapeHtml(j.jobTitle)}')"
+            data-job-title="\${escapeHtml(j.jobTitle)}"
+            onclick="setJobFilter(this.dataset.jobTitle)"
             role="button"
             tabindex="0"
             data-tooltip="tt.runsByJob"
-            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setJobFilter('\${escapeHtml(j.jobTitle)}');}"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setJobFilter(this.dataset.jobTitle);}"
             class="rounded-2xl border p-4 transition-all cursor-pointer \${borderClass}"
           >
             <div class="flex items-start justify-between gap-2">
@@ -659,7 +662,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
           ? \`<div class="mt-3 p-3.5 rounded-xl bg-gray-950/80 border border-gray-800/90 text-gray-200 text-xs leading-relaxed whitespace-pre-wrap break-words">
               <div class="flex items-center justify-between mb-1">
                 <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">\${escapeHtml(t('runs.outputLabel'))}</span>
-                \${isLong ? \`<button type="button" onclick="toggleExpandRun('\${escapeHtml(r.id)}')" class="text-xs font-bold text-indigo-400 hover:text-indigo-300">\${escapeHtml(isExpanded ? t('runs.expandLess') : t('runs.expandMore'))}</button>\` : ''}
+                \${isLong ? \`<button type="button" data-run-id="\${escapeHtml(r.id)}" onclick="toggleExpandRun(this.dataset.runId)" class="text-xs font-bold text-indigo-400 hover:text-indigo-300">\${escapeHtml(isExpanded ? t('runs.expandLess') : t('runs.expandMore'))}</button>\` : ''}
               </div>\${escapeHtml(displayedPreview)}
             </div>\`
           : '';

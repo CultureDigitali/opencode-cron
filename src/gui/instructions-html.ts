@@ -1,4 +1,5 @@
 import {
+  escapeHtml,
   getUiEnhancementsHeadStyle,
   getUiEnhancementsBodyHtml,
   getUiEnhancementsScript,
@@ -11,7 +12,7 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${title}</title>
+  <title>${escapeHtml(title)}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <script>
@@ -305,6 +306,37 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <!-- SMART ADAPTIVE CADENCE & BURST MODE -->
+          <div class="mt-4 bg-gradient-to-br from-amber-500/10 via-purple-500/5 to-gray-950 p-5 rounded-2xl border border-amber-500/30 space-y-3">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs border border-amber-500/40">
+                <i class="fa-solid fa-gauge-high"></i>
+              </span>
+              <h3 class="text-sm font-bold text-white">Cadenza Adattiva Intelligente & Burst Mode (Smart Schedule)</h3>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">NOVITÀ</span>
+            </div>
+            <p class="text-xs text-gray-300 leading-relaxed">
+              I cron convenzionali sprecano token ed energia eseguendo verifiche fisse anche quando non succede nulla per ore. La **Cadenza Adattiva** regola dinamicamente la frequenza:
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-xs">
+              <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder space-y-1">
+                <span class="text-amber-400 font-bold flex items-center gap-1"><i class="fa-solid fa-bolt"></i> Burst Mode (Attività)</span>
+                <p class="text-[11px] text-gray-400">Quando l'agente trova nuovi elementi, hash o modifiche, la cadenza accelera all'intervallo rapido (es. ogni <strong class="text-white">1m</strong> o <strong class="text-white">2m</strong>).</p>
+              </div>
+              <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder space-y-1">
+                <span class="text-indigo-400 font-bold flex items-center gap-1"><i class="fa-solid fa-arrows-split-up-and-left"></i> Decadimento Graduale</span>
+                <p class="text-[11px] text-gray-400">Se per $N$ tick consecutivi (es. 3) non si registrano novità, il cron rallenta verso la cadenza normale e poi verso la modalità Idle.</p>
+              </div>
+              <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder space-y-1">
+                <span class="text-slate-400 font-bold flex items-center gap-1"><i class="fa-solid fa-moon"></i> Modalità Idle (Silenziosa)</span>
+                <p class="text-[11px] text-gray-400">Durante i periodi di inattività il cron si mette in pausa profonda (es. ogni <strong class="text-white">30m</strong> o <strong class="text-white">1h</strong>), pronto a riesplodere in Burst appena rileva attività.</p>
+              </div>
+            </div>
+            <div class="text-[11px] text-gray-400 bg-gray-900/60 p-2.5 rounded-xl border border-darkborder flex items-center justify-between">
+              <span>⚡ <strong>Pulsante Burst 1-Click:</strong> Puoi forzare la modalità Burst per 15 minuti su qualsiasi job cliccando sull'icona fulmine nella scheda del job.</span>
+            </div>
           </div>
         </div>
       </section>
