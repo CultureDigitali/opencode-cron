@@ -318,10 +318,18 @@ export async function runJobHeadless(
     }
     const latest = await loadJobs(directory);
     const diskJob = latest.find((j) => j.id === job.id);
-    if (diskJob?.adaptive?.activeUntil && (!job.adaptive?.activeUntil || new Date(diskJob.adaptive.activeUntil).getTime() > new Date(job.adaptive.activeUntil).getTime())) {
-      if (!job.adaptive) job.adaptive = diskJob.adaptive;
-      else job.adaptive.activeUntil = diskJob.adaptive.activeUntil;
-      job.adaptive.currentCadence = "burst";
+    if (diskJob) {
+      if (diskJob.webhook) {
+        job.webhook = diskJob.webhook;
+      }
+      if (diskJob.pipeline) {
+        job.pipeline = diskJob.pipeline;
+      }
+      if (diskJob.adaptive?.activeUntil && (!job.adaptive?.activeUntil || new Date(diskJob.adaptive.activeUntil).getTime() > new Date(job.adaptive.activeUntil).getTime())) {
+        if (!job.adaptive) job.adaptive = diskJob.adaptive;
+        else job.adaptive.activeUntil = diskJob.adaptive.activeUntil;
+        job.adaptive.currentCadence = "burst";
+      }
     }
     const candidateNext = computeNextRun(job, new Date(startedAtMs));
     job.nextRunAt = new Date(candidateNext).getTime() > finishedAtMs

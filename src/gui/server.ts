@@ -14,6 +14,7 @@ import { runJobHeadless, checkDue } from "../runner.ts";
 import { getUnifiedRuns } from "../history.ts";
 import { CronJobSchema } from "../types.ts";
 import { validatePipelineDAG, getPipelineGraph } from "../pipeline.ts";
+import { generateWebhookToken, verifyWebhookAuth, formatWebhookSummary, triggerWebhookJob } from "../webhook.ts";
 
 let DatabaseClass: any = null;
 async function getSqliteDatabase() {
@@ -61,29 +62,34 @@ export function startGuiServer(opts: ServerOpts = {}) {
   const directory = opts.dir ?? process.cwd();
   const dbPath = opts.dbPath ?? path.join(process.env.HOME ?? "", ".local", "share", "opencode", "opencode.db");
 
+  // In-memory rate-limit cache to prevent race conditions on parallel burst requests
+  const webhookRateLimitTracker = new Map<string, number>();
+
   const handler = async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
     const pathname = url.pathname;
     const method = req.method;
 
-      // Validate Host header against DNS rebinding (strictly match localhost or 127.0.0.1)
+      const isWebhookEndpoint = pathname.startsWith("/api/webhook/");
+
+      // Validate Host header against DNS rebinding (strictly match localhost or 127.0.0.1, except for authenticated external webhooks)
       const host = req.headers.get("host") || "";
       const hostname = host.split(":")[0];
       const isAllowedHost = hostname === "localhost" || hostname === "127.0.0.1" || host === "";
-      if (!isAllowedHost) {
+      if (!isAllowedHost && !isWebhookEndpoint) {
         return new Response(JSON.stringify({ ok: false, error: "Invalid Host header" }), { status: 400, headers: { "Content-Type": "application/json" } });
       }
 
-      // Restrict CORS to local origins
+      // Restrict CORS to local origins (or permit any for authenticated external webhooks)
       const origin = req.headers.get("origin") || "";
       const isLoopback = origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:");
-      const allowOrigin = isLoopback ? origin : `http://localhost:${port}`;
+      const allowOrigin = isWebhookEndpoint ? (origin || "*") : (isLoopback ? origin : `http://localhost:${port}`);
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": allowOrigin,
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Webhook-Token, X-Hub-Signature-256",
         "X-Content-Type-Options": "nosniff",
         "X-Frame-Options": "DENY",
       };
@@ -92,8 +98,8 @@ export function startGuiServer(opts: ServerOpts = {}) {
         return new Response(null, { headers });
       }
 
-      // Reject cross-site mutating requests (CSRF protection)
-      if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
+      // Reject cross-site mutating requests (CSRF protection, exempted for authenticated webhooks)
+      if (["POST", "PUT", "DELETE", "PATCH"].includes(method) && !isWebhookEndpoint) {
         if (origin && !isLoopback) {
           return new Response(JSON.stringify({ ok: false, error: "Cross-site mutation rejected (forbidden origin)" }), { status: 403, headers });
         }
@@ -182,6 +188,18 @@ export function startGuiServer(opts: ServerOpts = {}) {
             };
           }
 
+          let webhook: any = undefined;
+          if (body.webhook && typeof body.webhook === "object" && body.webhook.enabled) {
+            webhook = {
+              enabled: true,
+              token: body.webhook.token || generateWebhookToken(),
+              secret: body.webhook.secret || undefined,
+              passPayload: body.webhook.passPayload !== false,
+              rateLimitSeconds: typeof body.webhook.rateLimitSeconds === "number" ? Math.max(1, body.webhook.rateLimitSeconds) : 5,
+              lastTriggeredAt: null,
+            };
+          }
+
           const job = CronJobSchema.parse({
             id,
             sessionID: body.sessionID,
@@ -192,6 +210,7 @@ export function startGuiServer(opts: ServerOpts = {}) {
             schedule: { kind: norm.kind, everyMs: norm.everyMs, cron: norm.cron },
             adaptive,
             pipeline,
+            webhook,
             agent: body.agent || "build",
             model: body.model || undefined,
             enabled: true,
@@ -282,6 +301,21 @@ export function startGuiServer(opts: ServerOpts = {}) {
                 onFailure: rawFailure,
                 passPayload: body.pipeline.passPayload === true,
                 maxDepth: Math.min(10, Math.max(1, parseInt(body.pipeline.maxDepth) || 5)),
+              };
+            }
+          }
+
+          if (body.webhook !== undefined) {
+            if (body.webhook === null || body.webhook.enabled === false) {
+              j.webhook = undefined;
+            } else {
+              j.webhook = {
+                enabled: true,
+                token: body.webhook.token || j.webhook?.token || generateWebhookToken(),
+                secret: body.webhook.secret !== undefined ? (body.webhook.secret || undefined) : j.webhook?.secret,
+                passPayload: body.webhook.passPayload !== false,
+                rateLimitSeconds: typeof body.webhook.rateLimitSeconds === "number" ? Math.max(1, body.webhook.rateLimitSeconds) : 5,
+                lastTriggeredAt: j.webhook?.lastTriggeredAt ?? null,
               };
             }
           }
@@ -431,6 +465,175 @@ export function startGuiServer(opts: ServerOpts = {}) {
           return new Response(JSON.stringify({ ok: true, graph }), { headers });
         } catch (e: any) {
           return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
+      // 8e. GET /api/jobs/:id/webhook (Inspect webhook configuration and URL)
+      if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/webhook") && method === "GET") {
+        const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/webhook".length));
+        try {
+          assertJobId(id);
+          const jobs = await loadJobs(directory);
+          const j = jobs.find((x) => x.id === id);
+          if (!j) return new Response(JSON.stringify({ ok: false, error: "Job not found" }), { status: 404, headers });
+
+          const proto = req.headers.get("x-forwarded-proto") || "http";
+          const hostHeader = req.headers.get("host") || `127.0.0.1:${port}`;
+          const baseUrl = `${proto}://${hostHeader}`;
+          const token = j.webhook?.token ?? "";
+          const webhookUrl = `${baseUrl}/api/webhook/${id}`;
+          const tokenParam = token ? `?token=${encodeURIComponent(token)}` : "";
+
+          return new Response(JSON.stringify({
+            ok: true,
+            jobId: id,
+            webhook: j.webhook ?? { enabled: false },
+            webhookUrl: `${webhookUrl}${tokenParam}`,
+            curlSnippet: `curl -X POST "${webhookUrl}" -H "Authorization: Bearer ${token}" -H "Content-Type: application/json" -d '{"event":"trigger","source":"curl"}'`,
+          }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 8f. POST /api/jobs/:id/webhook (Configure webhook, generate token, update secret)
+      if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/webhook") && method === "POST") {
+        const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/webhook".length));
+        try {
+          assertJobId(id);
+          const body: any = await req.json().catch(() => ({}));
+          const jobs = await loadJobs(directory);
+          const j = jobs.find((x) => x.id === id);
+          if (!j) return new Response(JSON.stringify({ ok: false, error: "Job not found" }), { status: 404, headers });
+
+          if (body.enabled === false) {
+            j.webhook = undefined;
+          } else {
+            const tokenToUse = (body.generateNewToken || body.rotateToken) ? generateWebhookToken() : (body.token || j.webhook?.token || generateWebhookToken());
+            j.webhook = {
+              enabled: true,
+              token: tokenToUse,
+              secret: body.secret !== undefined ? (body.secret || undefined) : j.webhook?.secret,
+              passPayload: body.passPayload !== undefined ? Boolean(body.passPayload) : (j.webhook?.passPayload ?? true),
+              rateLimitSeconds: typeof body.rateLimitSeconds === "number" ? Math.max(1, body.rateLimitSeconds) : (j.webhook?.rateLimitSeconds ?? 5),
+              lastTriggeredAt: j.webhook?.lastTriggeredAt ?? null,
+            };
+          }
+
+          CronJobSchema.parse(j);
+          await saveJobs(directory, jobs);
+
+          const proto = req.headers.get("x-forwarded-proto") || "http";
+          const hostHeader = req.headers.get("host") || `127.0.0.1:${port}`;
+          const baseUrl = `${proto}://${hostHeader}`;
+          const token = j.webhook?.token ?? "";
+          const webhookUrl = `${baseUrl}/api/webhook/${id}`;
+          const tokenParam = token ? `?token=${encodeURIComponent(token)}` : "";
+
+          return new Response(JSON.stringify({
+            ok: true,
+            jobId: id,
+            webhook: j.webhook,
+            webhookUrl: `${webhookUrl}${tokenParam}`,
+            curlSnippet: `curl -X POST "${webhookUrl}" -H "Authorization: Bearer ${token}" -H "Content-Type: application/json" -d '{"event":"trigger","source":"curl"}'`,
+          }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 8g. POST /api/webhook/:id (Inbound webhook trigger receiver)
+      if (pathname.startsWith("/api/webhook/") && method === "POST") {
+        const id = decodeURIComponent(pathname.slice("/api/webhook/".length));
+        try {
+          assertJobId(id);
+
+          // Guard against unbounded payload DoS (256KB ceiling)
+          const contentLength = parseInt(req.headers.get("content-length") || "0", 10);
+          if (contentLength > 262_144) {
+            return new Response(JSON.stringify({ ok: false, error: "Payload too large. Maximum 256KB allowed." }), {
+              status: 413,
+              headers,
+            });
+          }
+
+          const rawBody = await req.text();
+          if (rawBody.length > 262_144) {
+            return new Response(JSON.stringify({ ok: false, error: "Payload too large. Maximum 256KB allowed." }), {
+              status: 413,
+              headers,
+            });
+          }
+
+          const jobs = await loadJobs(directory);
+          const j = jobs.find((x) => x.id === id);
+          if (!j) return new Response(JSON.stringify({ ok: false, error: "Job not found" }), { status: 404, headers });
+
+          // Extract token from Bearer, X-Webhook-Token, or URL query param
+          const authHeader = req.headers.get("authorization") || "";
+          const bearerToken = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : null;
+          const headerToken = req.headers.get("x-webhook-token");
+          const queryToken = url.searchParams.get("token");
+          const token = bearerToken || headerToken || queryToken;
+
+          const signature = req.headers.get("x-hub-signature-256");
+          let parsedBody: any = null;
+          try {
+            parsedBody = rawBody ? JSON.parse(rawBody) : null;
+          } catch {
+            parsedBody = rawBody;
+          }
+
+          const authCheck = verifyWebhookAuth({ job: j, token, signature, rawBody });
+          if (!authCheck.ok) {
+            return new Response(JSON.stringify({ ok: false, error: authCheck.error }), {
+              status: authCheck.status || 401,
+              headers,
+            });
+          }
+
+          // Evaluate in-memory rate-limit lock to defeat parallel burst race conditions
+          const nowMs = Date.now();
+          const lastInMem = webhookRateLimitTracker.get(id) || 0;
+          const rateLimitSeconds = j.webhook?.rateLimitSeconds ?? 5;
+          if (nowMs - lastInMem < rateLimitSeconds * 1000) {
+            const waitSeconds = Math.ceil((rateLimitSeconds * 1000 - (nowMs - lastInMem)) / 1000);
+            return new Response(JSON.stringify({
+              ok: false,
+              error: `Rate limit cooldown active. Please wait ${waitSeconds}s before triggering again.`,
+            }), {
+              status: 429,
+              headers,
+            });
+          }
+          // Atomically lock in-memory timestamp immediately
+          webhookRateLimitTracker.set(id, nowMs);
+
+          const eventName = req.headers.get("x-github-event") || req.headers.get("x-event") || url.searchParams.get("event") || "webhook";
+          const userAgent = req.headers.get("user-agent") || "webhook-client";
+          const summary = formatWebhookSummary({ event: eventName, source: userAgent, body: parsedBody });
+
+          const isSync = url.searchParams.get("sync") === "true";
+          const trigRes = await triggerWebhookJob({
+            directory,
+            jobId: id,
+            summary,
+            asyncDispatch: !isSync,
+          });
+
+          if (!trigRes.ok) {
+            return new Response(JSON.stringify({ ok: false, error: trigRes.error }), { status: 500, headers });
+          }
+
+          return new Response(JSON.stringify({
+            ok: true,
+            triggered: true,
+            jobId: id,
+            event: eventName,
+            timestamp: new Date().toISOString(),
+          }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
         }
       }
 
@@ -891,7 +1094,16 @@ export function startGuiServer(opts: ServerOpts = {}) {
       try {
         const url = `http://${nodeReq.headers.host || "localhost:" + port}${nodeReq.url}`;
         const chunks: Buffer[] = [];
-        for await (const chunk of nodeReq) chunks.push(Buffer.from(chunk));
+        let totalBytes = 0;
+        for await (const chunk of nodeReq) {
+          totalBytes += chunk.length;
+          if (totalBytes > 2 * 1024 * 1024) {
+            nodeRes.statusCode = 413;
+            nodeRes.end(JSON.stringify({ ok: false, error: "Payload too large" }));
+            return;
+          }
+          chunks.push(Buffer.from(chunk));
+        }
         const body = ["GET", "HEAD"].includes(nodeReq.method || "") ? undefined : Buffer.concat(chunks);
         const headers = new Headers();
         for (const [k, v] of Object.entries(nodeReq.headers)) {

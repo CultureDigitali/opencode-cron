@@ -132,14 +132,44 @@ async function main(): Promise<void> {
       console.error(`Failed to launch Desktop Tray app: ${err.message}. Ensure electron is installed.`);
       process.exit(1);
     });
+  } else if (cmd === "webhook-token") {
+    const id = process.argv[3];
+    if (!id || id.startsWith("--")) {
+      console.error("Usage: opencode-cron webhook-token <jobId> [--dir <dir>]");
+      process.exit(2);
+    }
+    const { loadJobs: loadStoreJobs, saveJobs: saveStoreJobs } = await import("../src/store.ts");
+    const { generateWebhookToken } = await import("../src/webhook.ts");
+    const jobs = await loadStoreJobs(dir);
+    const j = jobs.find((x) => x.id === id);
+    if (!j) {
+      console.error(`Job ${id} not found`);
+      process.exit(1);
+    }
+    if (!j.webhook || !j.webhook.token) {
+      j.webhook = {
+        enabled: true,
+        token: generateWebhookToken(),
+        passPayload: true,
+        rateLimitSeconds: 5,
+        lastTriggeredAt: null,
+      };
+      await saveStoreJobs(dir, jobs);
+      console.log(`Generated new webhook token for job ${id}`);
+    }
+    const port = parseInt(process.env.OPENCODE_CRON_PORT ?? "4488", 10);
+    const url = `http://127.0.0.1:${port}/api/webhook/${id}?token=${j.webhook.token}`;
+    console.log(`Webhook URL: ${url}`);
+    console.log(`Token: ${j.webhook.token}`);
+    console.log(`curl snippet:\ncurl -X POST "${url}" -H "Content-Type: application/json" -d '{"event":"cli-trigger"}'`);
   } else {
-    console.error(`Commands: check | run <id> | os-install | refresh-creds | list | gui | desktop | tray [--port <port>] [--dir ...]`);
+    console.error(`Commands: check | run <id> | os-install | refresh-creds | list | gui | desktop | tray | webhook-token <id> [--port <port>] [--dir ...]`);
     process.exit(2);
   }
 }
 
 if (has("--help") || has("-h")) {
-  console.log("opencode-cron check|run <id>|os-install|refresh-creds|list|gui|desktop|tray [--port <port>] [--dir ...]");
+  console.log("opencode-cron check|run <id>|os-install|refresh-creds|list|gui|desktop|tray|webhook-token <id> [--port <port>] [--dir ...]");
   process.exit(0);
 }
 await main();

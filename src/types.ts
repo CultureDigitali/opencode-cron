@@ -53,6 +53,17 @@ export const PipelineConfigSchema = z.object({
 
 export type PipelineConfig = z.infer<typeof PipelineConfigSchema>;
 
+export const WebhookConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  token: z.string().min(16).max(128).regex(/^[A-Za-z0-9_-]+$/).optional(),
+  secret: z.string().min(8).max(128).optional(),
+  passPayload: z.boolean().default(true),
+  rateLimitSeconds: z.number().int().min(1).max(3600).default(5),
+  lastTriggeredAt: z.string().nullable().optional().default(null),
+});
+
+export type WebhookConfig = z.infer<typeof WebhookConfigSchema>;
+
 export const CronJobSchema = z.object({
   id: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/),
   sessionID: z.string().min(1),
@@ -63,6 +74,7 @@ export const CronJobSchema = z.object({
   schedule: ScheduleSchema,
   adaptive: AdaptiveScheduleSchema.optional(),
   pipeline: PipelineConfigSchema.optional(),
+  webhook: WebhookConfigSchema.optional(),
   agent: z.string().optional(),
   model: z.string().optional(),
   enabled: z.boolean().default(true),

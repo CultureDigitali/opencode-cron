@@ -670,6 +670,34 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
               </div>
             </div>
           </div>
+
+          <!-- Webhook Inbound HTTP Trigger Section -->
+          <div class="p-3 rounded-xl bg-gray-950/70 border border-darkborder space-y-2 mt-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-satellite-dish text-violet-400 text-xs"></i>
+                <label for="form-webhook-enabled" class="text-xs font-bold text-gray-200 cursor-pointer" data-i18n="webhook.modalTitle">Endpoint Webhook Inbound & Token</label>
+              </div>
+              <input type="checkbox" id="form-webhook-enabled" onchange="toggleWebhookFields()" class="w-4 h-4 rounded text-violet-600 bg-gray-900 border-gray-700 cursor-pointer">
+            </div>
+            <p class="text-[11px] text-gray-400 leading-relaxed" data-i18n="webhook.modalDesc">Permette a servizi esterni (GitHub, GitLab, Stripe, Sentry, CI/CD, curl) di avviare immediatamente questo job via HTTP.</p>
+            <div id="webhook-fields" class="space-y-2 pt-1 hidden">
+              <div>
+                <label for="form-webhook-secret" class="text-[10px] text-gray-400 block mb-0.5" data-i18n="webhook.secretLabel">Segreto Condiviso HMAC (opzionale per GitHub X-Hub-Signature-256)</label>
+                <input type="text" id="form-webhook-secret" placeholder="opzionale (es. gh_sec_12345)" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1 text-xs text-gray-100 font-mono focus:outline-none focus:border-violet-500">
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label for="form-webhook-ratelimit" class="text-[10px] text-gray-400 block mb-0.5" data-i18n="webhook.rateLimit">Cooldown anti-spam (secondi)</label>
+                  <input type="number" id="form-webhook-ratelimit" min="1" max="86400" value="5" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1 text-xs text-gray-100 font-mono focus:outline-none focus:border-violet-500">
+                </div>
+                <div class="flex items-center space-x-2 pt-3">
+                  <input type="checkbox" id="form-webhook-payload" checked class="w-3.5 h-3.5 rounded text-violet-600 bg-gray-900 border-gray-700 cursor-pointer">
+                  <label for="form-webhook-payload" class="text-[11px] text-gray-300 cursor-pointer" data-i18n="webhook.passPayload">Inietta payload JSON in memoria</label>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -750,6 +778,89 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       <div class="flex items-center justify-between pt-4 mt-2 border-t border-darkborder text-xs text-gray-400">
         <span id="pipeline-cycle-status" class="flex items-center gap-1.5 font-mono text-[11px]"></span>
         <button type="button" onclick="closePipelineModal()" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-200 hover:bg-gray-700 font-medium">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: INBOUND WEBHOOK & TOKEN MANAGER         -->
+  <!-- ============================================== -->
+  <div id="webhook-modal" role="dialog" aria-modal="true" aria-labelledby="webhook-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-xl w-full p-6 shadow-2xl relative flex flex-col">
+      <div class="flex items-center justify-between pb-4 border-b border-darkborder mb-4">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+            <i class="fa-solid fa-satellite-dish text-sm"></i>
+          </div>
+          <div>
+            <h3 id="webhook-modal-title" class="text-base font-bold text-white" data-i18n="webhook.modalTitle">Endpoint Webhook Inbound & Token</h3>
+            <p id="webhook-modal-subtitle" class="text-[11px] font-mono text-violet-300">Job ID: -</p>
+          </div>
+        </div>
+        <button onclick="closeWebhookModal()" aria-label="Chiudi finestra" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider block mb-1" data-i18n="webhook.urlLabel">URL Webhook (con Token)</label>
+          <div class="flex gap-2">
+            <input type="text" id="webhook-modal-url" readonly class="flex-1 bg-gray-950 border border-darkborder rounded-lg px-3 py-1.5 text-xs text-violet-300 font-mono select-all focus:outline-none">
+            <button onclick="copyWebhookUrl()" class="px-3 py-1.5 bg-violet-600/30 hover:bg-violet-600/50 text-violet-200 border border-violet-500/40 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer">
+              <i class="fa-solid fa-copy"></i> <span data-i18n="webhook.copyUrl">Copia URL</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider block mb-1" data-i18n="webhook.tokenLabel">Token Segreto di Autorizzazione</label>
+          <div class="flex gap-2">
+            <input type="text" id="webhook-modal-token" readonly class="flex-1 bg-gray-950 border border-darkborder rounded-lg px-3 py-1.5 text-xs text-gray-200 font-mono select-all focus:outline-none">
+            <button onclick="rotateWebhookToken()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 border border-darkborder rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer">
+              <i class="fa-solid fa-arrows-rotate"></i> <span data-i18n="webhook.rotateToken">Rigenera</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label for="webhook-modal-secret" class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider block mb-1" data-i18n="webhook.secretLabel">Segreto Condiviso HMAC (opzionale per GitHub)</label>
+          <input type="text" id="webhook-modal-secret" placeholder="opzionale (es. my_shared_secret)" class="w-full bg-gray-950 border border-darkborder rounded-lg px-3 py-1.5 text-xs text-gray-200 font-mono focus:outline-none focus:border-violet-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="webhook-modal-ratelimit" class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider block mb-1" data-i18n="webhook.rateLimit">Cooldown anti-spam (s)</label>
+            <input type="number" id="webhook-modal-ratelimit" min="1" max="86400" value="5" class="w-full bg-gray-950 border border-darkborder rounded-lg px-3 py-1.5 text-xs text-gray-200 font-mono focus:outline-none focus:border-violet-500">
+          </div>
+          <div class="flex items-center space-x-2 pt-4">
+            <input type="checkbox" id="webhook-modal-payload" checked class="w-4 h-4 rounded text-violet-600 bg-gray-900 border-gray-700 cursor-pointer">
+            <label for="webhook-modal-payload" class="text-[11px] text-gray-300 cursor-pointer" data-i18n="webhook.passPayload">Inietta payload in memoria</label>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider block mb-1">Snippet cURL di Test</label>
+          <div class="relative">
+            <pre id="webhook-modal-curl" class="bg-gray-950 border border-darkborder rounded-lg p-2.5 text-[10px] text-emerald-400 font-mono overflow-x-auto whitespace-pre-wrap select-all"></pre>
+            <button onclick="copyWebhookCurl()" class="absolute top-2 right-2 px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-[10px] font-mono border border-darkborder cursor-pointer">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-4 mt-4 border-t border-darkborder">
+        <div class="flex gap-2">
+          <button type="button" id="webhook-test-btn" onclick="testWebhookTrigger()" class="px-3 py-1.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer">
+            <i class="fa-solid fa-paper-plane"></i> <span data-i18n="webhook.testBtn">Test Trigger</span>
+          </button>
+          <button type="button" onclick="disableWebhook()" class="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer">
+            <i class="fa-solid fa-ban"></i> <span data-i18n="webhook.disableBtn">Disattiva</span>
+          </button>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" onclick="closeWebhookModal()" class="px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 text-xs font-medium">Annulla</button>
+          <button type="button" onclick="saveWebhookSettings()" class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/20 cursor-pointer" data-i18n="webhook.saveBtn">Salva</button>
+        </div>
       </div>
     </div>
   </div>
@@ -918,6 +1029,11 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           pipelineBadge = \`<span data-tooltip="tt.pipelineBtn" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center gap-1"><i class="fa-solid fa-diagram-project text-cyan-400"></i> \${escapeHtml(t('job.pipelineBadge'))}\${okCount > 0 ? ' [' + okCount + '→]' : ''}</span>\`;
         }
 
+        let webhookBadge = '';
+        if (job.webhook && job.webhook.enabled) {
+          webhookBadge = \`<button onclick="openWebhookModal('\${safeId}')" data-tooltip="tt.webhookBtn" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 border border-violet-500/20 flex items-center gap-1 cursor-pointer"><i class="fa-solid fa-satellite-dish text-violet-400"></i> \${escapeHtml(t('job.webhookBadge'))}</button>\`;
+        }
+
         const schedDesc = job.schedule.kind === 'interval'
           ? formatInterval(job.schedule.everyMs)
           : 'Cron: ' + escapeHtml(job.schedule.cron || '');
@@ -937,10 +1053,14 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                     \${statusBadge}
                     \${adaptiveBadge}
                     \${pipelineBadge}
+                    \${webhookBadge}
                   </div>
                   <p class="text-[11px] font-mono text-indigo-400 mt-0.5">\${safeId}</p>
                 </div>
                 <div class="flex items-center space-x-1">
+                  <button id="webhook-btn-\${safeId}" data-job-id="\${safeId}" onclick="openWebhookModal(this.dataset.jobId)" data-tooltip="tt.webhookBtn" aria-label="\${escapeHtml(t('job.webhookBtn'))}" class="p-2 text-violet-400 hover:text-white hover:bg-violet-600/20 rounded-lg transition-colors border border-darkborder">
+                    <i class="fa-solid fa-satellite-dish text-xs"></i>
+                  </button>
                   \${job.adaptive && job.adaptive.enabled ? \`
                   <button id="burst-btn-\${safeId}" data-job-id="\${safeId}" onclick="triggerBurstNow(this.dataset.jobId)" data-tooltip="tt.burstBtn" aria-label="\${escapeHtml(t('job.burstTitle'))}" class="p-2 text-amber-400 hover:text-white hover:bg-amber-600/20 rounded-lg transition-colors border border-darkborder">
                     <i class="fa-solid fa-bolt-lightning text-xs"></i>
@@ -985,6 +1105,17 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                     \` : ''}
                   </div>
                   \${job.pipeline.passPayload ? \`<span class="text-indigo-300 font-mono text-[9px] bg-indigo-950/60 px-1.5 py-0.5 rounded border border-indigo-800/40">📦 payload</span>\` : ''}
+                </div>
+                \` : ''}
+                \${job.webhook && job.webhook.enabled ? \`
+                <div class="col-span-2 pt-1 border-t border-darkborder/50 text-[10px] text-gray-400 flex flex-wrap items-center justify-between gap-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <i class="fa-solid fa-satellite-dish text-violet-400"></i>
+                    <span class="text-violet-300 font-medium">\${escapeHtml(t('job.webhookBadge'))}:</span>
+                    <span class="text-violet-400 font-mono">/api/webhook/\${safeId}</span>
+                    <span class="text-gray-500 font-mono text-[9px] bg-violet-950/40 px-1.5 py-0.5 rounded border border-violet-800/30">cooldown: \${job.webhook.rateLimitSeconds ?? 5}s</span>
+                  </div>
+                  \${job.webhook.lastTriggeredAt ? \`<span class="text-gray-400 font-mono text-[9px]">last: \${new Date(job.webhook.lastTriggeredAt).toLocaleTimeString()}</span>\` : '<span class="text-gray-500 italic text-[9px]">in attesa</span>'}
                 </div>
                 \` : ''}
               </div>
@@ -2274,6 +2405,15 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       }
     }
 
+    function toggleWebhookFields() {
+      const enabled = document.getElementById('form-webhook-enabled')?.checked;
+      const fields = document.getElementById('webhook-fields');
+      if (fields) {
+        if (enabled) fields.classList.remove('hidden');
+        else fields.classList.add('hidden');
+      }
+    }
+
     function openNewJobModal(presetSessionId) {
       const titleEl = document.getElementById('modal-title');
       if (titleEl) {
@@ -2309,6 +2449,18 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       if (failureInput) failureInput.value = '';
       const payloadCheck = document.getElementById('form-pipeline-payload');
       if (payloadCheck) payloadCheck.checked = true;
+
+      const webhookCheck = document.getElementById('form-webhook-enabled');
+      if (webhookCheck) {
+        webhookCheck.checked = false;
+        toggleWebhookFields();
+      }
+      const webhookSecret = document.getElementById('form-webhook-secret');
+      if (webhookSecret) webhookSecret.value = '';
+      const webhookRate = document.getElementById('form-webhook-ratelimit');
+      if (webhookRate) webhookRate.value = '5';
+      const webhookPayload = document.getElementById('form-webhook-payload');
+      if (webhookPayload) webhookPayload.checked = true;
 
       const targetSessionId = presetSessionId || (currentTab === 'chat' ? activeSessionId : '');
       if (targetSessionId) {
@@ -2374,6 +2526,18 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       const payloadCheck = document.getElementById('form-pipeline-payload');
       if (payloadCheck) payloadCheck.checked = job.pipeline?.passPayload !== false;
 
+      const webhookCheck = document.getElementById('form-webhook-enabled');
+      if (webhookCheck) {
+        webhookCheck.checked = Boolean(job.webhook && job.webhook.enabled);
+        toggleWebhookFields();
+      }
+      const webhookSecret = document.getElementById('form-webhook-secret');
+      if (webhookSecret) webhookSecret.value = job.webhook?.secret || '';
+      const webhookRate = document.getElementById('form-webhook-ratelimit');
+      if (webhookRate) webhookRate.value = String(job.webhook?.rateLimitSeconds ?? 5);
+      const webhookPayloadCheck = document.getElementById('form-webhook-payload');
+      if (webhookPayloadCheck) webhookPayloadCheck.checked = job.webhook?.passPayload !== false;
+
       const modal = document.getElementById('job-modal');
       if (modal) {
         modal.classList.remove('hidden');
@@ -2427,6 +2591,14 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         passPayload: Boolean(document.getElementById('form-pipeline-payload')?.checked),
       } : (id ? { enabled: false } : undefined);
 
+      const isWebhook = Boolean(document.getElementById('form-webhook-enabled')?.checked);
+      const webhookPayload = isWebhook ? {
+        enabled: true,
+        secret: document.getElementById('form-webhook-secret')?.value.trim() || undefined,
+        rateLimitSeconds: parseInt(document.getElementById('form-webhook-ratelimit')?.value, 10) || 5,
+        passPayload: Boolean(document.getElementById('form-webhook-payload')?.checked),
+      } : (id ? { enabled: false } : undefined);
+
       const payload = {
         title: document.getElementById('form-title').value.trim(),
         scheduleStr: schedStr,
@@ -2437,6 +2609,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         followupPrompt: document.getElementById('form-followup-prompt').value.trim(),
         adaptive: adaptivePayload,
         pipeline: pipelinePayload,
+        webhook: webhookPayload,
       };
 
       try {
@@ -2526,6 +2699,178 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       if (modal) {
         modal.classList.add('hidden');
         modal.style.display = 'none';
+      }
+    }
+
+    let currentWebhookJobId = '';
+    let currentWebhookData = null;
+
+    async function openWebhookModal(id) {
+      currentWebhookJobId = id;
+      const modal = document.getElementById('webhook-modal');
+      const subtitle = document.getElementById('webhook-modal-subtitle');
+      if (!modal) return;
+      if (subtitle) subtitle.textContent = 'Job ID: ' + id;
+
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+
+      try {
+        const res = await fetch('/api/jobs/' + encodeURIComponent(id) + '/webhook');
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Errore caricamento webhook');
+        currentWebhookData = data;
+
+        const urlInput = document.getElementById('webhook-modal-url');
+        if (urlInput) urlInput.value = data.webhookUrl || '';
+        const tokenInput = document.getElementById('webhook-modal-token');
+        if (tokenInput) tokenInput.value = data.webhook?.token || '';
+        const secretInput = document.getElementById('webhook-modal-secret');
+        if (secretInput) secretInput.value = data.webhook?.secret || '';
+        const rateInput = document.getElementById('webhook-modal-ratelimit');
+        if (rateInput) rateInput.value = String(data.webhook?.rateLimitSeconds ?? 5);
+        const passCheck = document.getElementById('webhook-modal-payload');
+        if (passCheck) passCheck.checked = data.webhook?.passPayload !== false;
+
+        updateWebhookCurlSnippet();
+      } catch (err) {
+        showToast((typeof t === 'function' ? t('toast.genericError') : 'Errore: ') + err.message, 'error');
+      }
+    }
+
+    function closeWebhookModal() {
+      const modal = document.getElementById('webhook-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+    }
+
+    function updateWebhookCurlSnippet() {
+      const urlInput = document.getElementById('webhook-modal-url');
+      const curlPre = document.getElementById('webhook-modal-curl');
+      if (!urlInput || !curlPre) return;
+      const url = urlInput.value || '';
+      curlPre.textContent = 'curl -X POST "' + url + '" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"event":"trigger","timestamp":' + Date.now() + '}\'';
+    }
+
+    function copyWebhookUrl() {
+      const urlInput = document.getElementById('webhook-modal-url');
+      if (!urlInput || !urlInput.value) return;
+      navigator.clipboard.writeText(urlInput.value).then(() => {
+        showToast(typeof t === 'function' ? t('toast.webhookCopied') : 'URL Webhook copiato!', 'success');
+      }).catch(() => {
+        urlInput.select();
+        document.execCommand('copy');
+        showToast(typeof t === 'function' ? t('toast.webhookCopied') : 'URL Webhook copiato!', 'success');
+      });
+    }
+
+    function copyWebhookCurl() {
+      const curlPre = document.getElementById('webhook-modal-curl');
+      if (!curlPre || !curlPre.textContent) return;
+      navigator.clipboard.writeText(curlPre.textContent).then(() => {
+        showToast(typeof t === 'function' ? t('toast.webhookCurlCopied') : 'cURL copiato!', 'success');
+      }).catch(() => {
+        showToast(typeof t === 'function' ? t('toast.webhookCurlCopied') : 'cURL copiato!', 'success');
+      });
+    }
+
+    async function rotateWebhookToken() {
+      if (!currentWebhookJobId) return;
+      try {
+        const res = await fetch('/api/jobs/' + encodeURIComponent(currentWebhookJobId) + '/webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rotateToken: true, enabled: true })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Errore rigenerazione token');
+        showToast('Nuovo token generato con successo!', 'success');
+        const urlInput = document.getElementById('webhook-modal-url');
+        if (urlInput) urlInput.value = data.webhookUrl || '';
+        const tokenInput = document.getElementById('webhook-modal-token');
+        if (tokenInput) tokenInput.value = data.webhook?.token || '';
+        updateWebhookCurlSnippet();
+        await loadJobs();
+      } catch (err) {
+        showToast((typeof t === 'function' ? t('toast.genericError') : 'Errore: ') + err.message, 'error');
+      }
+    }
+
+    async function saveWebhookSettings() {
+      if (!currentWebhookJobId) return;
+      const secret = document.getElementById('webhook-modal-secret')?.value.trim() || undefined;
+      const rateLimit = parseInt(document.getElementById('webhook-modal-ratelimit')?.value, 10) || 5;
+      const passPayload = Boolean(document.getElementById('webhook-modal-payload')?.checked);
+      try {
+        const res = await fetch('/api/jobs/' + encodeURIComponent(currentWebhookJobId) + '/webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: true, secret, rateLimitSeconds: rateLimit, passPayload })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Errore salvataggio webhook');
+        showToast(typeof t === 'function' ? t('toast.webhookSaved') : 'Configurazione salvata!', 'success');
+        closeWebhookModal();
+        await loadJobs();
+      } catch (err) {
+        showToast((typeof t === 'function' ? t('toast.genericError') : 'Errore: ') + err.message, 'error');
+      }
+    }
+
+    async function disableWebhook() {
+      if (!currentWebhookJobId) return;
+      try {
+        const res = await fetch('/api/jobs/' + encodeURIComponent(currentWebhookJobId) + '/webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: false })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Errore disattivazione webhook');
+        showToast(typeof t === 'function' ? t('toast.webhookDisabled') : 'Webhook disattivato', 'info');
+        closeWebhookModal();
+        await loadJobs();
+      } catch (err) {
+        showToast((typeof t === 'function' ? t('toast.genericError') : 'Errore: ') + err.message, 'error');
+      }
+    }
+
+    async function testWebhookTrigger() {
+      if (!currentWebhookJobId) return;
+      const token = document.getElementById('webhook-modal-token')?.value || '';
+      const testBtn = document.getElementById('webhook-test-btn');
+      if (testBtn) {
+        testBtn.disabled = true;
+        testBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Test...';
+      }
+      try {
+        const url = '/api/webhook/' + encodeURIComponent(currentWebhookJobId) + (token ? ('?token=' + encodeURIComponent(token)) : '');
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'test_ping',
+            sender: 'gui_modal',
+            timestamp: new Date().toISOString()
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast(typeof t === 'function' ? t('toast.webhookTriggered') : 'Trigger Webhook inviato!', 'success');
+          await loadJobs();
+          if (currentTab === 'chat' && activeSessionId) await loadSessionChat(activeSessionId);
+        } else {
+          showToast((typeof t === 'function' ? t('toast.tickError') : 'Errore: ') + (data.error || 'Trigger fallito'), 'error');
+        }
+      } catch (err) {
+        showToast((typeof t === 'function' ? t('toast.netError') : 'Errore rete: ') + err.message, 'error');
+      } finally {
+        if (testBtn) {
+          testBtn.disabled = false;
+          testBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ' + (typeof t === 'function' ? t('webhook.testBtn') : 'Test Trigger');
+        }
       }
     }
 

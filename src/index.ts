@@ -6,6 +6,7 @@ import { initialMemoryMd, readMemory, writeMemory } from "./memory.ts";
 import { CronScheduler } from "./scheduler.ts";
 import { executeTick } from "./executor.ts";
 import { validatePipelineDAG, getPipelineGraph } from "./pipeline.ts";
+import { generateWebhookToken } from "./webhook.ts";
 
 function slug(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "job";
@@ -316,6 +317,63 @@ export const CronPlugin = Plugin.define({
             };
           }
           return { content: JSON.stringify(graph, null, 2) };
+        },
+      });
+
+      add({
+        name: "webhook",
+        description: "Configure, inspect, or generate a secret token for an inbound HTTP webhook trigger",
+        input: {
+          type: "object",
+          properties: {
+            id: idProp,
+            action: { type: "string", enum: ["get", "enable", "disable", "rotate_token"], description: "Action to perform (default: get)" },
+            secret: optStrProp("Optional HMAC shared secret (e.g. for GitHub X-Hub-Signature-256)"),
+            rateLimitSeconds: { type: "number", description: "Minimum cooldown seconds between triggers (default 5)" },
+          },
+          required: ["id"],
+          additionalProperties: false,
+        },
+        execute: async (input: any, tctx: any) => {
+          assertJobId(String(input.id));
+          const dir = await sessionDir(String(tctx.sessionID));
+          const jobs = await loadJobs(dir);
+          const j = jobs.find((x) => x.id === String(input.id));
+          if (!j) return { content: `Job ${input.id} not found` };
+
+          const action = input.action || "get";
+          if (action === "disable") {
+            j.webhook = undefined;
+            await saveJobs(dir, jobs);
+            return { content: `Webhook trigger disabled for job ${input.id}` };
+          }
+
+          if (action === "enable" || action === "rotate_token") {
+            const token = action === "rotate_token" || !j.webhook?.token ? generateWebhookToken() : j.webhook.token;
+            j.webhook = {
+              enabled: true,
+              token,
+              secret: input.secret !== undefined ? (input.secret || undefined) : j.webhook?.secret,
+              passPayload: j.webhook?.passPayload !== false,
+              rateLimitSeconds: typeof input.rateLimitSeconds === "number" ? Math.max(1, input.rateLimitSeconds) : (j.webhook?.rateLimitSeconds ?? 5),
+              lastTriggeredAt: j.webhook?.lastTriggeredAt ?? null,
+            };
+            CronJobSchema.parse(j);
+            await saveJobs(dir, jobs);
+          }
+
+          const port = parseInt(process.env.OPENCODE_CRON_PORT ?? "4488", 10);
+          const webhookUrl = `http://127.0.0.1:${port}/api/webhook/${j.id}`;
+          const tokenStr = j.webhook?.token ? `?token=${j.webhook.token}` : "";
+
+          return {
+            content: JSON.stringify({
+              id: j.id,
+              webhook: j.webhook ?? { enabled: false },
+              webhookUrl: `${webhookUrl}${tokenStr}`,
+              curlExample: `curl -X POST "${webhookUrl}" -H "Authorization: Bearer ${j.webhook?.token ?? ""}" -H "Content-Type: application/json" -d '{"event":"trigger"}'`,
+            }, null, 2),
+          };
         },
       });
 

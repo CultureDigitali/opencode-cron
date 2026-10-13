@@ -161,15 +161,23 @@ Chain independent cron jobs into resilient, multi-step agent pipelines:
 - **Cross-Job Memory Propagation (`passPayload`):** Automatically injects the upstream step's markdown summary into the child job's persistent memory file, passing vital context without monotonic memory bloat (auto-pruned sliding window).
 - **Formal DFS 3-Color Cycle Prevention:** Circular dependencies and self-loops are mathematically rejected at configuration time with descriptive error paths.
 
+### 📡 Inbound Webhooks & Event-Driven HTTP Trigger Receiver
+Trigger scheduled agent workflows on-demand from external services without waiting for interval ticks:
+- **Zero-Config HTTP Endpoints (`/api/webhook/:id`):** Trigger any job via `POST /api/webhook/:jobId?token=whk_...` or header `X-Webhook-Token: whk_...`.
+- **GitHub & GitLab Native Integration (`X-Hub-Signature-256`):** Supports shared HMAC-SHA256 signature verification to securely process inbound Git pushes, PRs, issues, or CI/CD deployments.
+- **Context Injection (`passPayload`):** Incoming webhook JSON events (e.g. commits, author, issue details) are structured into concise markdown and injected into the agent's persistent memory before the run starts.
+- **Anti-Spam Rate-Limiting & Debounce:** Built-in configurable cooldowns prevent webhook flood attacks and token-spend exhaustion.
+- **Web GUI Token Management:** Regenerate secret tokens with 1 click, copy formatted cURL snippets, or trigger immediate test events directly from the Web GUI modal.
+
 ---
 
-## 🛠️ Complete Tool Reference (11 Tools)
+## 🛠️ Complete Tool Reference (12 Tools)
 
-Agents equipped with `@culturedigitali/opencode-cron` have access to 11 native tools:
+Agents equipped with `@culturedigitali/opencode-cron` have access to 12 native tools:
 
 | Tool | Purpose | Key Parameters |
 |---|---|---|
-| `cron_add` | Create recurring scheduled task bound to current session | `title`, `every` (e.g. `5m`) or `cron` (e.g. `*/15 * * * *`), `systemPrompt`, `followupPrompt`, `maxRuns`, `catchUp`, `pipeline` |
+| `cron_add` | Create recurring scheduled task bound to current session | `title`, `every` (e.g. `5m`) or `cron` (e.g. `*/15 * * * *`), `systemPrompt`, `followupPrompt`, `maxRuns`, `catchUp`, `pipeline`, `webhook` |
 | `cron_list` | List all active and paused jobs for the project | *None* |
 | `cron_get` | Inspect detailed job state and metadata | `id` |
 | `cron_pause` | Temporarily pause automated execution | `id` |
@@ -178,6 +186,7 @@ Agents equipped with `@culturedigitali/opencode-cron` have access to 11 native t
 | `cron_run_now` | Trigger immediate test tick without waiting | `id` |
 | `cron_burst` | Trigger high-frequency Burst Mode for rapid monitoring | `id`, `durationMinutes` |
 | `cron_pipeline` | Inspect Multi-Job Pipeline DAG workflows, dependencies, and execution triggers | `id` (optional) |
+| `cron_webhook` | Manage inbound HTTP Webhook trigger endpoint and authorization token | `id`, `action` (`get`, `enable`, `disable`, `rotate-token`), `secret`, `rateLimitSeconds`, `passPayload` |
 | `cron_memory_read` | Read persistent markdown memory for job | `id` |
 | `cron_memory_save` | Persist findings, update facts, append `seenHashes` | `id`, `fattiChiave`, `nuoviVisti`, `lastRunSummary`, `domandeAperte` |
 
