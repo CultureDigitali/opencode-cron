@@ -7,9 +7,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
+      - run: bun run build
       - run: bun test
       - run: bun run typecheck
-      - run: bun run build
       - run: test -x dist/bin/run.js && head -1 dist/bin/run.js | grep -q "usr/bin/env node"
       - run: bunx publint
       - run: npm pack --dry-run
