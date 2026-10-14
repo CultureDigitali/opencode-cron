@@ -11,7 +11,7 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
 <html lang="it" class="dark">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>${escapeHtml(title)}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -54,31 +54,31 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
 
   ${getUiEnhancementsBodyHtml()}
 
-  <!-- Top Navbar -->
+  <!-- Top Navbar: wraps on mobile -->
   <header class="bg-darkcard border-b border-darkborder sticky top-0 z-30 shadow-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
       <!-- Brand & Page Title -->
       <div class="flex items-center space-x-3 min-w-0">
-        <a href="/" class="flex items-center space-x-3 group text-left cursor-pointer" data-tooltip="tt.navDashboard">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+        <a href="/" class="flex items-center gap-2.5 sm:space-x-3 group text-left cursor-pointer min-w-0" data-tooltip="tt.navDashboard">
+          <div class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
             <i class="fa-solid fa-book-open text-white text-lg"></i>
           </div>
           <div class="min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="font-bold text-base tracking-tight text-white group-hover:text-indigo-300 transition-colors">OpenCode Cron</span>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold text-base tracking-tight text-white group-hover:text-indigo-300 transition-colors whitespace-nowrap">OpenCode Cron</span>
               <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">GUIDA</span>
             </div>
-            <p class="text-xs text-gray-400 truncate" data-i18n="instructions.pageSubtitle">Manuale interattivo, architettura e istruzioni complete</p>
+            <p class="text-xs text-gray-400 truncate max-w-[60vw] md:max-w-none" data-i18n="instructions.pageSubtitle">Manuale interattivo, architettura e istruzioni complete</p>
           </div>
         </a>
       </div>
 
-      <!-- Navigation & Multi-Language Controls -->
-      <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
+      <!-- Navigation & Multi-Language Controls: scrollable on mobile -->
+      <div class="oc-scrollrow no-scrollbar flex items-center gap-1.5 sm:gap-2 sm:space-x-1 shrink-0 pb-0.5">
         <!-- Link to Dashboard -->
         <a
           href="/"
-          class="bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+          class="shrink-0 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]"
           data-tooltip="tt.tabJobs"
         >
           <i class="fa-solid fa-gauge text-indigo-400 text-xs"></i>
@@ -88,7 +88,7 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
         <!-- Link to Runs History -->
         <a
           href="/runs"
-          class="bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+          class="shrink-0 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]"
           data-tooltip="tt.tabRuns"
         >
           <i class="fa-solid fa-clock-rotate-left text-emerald-400 text-xs"></i>
@@ -99,7 +99,7 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
         <button
           type="button"
           onclick="startGuidedDemo()"
-          class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition-all cursor-pointer"
+          class="shrink-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition-all cursor-pointer min-h-[40px]"
           data-tooltip="tt.tourBtn"
         >
           <i class="fa-solid fa-wand-magic-sparkles text-amber-300 text-xs"></i>

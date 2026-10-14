@@ -18,6 +18,46 @@ export function escapeHtml(str: string): string {
 
 export function getUiEnhancementsHeadStyle(): string {
   return `
+    /* ---- Responsive foundation (mobile-first, shared / /runs /instructions) ---- */
+    html { -webkit-text-size-adjust: 100%; }
+    body { overflow-x: hidden; text-rendering: optimizeLegibility; }
+    img, video, canvas, pre, table { max-width: 100%; }
+    pre { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .tabular { font-variant-numeric: tabular-nums; }
+    ::selection { background: #6366f1; color: #fff; }
+    :focus-visible { outline: 2px solid #818cf8; outline-offset: 2px; border-radius: 6px; }
+    /* Safe-area for notch / home indicator */
+    body {
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+    }
+    /* Scrollable tab / pill bars: never wrap-push the header */
+    .oc-scrollrow { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .oc-scrollrow::-webkit-scrollbar { display: none; }
+    .oc-scrollrow > * { flex-shrink: 0; }
+    /* Touch targets: 44px minimum on touch input */
+    @media (pointer: coarse) {
+      button, a, select, input[type="checkbox"], input[type="radio"] { min-height: 40px; }
+      nav[role="tablist"] .tab-btn, nav[role="tablist"] a { min-height: 44px; display: inline-flex; align-items: center; }
+      .tab-btn, button.tab-btn { padding-top: 0.65rem; padding-bottom: 0.65rem; }
+    }
+    @media (hover: none) {
+      .group:hover .group-hover\\:translate-x-0\\.5 { transform: none; }
+    }
+    /* Small screens: fluid type + tighter cards */
+    @media (max-width: 640px) {
+      main { padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
+      h1 { line-height: 1.2; overflow-wrap: break-word; }
+      p, h2, h3 { overflow-wrap: break-word; }
+      #toast-container { left: 1rem; right: 1rem; bottom: max(1rem, env(safe-area-inset-bottom)); }
+      #toast-container > div { width: 100%; }
+    }
+    /* Landscape phones: keep sticky filter bars usable */
+    @media (max-height: 500px) and (orientation: landscape) {
+      #chat-messages, #memory-editor, #memory-preview { max-height: 60vh; }
+    }
     /* Universal Accessible Tooltip (#oc-tooltip) */
     #oc-tooltip {
       position: fixed;

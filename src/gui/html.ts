@@ -12,7 +12,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
 <html lang="it" class="dark">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>${escapeHtml(title)}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -60,68 +60,80 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
 
   ${getUiEnhancementsBodyHtml()}
 
-  <!-- Top Navbar -->
+  <!-- Top Navbar: two-row responsive (brand+actions / scrollable tabs) -->
   <header class="bg-darkcard border-b border-darkborder sticky top-0 z-40 backdrop-blur-md bg-opacity-95">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
-      <div class="flex items-center space-x-3">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-black text-lg">
-          <i class="fa-solid fa-clock-rotate-left text-sm"></i>
-        </div>
-        <div>
-          <div class="flex items-center space-x-2">
-            <h1 class="text-base font-bold tracking-tight text-white">OpenCode Cron</h1>
-            <span data-tooltip="tt.liveBadge" class="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span>
-              <span data-i18n="app.liveBadge">Web GUI Live</span>
-            </span>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-2 flex flex-col gap-2 lg:gap-2">
+      <div class="flex items-center justify-between gap-2 min-w-0">
+        <div class="flex items-center space-x-3 min-w-0">
+          <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-black text-lg">
+            <i class="fa-solid fa-clock-rotate-left text-sm"></i>
           </div>
-          <p class="text-xs text-gray-400 font-mono" id="current-dir" data-tooltip="tt.workspaceDir">Loading directory...</p>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h1 class="text-base font-bold tracking-tight text-white whitespace-nowrap">OpenCode Cron</h1>
+              <span data-tooltip="tt.liveBadge" class="text-[11px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hidden xs:inline-flex sm:inline-flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span>
+                <span data-i18n="app.liveBadge">Web GUI Live</span>
+              </span>
+            </div>
+            <p class="text-[11px] text-gray-400 font-mono truncate max-w-[46vw] sm:max-w-none" id="current-dir" data-tooltip="tt.workspaceDir">Loading directory...</p>
+          </div>
+        </div>
+
+        <!-- Action buttons + Language + Guide -->
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div class="hidden xl:flex items-center gap-2">
+            ${getHeaderControlsHtml()}
+          </div>
+          <button id="btn-header-queue" onclick="openQueueModal()" data-tooltip="tt.queueBtn" aria-label="Coda e Worker" class="bg-darkcard hover:bg-gray-800 text-amber-300 border border-darkborder hover:border-amber-500/40 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer min-h-[40px]">
+            <i class="fa-solid fa-layer-group text-amber-400"></i>
+            <span class="hidden md:inline" data-i18n="nav.queue">Coda & Worker</span>
+            <span id="header-queue-badge" class="tabular px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">0/2</span>
+          </button>
+          <button id="btn-header-dlq" onclick="openDlqModal()" data-tooltip="tt.dlqBtn" aria-label="DLQ e Circuit" class="bg-darkcard hover:bg-gray-800 text-rose-300 border border-darkborder hover:border-rose-500/40 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer min-h-[40px]">
+            <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
+            <span class="hidden md:inline" data-i18n="nav.dlq">DLQ & Circuit</span>
+            <span id="header-dlq-badge" class="tabular px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">0</span>
+          </button>
+          <button id="btn-header-new-job" onclick="openNewJobModal()" data-tooltip="tt.tabJobs" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 sm:px-3.5 py-2 rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition-all cursor-pointer min-h-[40px]">
+            <i class="fa-solid fa-plus text-[10px]"></i> <span class="hidden sm:inline" data-i18n="nav.newJob">Nuovo Job</span>
+          </button>
+          <button onclick="refreshAll()" data-tooltip="tt.liveBadge" aria-label="Ricarica stato" class="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 rounded-xl transition-colors border border-darkborder cursor-pointer">
+            <i class="fa-solid fa-arrows-rotate text-xs" id="refresh-spinner"></i>
+          </button>
+          <button type="button" onclick="document.getElementById('oc-mobile-menu').classList.toggle('hidden')" aria-label="Apri menu" aria-expanded="false" class="xl:hidden p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-800 rounded-xl border border-darkborder cursor-pointer">
+            <i class="fa-solid fa-bars text-sm"></i>
+          </button>
         </div>
       </div>
 
-      <!-- Navigation Tabs -->
-      <nav role="tablist" aria-label="Sezioni Principali" class="flex items-center space-x-1 sm:space-x-2 bg-gray-900/60 p-1 rounded-xl border border-darkborder">
-        <button role="tab" aria-selected="true" aria-controls="view-jobs" onclick="switchTab('jobs')" id="tab-btn-jobs" data-tooltip="tt.tabJobs" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all text-white bg-brand-600 shadow-sm">
+      <!-- Navigation Tabs: scrollable row, never overflows -->
+      <nav role="tablist" aria-label="Sezioni Principali" class="oc-scrollrow no-scrollbar flex items-center gap-1 sm:gap-1.5 bg-gray-900/60 p-1 rounded-xl border border-darkborder w-full">
+        <button role="tab" aria-selected="true" aria-controls="view-jobs" onclick="switchTab('jobs')" id="tab-btn-jobs" data-tooltip="tt.tabJobs" class="tab-btn px-3 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-all text-white bg-brand-600 shadow-sm whitespace-nowrap">
           <i class="fa-solid fa-calendar-check"></i> <span data-i18n="nav.jobs">Jobs & Cron</span>
         </button>
-        <button role="tab" aria-selected="false" aria-controls="view-chat" onclick="switchTab('chat')" id="tab-btn-chat" data-tooltip="tt.tabChat" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all text-gray-400 hover:text-white">
+        <button role="tab" aria-selected="false" aria-controls="view-chat" onclick="switchTab('chat')" id="tab-btn-chat" data-tooltip="tt.tabChat" class="tab-btn px-3 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-all text-gray-400 hover:text-white whitespace-nowrap">
           <i class="fa-solid fa-comments"></i> <span data-i18n="nav.chat">Live Chat</span>
           <span id="chat-live-badge" class="w-2 h-2 rounded-full bg-emerald-400 hidden animate-ping"></span>
         </button>
-        <button role="tab" aria-selected="false" aria-controls="view-memory" onclick="switchTab('memory')" id="tab-btn-memory" data-tooltip="tt.tabMemory" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all text-gray-400 hover:text-white cursor-pointer">
+        <button role="tab" aria-selected="false" aria-controls="view-memory" onclick="switchTab('memory')" id="tab-btn-memory" data-tooltip="tt.tabMemory" class="tab-btn px-3 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-all text-gray-400 hover:text-white cursor-pointer whitespace-nowrap">
           <i class="fa-solid fa-brain"></i> <span data-i18n="nav.memory">Memoria</span>
         </button>
-        <button role="tab" aria-selected="false" aria-controls="view-diff" onclick="switchTab('diff')" id="tab-btn-diff" data-tooltip="tt.tabDiff" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all text-gray-400 hover:text-white cursor-pointer">
+        <button role="tab" aria-selected="false" aria-controls="view-diff" onclick="switchTab('diff')" id="tab-btn-diff" data-tooltip="tt.tabDiff" class="tab-btn px-3 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-all text-gray-400 hover:text-white cursor-pointer whitespace-nowrap">
           <i class="fa-solid fa-code-compare"></i> <span data-i18n="nav.diff">Git Diff</span>
           <span id="diff-count-badge" class="hidden px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30"></span>
         </button>
-        <button role="tab" aria-selected="false" aria-controls="view-logs" onclick="switchTab('logs')" id="tab-btn-logs" data-tooltip="tt.tabLogs" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all text-gray-400 hover:text-white cursor-pointer">
+        <button role="tab" aria-selected="false" aria-controls="view-logs" onclick="switchTab('logs')" id="tab-btn-logs" data-tooltip="tt.tabLogs" class="tab-btn px-3 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-all text-gray-400 hover:text-white cursor-pointer whitespace-nowrap">
           <i class="fa-solid fa-terminal"></i> <span data-i18n="nav.logs">Logs</span>
         </button>
-        <a href="/runs" id="nav-link-runs" data-tooltip="tt.tabRuns" class="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 shadow-sm">
+        <a href="/runs" id="nav-link-runs" data-tooltip="tt.tabRuns" class="px-3 py-2 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 transition-all text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 shadow-sm whitespace-nowrap">
           <i class="fa-solid fa-chart-line"></i> <span data-i18n="nav.runs">Esiti Runs</span>
         </a>
       </nav>
 
-      <!-- Action buttons + Language + Guide -->
-      <div class="flex items-center gap-2">
+      <!-- Collapsible overflow menu: language + guide on small screens -->
+      <div id="oc-mobile-menu" class="hidden xl:hidden flex flex-wrap items-center gap-2 pt-1">
         ${getHeaderControlsHtml()}
-        <button id="btn-header-queue" onclick="openQueueModal()" data-tooltip="tt.queueBtn" class="bg-darkcard hover:bg-gray-800 text-amber-300 border border-darkborder hover:border-amber-500/40 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer">
-          <i class="fa-solid fa-layer-group text-amber-400"></i>
-          <span class="hidden md:inline" data-i18n="nav.queue">Coda & Worker</span>
-          <span id="header-queue-badge" class="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">0/2</span>
-        </button>
-        <button id="btn-header-dlq" onclick="openDlqModal()" data-tooltip="tt.dlqBtn" class="bg-darkcard hover:bg-gray-800 text-rose-300 border border-darkborder hover:border-rose-500/40 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer">
-          <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
-          <span class="hidden md:inline" data-i18n="nav.dlq">DLQ & Circuit</span>
-          <span id="header-dlq-badge" class="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">0</span>
-        </button>
-        <button id="btn-header-new-job" onclick="openNewJobModal()" data-tooltip="tt.tabJobs" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition-all cursor-pointer">
-          <i class="fa-solid fa-plus text-[10px]"></i> <span class="hidden sm:inline" data-i18n="nav.newJob">Nuovo Job</span>
-        </button>
-        <button onclick="refreshAll()" data-tooltip="tt.liveBadge" aria-label="Ricarica stato" class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-xl transition-colors border border-darkborder cursor-pointer">
-          <i class="fa-solid fa-arrows-rotate text-xs" id="refresh-spinner"></i>
-        </button>
       </div>
     </div>
   </header>
@@ -196,7 +208,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       </div>
 
       <!-- Jobs Grid Header -->
-      <div class="flex items-center justify-between pt-2">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
         <div>
           <h2 class="text-lg font-bold text-white tracking-tight" data-i18n="jobs.heading">Cron Jobs Registrati</h2>
           <p class="text-xs text-gray-400" data-i18n="jobs.subheading">Task ricorrenti che scrivono direttamente nelle sessioni di OpenCode</p>
@@ -226,26 +238,26 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
     <!-- ============================================== -->
     <section id="view-chat" role="tabpanel" aria-labelledby="tab-btn-chat" class="tab-view hidden space-y-4">
       <div class="bg-darkcard border border-darkborder rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div class="flex items-center space-x-3">
-          <div class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
+        <div class="flex items-center space-x-3 min-w-0">
+          <div class="w-9 h-9 shrink-0 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
             <i class="fa-solid fa-comments"></i>
           </div>
-          <div>
-            <h2 class="text-sm font-bold text-white" data-i18n="chat.title">Live Chat & Feed Sessione</h2>
-            <p class="text-xs text-gray-400" data-i18n="chat.subtitle">Visualizza e aggiorna in tempo reale i prompt e le risposte generate dai tick automatici</p>
+          <div class="min-w-0">
+            <h2 class="text-sm font-bold text-white truncate" data-i18n="chat.title">Live Chat & Feed Sessione</h2>
+            <p class="text-xs text-gray-400 line-clamp-2 sm:line-clamp-1" data-i18n="chat.subtitle">Visualizza e aggiorna in tempo reale i prompt e le risposte generate dai tick automatici</p>
           </div>
         </div>
 
-        <div class="flex items-center space-x-3">
+        <div class="flex flex-wrap items-center gap-2">
           <!-- Rich Custom Session Picker Dropdown Component -->
-          <div class="relative" id="session-picker-wrapper">
+          <div class="relative min-w-0" id="session-picker-wrapper">
             <button
               id="session-picker-trigger"
               type="button"
               onclick="toggleSessionPicker()"
               aria-haspopup="listbox"
               aria-expanded="false"
-              class="flex items-center space-x-2 bg-gray-950/90 hover:bg-gray-900 border border-darkborder hover:border-indigo-500/50 rounded-xl px-3 py-1.5 text-xs transition-all shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/40 group cursor-pointer"
+              class="flex items-center gap-2 max-w-[92vw] sm:max-w-none bg-gray-950/90 hover:bg-gray-900 border border-darkborder hover:border-indigo-500/50 rounded-xl px-3 py-2 text-xs transition-all shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/40 group cursor-pointer min-h-[44px]"
             >
               <span class="text-xs text-gray-400 font-medium" data-i18n="chat.sessionLabel">Sessione:</span>
               <div id="session-trigger-badge" class="flex items-center gap-1.5">
@@ -253,7 +265,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                   <i class="fa-solid fa-spinner fa-spin text-[9px]"></i> <span data-i18n="loading.generic">Caricamento...</span>
                 </span>
               </div>
-              <span id="session-trigger-title" class="font-bold text-gray-100 max-w-[150px] sm:max-w-[220px] md:max-w-[280px] truncate block text-left" data-i18n="loading.generic">
+              <span id="session-trigger-title" class="font-bold text-gray-100 max-w-[110px] xs:max-w-[150px] sm:max-w-[220px] md:max-w-[280px] truncate block text-left" data-i18n="loading.generic">
                 Caricamento...
               </span>
               <span id="session-trigger-time" class="text-[10px] text-gray-500 hidden sm:inline-block font-mono">
@@ -270,7 +282,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
             <!-- Dropdown Popover Menu -->
             <div
               id="session-picker-dropdown"
-              class="hidden absolute right-0 mt-2 w-[420px] sm:w-[500px] max-w-[92vw] bg-gray-950/95 backdrop-blur-xl border border-darkborder rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[580px] animate-fadeIn"
+              class="hidden absolute left-0 sm:left-auto sm:right-0 mt-2 w-[calc(100vw-2rem)] sm:w-[500px] max-w-[92vw] bg-gray-950/95 backdrop-blur-xl border border-darkborder rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[70vh] sm:max-h-[580px] animate-fadeIn"
             >
               <!-- Search & Refresh Header -->
               <div class="p-3 border-b border-darkborder bg-gray-900/60 flex items-center gap-2">
@@ -381,9 +393,9 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       </div>
 
       <!-- Chat Messages Container -->
-      <div class="bg-darkcard border border-darkborder rounded-2xl flex flex-col h-[650px] shadow-2xl relative overflow-hidden">
+      <div class="bg-darkcard border border-darkborder rounded-2xl flex flex-col h-[70vh] min-h-[420px] sm:h-[650px] shadow-2xl relative overflow-hidden">
         <!-- Active Session Context Banner -->
-        <div id="chat-session-banner" class="px-4 py-2 bg-gray-950/80 border-b border-darkborder flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div id="chat-session-banner" class="px-3 sm:px-4 py-2 bg-gray-950/80 border-b border-darkborder flex flex-wrap items-center justify-between gap-2 text-xs">
           <div class="flex items-center gap-2 min-w-0">
             <span id="banner-session-type-badge">
               <span class="bg-gray-800 text-gray-400 px-2 py-0.5 rounded text-[10px] font-semibold">Sessione</span>
@@ -414,7 +426,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         </div>
 
         <!-- Chat Input Bar -->
-        <div class="p-3 bg-gray-900/80 border-t border-darkborder flex items-end space-x-2">
+        <div class="p-3 bg-gray-900/80 border-t border-darkborder flex items-end gap-2 safe-area-pad">
           <textarea id="chat-prompt-input" rows="1" placeholder="Invia un prompt o istruzione manuale a questa sessione (Invio invia, Shift+Invio a capo)..." data-i18n-placeholder="chat.promptPlaceholder" class="flex-1 bg-gray-950 border border-darkborder rounded-xl px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 resize-none max-h-36 leading-relaxed" onkeydown="handleChatInputKey(event)" oninput="autoResizeTextarea(this)"></textarea>
           <button onclick="sendManualPrompt()" id="send-prompt-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition-all shrink-0">
             <i class="fa-solid fa-paper-plane"></i> <span data-i18n="chat.send">Invia</span>
@@ -427,12 +439,12 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
     <!-- TAB 3: PERSISTENT MEMORY & ARTIFACTS           -->
     <!-- ============================================== -->
     <section id="view-memory" role="tabpanel" aria-labelledby="tab-btn-memory" class="tab-view hidden space-y-4">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg font-bold text-white tracking-tight" data-i18n="memory.title">Memoria Persistente Cron</h2>
           <p class="text-xs text-gray-400" data-i18n="memory.subtitle">File markdown salvati in .opencode/cron/memory/</p>
         </div>
-        <div class="flex items-center space-x-2">
+        <div class="flex flex-wrap items-center gap-2">
           <select id="memory-job-select" onchange="loadJobMemory(this.value)" class="bg-gray-900 border border-darkborder text-xs rounded-lg px-3 py-1.5 text-gray-200">
             <option value="">Seleziona un job...</option>
           </select>
@@ -444,7 +456,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <!-- Editor -->
-        <div class="bg-darkcard border border-darkborder rounded-2xl p-4 flex flex-col h-[580px]">
+        <div class="bg-darkcard border border-darkborder rounded-2xl p-4 flex flex-col h-[420px] sm:h-[580px]">
           <div class="flex items-center justify-between pb-3 border-b border-darkborder mb-3">
             <span class="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
               <i class="fa-solid fa-pen-to-square text-indigo-400"></i> <span data-i18n="memory.editor">Editor Markdown</span>
@@ -455,7 +467,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         </div>
 
         <!-- Live Preview -->
-        <div class="bg-darkcard border border-darkborder rounded-2xl p-4 flex flex-col h-[580px]">
+        <div class="bg-darkcard border border-darkborder rounded-2xl p-4 flex flex-col h-[420px] sm:h-[580px]">
           <div class="flex items-center justify-between pb-3 border-b border-darkborder mb-3">
             <span class="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
               <i class="fa-solid fa-eye text-indigo-400"></i> <span data-i18n="memory.preview">Anteprima Renderizzata</span>
@@ -472,7 +484,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
     <!-- TAB 4: SYSTEM LOGS & TICKER                    -->
     <!-- ============================================== -->
     <section id="view-logs" role="tabpanel" aria-labelledby="tab-btn-logs" class="tab-view hidden space-y-4">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg font-bold text-white tracking-tight" data-i18n="logs.title">Logs & Diagnostica Ticker</h2>
           <p class="text-xs text-gray-400" data-i18n="logs.subtitle">Output da ~/Library/Logs/opencode-cron.log e .err</p>
@@ -486,7 +498,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <!-- Stdout Log -->
-        <div class="bg-darkcard border border-darkborder rounded-2xl p-4 flex flex-col h-[600px]">
+        <div class="bg-darkcard border border-darkborder rounded-2xl p-4 flex flex-col h-[420px] sm:h-[600px]">
           <div class="flex items-center justify-between pb-2 border-b border-darkborder mb-2">
             <span class="text-xs font-bold text-emerald-400 font-mono">STDOUT (opencode-cron.log)</span>
           </div>
@@ -494,7 +506,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         </div>
 
         <!-- Stderr Log -->
-        <div class="bg-darkcard border border-darkborder rounded-2xl p-4 flex flex-col h-[600px]">
+        <div class="bg-darkcard border border-darkborder rounded-2xl p-4 flex flex-col h-[420px] sm:h-[600px]">
           <div class="flex items-center justify-between pb-2 border-b border-darkborder mb-2">
             <span class="text-xs font-bold text-rose-400 font-mono">STDERR (opencode-cron.err)</span>
           </div>
@@ -533,9 +545,9 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         <div id="git-files-summary" class="flex items-center gap-2 text-[11px]"></div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[650px]">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:h-[650px]">
         <!-- File list sidebar (4 cols) -->
-        <div class="lg:col-span-4 bg-darkcard border border-darkborder rounded-2xl p-3 flex flex-col overflow-hidden">
+        <div class="lg:col-span-4 bg-darkcard border border-darkborder rounded-2xl p-3 flex flex-col overflow-hidden min-h-[280px] max-h-[420px] lg:max-h-none lg:h-full">
           <div class="flex items-center justify-between pb-2.5 border-b border-darkborder mb-2">
             <span class="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
               <i class="fa-solid fa-folder-tree text-indigo-400"></i> <span data-i18n="diff.filesInvolved">File Coinvolti</span> (<span id="git-files-count">0</span>)
@@ -550,7 +562,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         </div>
 
         <!-- Diff Viewer pane (8 cols) -->
-        <div class="lg:col-span-8 bg-darkcard border border-darkborder rounded-2xl flex flex-col overflow-hidden">
+        <div class="lg:col-span-8 bg-darkcard border border-darkborder rounded-2xl flex flex-col overflow-hidden min-h-[380px] max-h-[70vh] lg:max-h-none lg:h-full">
           <div class="flex items-center justify-between px-4 py-2.5 border-b border-darkborder bg-gray-900/60">
             <span id="git-diff-filename" class="text-xs font-mono font-semibold text-gray-200 truncate">
               Tutte le modifiche (Unified Diff)
@@ -571,8 +583,8 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
   <!-- ============================================== -->
   <!-- MODAL: NUOVO / MODIFICA JOB                    -->
   <!-- ============================================== -->
-  <div id="job-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-xl w-full p-6 shadow-2xl relative">
+  <div id="job-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-xl w-full my-4 sm:my-8 p-4 sm:p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between pb-4 border-b border-darkborder mb-4">
         <h3 id="modal-title" class="text-base font-bold text-white" data-i18n="modal.newTitle">Nuovo Cron Job</h3>
         <button onclick="closeModal()" aria-label="Chiudi finestra modale" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800"><i class="fa-solid fa-xmark"></i></button>
@@ -605,7 +617,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
             <button type="button" onclick="applySchedulePreset('0 9 * * 1-5')" class="px-2 py-0.5 rounded-md bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder text-[10px] font-medium transition-colors cursor-pointer">🏢 Lun-Ven 09:00</button>
           </div>
 
-          <div class="grid grid-cols-3 gap-3 pt-1">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
             <div data-tooltip="tt.formSchedule">
               <label for="form-schedule" class="text-[10px] text-gray-400 block mb-0.5"><span data-i18n="modal.fieldSchedule">Espressione</span> <span class="oc-help-badge">?</span></label>
               <input type="text" id="form-schedule" required placeholder="5m, 1h, */5 * * * *" oninput="debounceSchedulePreview(this.value)" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1.5 text-gray-100 font-mono text-xs focus:outline-none focus:border-indigo-500">
@@ -645,7 +657,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
               <input type="checkbox" id="form-adaptive-enabled" onchange="toggleAdaptiveFields()" class="w-4 h-4 rounded text-indigo-600 bg-gray-900 border-gray-700 cursor-pointer">
             </div>
             <p class="text-[11px] text-gray-400 leading-relaxed" data-i18n="modal.adaptiveHelp">Accelera la frequenza durante l'attività e rallenta quando non ci sono novità per risparmiare risorse e token.</p>
-            <div id="adaptive-fields" class="grid grid-cols-3 gap-2 pt-1 hidden">
+            <div id="adaptive-fields" class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 hidden">
               <div>
                 <label for="form-adaptive-burst" class="text-[10px] text-gray-400 block mb-0.5" data-i18n="modal.adaptiveBurst">Burst Interval</label>
                 <input type="text" id="form-adaptive-burst" placeholder="1m" value="1m" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1 text-xs text-gray-100 font-mono focus:outline-none focus:border-indigo-500">
@@ -672,7 +684,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
             </div>
             <p class="text-[11px] text-gray-400 leading-relaxed" data-i18n="modal.pipelineHelp">Collega questo job ad altri job: esegui automaticamente i successivi al termine con successo o su errore.</p>
             <div id="pipeline-fields" class="space-y-2 pt-1 hidden">
-              <div class="grid grid-cols-2 gap-2">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label for="form-pipeline-success" class="text-[10px] text-gray-400 block mb-0.5" data-i18n="modal.pipelineOnSuccess">Esegui su Successo (Job IDs)</label>
                   <input type="text" id="form-pipeline-success" placeholder="job_id_1, job_id_2" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1 text-xs text-gray-100 font-mono focus:outline-none focus:border-cyan-500">
@@ -704,7 +716,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                 <label for="form-webhook-secret" class="text-[10px] text-gray-400 block mb-0.5" data-i18n="webhook.secretLabel">Segreto Condiviso HMAC (opzionale per GitHub X-Hub-Signature-256)</label>
                 <input type="text" id="form-webhook-secret" placeholder="opzionale (es. gh_sec_12345)" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1 text-xs text-gray-100 font-mono focus:outline-none focus:border-violet-500">
               </div>
-              <div class="grid grid-cols-2 gap-2">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label for="form-webhook-ratelimit" class="text-[10px] text-gray-400 block mb-0.5" data-i18n="webhook.rateLimit">Cooldown anti-spam (secondi)</label>
                   <input type="number" id="form-webhook-ratelimit" min="1" max="86400" value="5" class="w-full bg-gray-950 border border-darkborder rounded-lg px-2.5 py-1 text-xs text-gray-100 font-mono focus:outline-none focus:border-violet-500">
@@ -718,7 +730,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label for="form-session-id" class="block font-medium text-gray-300 mb-1" data-i18n="modal.fieldSession">Sessione OpenCode</label>
             <select id="form-session-id" class="w-full bg-gray-950 border border-darkborder rounded-lg px-3 py-2 text-gray-100 focus:outline-none focus:border-indigo-500">
@@ -752,8 +764,8 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
   <!-- ============================================== -->
   <!-- MODAL: CONFERMA ELIMINAZIONE                   -->
   <!-- ============================================== -->
-  <div id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
+  <div id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-sm w-full my-4 p-4 sm:p-6 max-h-[92vh] overflow-y-auto shadow-2xl relative">
       <div class="flex items-center space-x-3 text-rose-400 mb-3">
         <div class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
           <i class="fa-solid fa-triangle-exclamation text-base"></i>
@@ -774,8 +786,8 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
   <!-- ============================================== -->
   <!-- MODAL: WORKFLOW & DAG PIPELINE GRAPH           -->
   <!-- ============================================== -->
-  <div id="pipeline-modal" role="dialog" aria-modal="true" aria-labelledby="pipeline-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-3xl w-full p-6 shadow-2xl relative flex flex-col max-h-[85vh]">
+  <div id="pipeline-modal" role="dialog" aria-modal="true" aria-labelledby="pipeline-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-3xl w-full my-4 p-4 sm:p-6 max-h-[92vh] overflow-y-auto shadow-2xl relative flex flex-col max-h-[85vh]">
       <div class="flex items-center justify-between pb-4 border-b border-darkborder mb-4">
         <div class="flex items-center space-x-2.5">
           <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
@@ -803,8 +815,8 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
   <!-- ============================================== -->
   <!-- MODAL: INBOUND WEBHOOK & TOKEN MANAGER         -->
   <!-- ============================================== -->
-  <div id="webhook-modal" role="dialog" aria-modal="true" aria-labelledby="webhook-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-xl w-full p-6 shadow-2xl relative flex flex-col">
+  <div id="webhook-modal" role="dialog" aria-modal="true" aria-labelledby="webhook-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-xl w-full my-4 p-4 sm:p-6 max-h-[92vh] overflow-y-auto shadow-2xl relative flex flex-col">
       <div class="flex items-center justify-between pb-4 border-b border-darkborder mb-4">
         <div class="flex items-center space-x-2.5">
           <div class="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
@@ -821,7 +833,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       <div class="space-y-4">
         <div>
           <label class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider block mb-1" data-i18n="webhook.urlLabel">URL Webhook (con Token)</label>
-          <div class="flex gap-2">
+          <div class="flex flex-col sm:flex-row gap-2">
             <input type="text" id="webhook-modal-url" readonly class="flex-1 bg-gray-950 border border-darkborder rounded-lg px-3 py-1.5 text-xs text-violet-300 font-mono select-all focus:outline-none">
             <button onclick="copyWebhookUrl()" class="px-3 py-1.5 bg-violet-600/30 hover:bg-violet-600/50 text-violet-200 border border-violet-500/40 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer">
               <i class="fa-solid fa-copy"></i> <span data-i18n="webhook.copyUrl">Copia URL</span>
@@ -831,7 +843,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
 
         <div>
           <label class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider block mb-1" data-i18n="webhook.tokenLabel">Token Segreto di Autorizzazione</label>
-          <div class="flex gap-2">
+          <div class="flex flex-col sm:flex-row gap-2">
             <input type="text" id="webhook-modal-token" readonly class="flex-1 bg-gray-950 border border-darkborder rounded-lg px-3 py-1.5 text-xs text-gray-200 font-mono select-all focus:outline-none">
             <button onclick="rotateWebhookToken()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 border border-darkborder rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer">
               <i class="fa-solid fa-arrows-rotate"></i> <span data-i18n="webhook.rotateToken">Rigenera</span>
@@ -844,7 +856,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           <input type="text" id="webhook-modal-secret" placeholder="opzionale (es. my_shared_secret)" class="w-full bg-gray-950 border border-darkborder rounded-lg px-3 py-1.5 text-xs text-gray-200 font-mono focus:outline-none focus:border-violet-500">
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label for="webhook-modal-ratelimit" class="text-[11px] text-gray-400 font-semibold uppercase tracking-wider block mb-1" data-i18n="webhook.rateLimit">Cooldown anti-spam (s)</label>
             <input type="number" id="webhook-modal-ratelimit" min="1" max="86400" value="5" class="w-full bg-gray-950 border border-darkborder rounded-lg px-3 py-1.5 text-xs text-gray-200 font-mono focus:outline-none focus:border-violet-500">
@@ -866,8 +878,8 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         </div>
       </div>
 
-      <div class="flex items-center justify-between pt-4 mt-4 border-t border-darkborder">
-        <div class="flex gap-2">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-4 border-t border-darkborder">
+        <div class="flex flex-wrap gap-2">
           <button type="button" id="webhook-test-btn" onclick="testWebhookTrigger()" class="px-3 py-1.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer">
             <i class="fa-solid fa-paper-plane"></i> <span data-i18n="webhook.testBtn">Test Trigger</span>
           </button>
@@ -884,8 +896,8 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
   </div>
 
   <!-- Modal: Concurrency Manager & Priority Queue -->
-  <div id="queue-modal" role="dialog" aria-modal="true" aria-labelledby="queue-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
+  <div id="queue-modal" role="dialog" aria-modal="true" aria-labelledby="queue-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-2xl w-full my-4 p-4 sm:p-6 max-h-[92vh] overflow-y-auto shadow-2xl relative max-h-[90vh] flex flex-col">
       <div class="flex items-center justify-between pb-4 border-b border-darkborder mb-4">
         <div>
           <h3 id="queue-modal-title" class="text-base font-bold text-white flex items-center gap-2">
@@ -898,7 +910,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       </div>
 
       <!-- Settings Controls: Max Concurrency -->
-      <div class="bg-gray-950/70 border border-darkborder rounded-xl p-4 mb-4 flex items-center justify-between gap-4">
+      <div class="bg-gray-950/70 border border-darkborder rounded-xl p-4 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
             <i class="fa-solid fa-bolt text-lg"></i>
@@ -958,8 +970,8 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
   </div>
 
   <!-- Modal: Dead Letter Queue (DLQ) & Quarantine -->
-  <div id="dlq-modal" role="dialog" aria-modal="true" aria-labelledby="dlq-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-3xl w-full p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
+  <div id="dlq-modal" role="dialog" aria-modal="true" aria-labelledby="dlq-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-3xl w-full my-4 p-4 sm:p-6 max-h-[92vh] overflow-y-auto shadow-2xl relative max-h-[90vh] flex flex-col">
       <div class="flex items-center justify-between pb-4 border-b border-darkborder mb-4">
         <div>
           <h3 id="dlq-modal-title" class="text-base font-bold text-white flex items-center gap-2">
@@ -1190,11 +1202,11 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         const safeSession = escapeHtml(job.sessionID);
 
         return \`
-          <div class="bg-darkcard border border-darkborder hover:border-gray-700 transition-all rounded-2xl p-5 shadow-lg flex flex-col justify-between">
-            <div>
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <div class="flex items-center space-x-2">
+          <div class="bg-darkcard border border-darkborder hover:border-gray-700 transition-all rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col justify-between min-w-0">
+            <div class="min-w-0">
+              <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
                     <h3 class="text-sm font-bold text-white tracking-tight">\${safeTitle}</h3>
                     \${statusBadge}
                     \${circuitBadge}
@@ -1205,7 +1217,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                   </div>
                   <p class="text-[11px] font-mono text-indigo-400 mt-0.5">\${safeId}</p>
                 </div>
-                <div class="flex items-center space-x-1">
+                <div class="oc-scrollrow no-scrollbar flex items-center gap-1 pb-0.5 shrink-0">
                   <button id="webhook-btn-\${safeId}" data-job-id="\${safeId}" onclick="openWebhookModal(this.dataset.jobId)" data-tooltip="tt.webhookBtn" aria-label="\${escapeHtml(t('job.webhookBtn'))}" class="p-2 text-violet-400 hover:text-white hover:bg-violet-600/20 rounded-lg transition-colors border border-darkborder">
                     <i class="fa-solid fa-satellite-dish text-xs"></i>
                   </button>

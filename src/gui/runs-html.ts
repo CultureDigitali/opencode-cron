@@ -12,7 +12,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
 <html lang="it" class="dark">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>${escapeHtml(title)}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -60,40 +60,40 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
 
   ${getUiEnhancementsBodyHtml()}
 
-  <!-- Top Header -->
+  <!-- Top Header: wraps on mobile -->
   <header class="bg-darkcard/95 border-b border-darkborder sticky top-0 z-40 backdrop-blur-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <a href="/" data-tooltip="tt.tabJobs" class="px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white border border-gray-700 text-xs font-semibold flex items-center gap-2 transition-colors">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <a href="/" data-tooltip="tt.tabJobs" aria-label="Dashboard" class="shrink-0 min-w-[40px] min-h-[40px] px-3 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white border border-gray-700 text-xs font-semibold flex items-center gap-2 transition-colors">
           <i class="fa-solid fa-arrow-left rtl:rotate-180"></i>
-          <span data-i18n="nav.dashboard">Dashboard</span>
+          <span data-i18n="nav.dashboard" class="hidden sm:inline">Dashboard</span>
         </a>
-        <div class="h-5 w-px bg-gray-800 hidden sm:block"></div>
-        <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white">
+        <div class="h-5 w-px bg-gray-800 hidden sm:block shrink-0"></div>
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white">
             <i class="fa-solid fa-chart-line text-sm"></i>
           </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h1 class="text-base font-bold tracking-tight text-white" data-i18n="runs.pageTitle">Storico Esecuzioni Cron (Runs)</h1>
-              <span data-tooltip="tt.liveBadge" class="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h1 class="text-sm sm:text-base font-bold tracking-tight text-white" data-i18n="runs.pageTitle">Storico Esecuzioni Cron (Runs)</h1>
+              <span data-tooltip="tt.liveBadge" class="hidden sm:inline-flex text-[11px] px-2 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 items-center gap-1.5">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span>
                 <span data-i18n="app.liveBadge">Live Monitor</span>
               </span>
             </div>
-            <p class="text-xs text-gray-400" data-i18n="runs.pageSubtitle">Verifica immediata di quali cron job sono partiti con successo e quali sono falliti</p>
+            <p class="text-[11px] sm:text-xs text-gray-400 line-clamp-2 lg:line-clamp-1" data-i18n="runs.pageSubtitle">Verifica immediata di quali cron job sono partiti con successo e quali sono falliti</p>
           </div>
         </div>
       </div>
 
-      <!-- Right Actions -->
-      <div class="flex items-center gap-2">
+      <!-- Right Actions: scrollable row on mobile -->
+      <div class="oc-scrollrow no-scrollbar flex items-center gap-1.5 sm:gap-2 pb-0.5">
         ${getHeaderControlsHtml()}
-        <label class="hidden md:flex items-center gap-2 text-xs text-gray-300 bg-gray-900/80 px-3 py-1.5 rounded-xl border border-darkborder cursor-pointer select-none" data-tooltip="tt.liveBadge">
+        <label class="hidden md:flex items-center gap-2 text-xs text-gray-300 bg-gray-900/80 px-3 py-2 rounded-xl border border-darkborder cursor-pointer select-none whitespace-nowrap" data-tooltip="tt.liveBadge">
           <input type="checkbox" id="auto-refresh-toggle" checked onchange="toggleAutoRefresh(this.checked)" class="rounded bg-gray-800 border-gray-700 text-brand-500 focus:ring-brand-500" />
           <span data-i18n="runs.autoRefresh">Auto-aggiorna (5s)</span>
         </label>
-        <button onclick="loadRunsData(true)" data-tooltip="tt.runsKpiTotal" class="bg-brand-600 hover:bg-brand-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-md shadow-brand-600/25 flex items-center gap-1.5 transition-all">
+        <button onclick="loadRunsData(true)" data-tooltip="tt.runsKpiTotal" class="shrink-0 bg-brand-600 hover:bg-brand-500 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-md shadow-brand-600/25 flex items-center gap-1.5 transition-all min-h-[40px]">
           <i class="fa-solid fa-arrows-rotate" id="refresh-icon"></i>
           <span class="hidden sm:inline" data-i18n="runs.refreshNow">Aggiorna Ora</span>
         </button>
@@ -109,7 +109,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
     <!-- 1. HERO KPI SUMMARY CARDS -->
     <section aria-label="Riepilogo Globale Esecuzioni" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- Total Runs -->
-      <button type="button" onclick="setStatusFilter('all')" data-tooltip="tt.runsKpiTotal" class="text-left rtl:text-right bg-darkcard hover:bg-gray-900/90 border border-darkborder hover:border-gray-700 rounded-2xl p-5 transition-all group">
+      <button type="button" onclick="setStatusFilter('all')" data-tooltip="tt.runsKpiTotal" class="text-left rtl:text-right bg-darkcard hover:bg-gray-900/90 border border-darkborder hover:border-gray-700 rounded-2xl p-4 sm:p-5 transition-all group">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center">
             <span data-i18n="runs.kpiTotal">Totale Esecuzioni</span>
@@ -120,7 +120,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
           </span>
         </div>
         <div class="mt-3 flex items-baseline gap-2">
-          <span class="text-3xl font-extrabold text-white tracking-tight" id="kpi-total">—</span>
+          <span class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight" id="kpi-total">—</span>
           <span class="text-xs text-gray-400" data-i18n="runs.kpiTotalSub">runs registrate</span>
         </div>
         <p class="mt-2 text-xs text-indigo-300/90 flex items-center gap-1">
@@ -130,7 +130,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
       </button>
 
       <!-- Succeeded Runs -->
-      <button type="button" onclick="setStatusFilter('success')" data-tooltip="tt.runsKpiSuccess" class="text-left rtl:text-right bg-gradient-to-br from-emerald-950/40 to-darkcard hover:from-emerald-950/60 border border-emerald-500/30 hover:border-emerald-400/50 rounded-2xl p-5 transition-all group">
+      <button type="button" onclick="setStatusFilter('success')" data-tooltip="tt.runsKpiSuccess" class="text-left rtl:text-right bg-gradient-to-br from-emerald-950/40 to-darkcard hover:from-emerald-950/60 border border-emerald-500/30 hover:border-emerald-400/50 rounded-2xl p-4 sm:p-5 transition-all group">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
             <i class="fa-solid fa-circle-check"></i>
@@ -140,7 +140,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
           <span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" id="kpi-rate">—%</span>
         </div>
         <div class="mt-3 flex items-baseline gap-2">
-          <span class="text-3xl font-extrabold text-emerald-400 tracking-tight" id="kpi-succeeded">—</span>
+          <span class="text-2xl sm:text-3xl font-extrabold text-emerald-400 tracking-tight" id="kpi-succeeded">—</span>
           <span class="text-xs text-emerald-200/80" data-i18n="runs.kpiSuccessSub">completate OK</span>
         </div>
         <div class="mt-3 w-full bg-gray-800 rounded-full h-1.5 overflow-hidden">
@@ -149,7 +149,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
       </button>
 
       <!-- Failed Runs -->
-      <button type="button" onclick="setStatusFilter('failed')" data-tooltip="tt.runsKpiFailed" class="text-left rtl:text-right bg-gradient-to-br from-rose-950/40 to-darkcard hover:from-rose-950/60 border border-rose-500/30 hover:border-rose-400/50 rounded-2xl p-5 transition-all group">
+      <button type="button" onclick="setStatusFilter('failed')" data-tooltip="tt.runsKpiFailed" class="text-left rtl:text-right bg-gradient-to-br from-rose-950/40 to-darkcard hover:from-rose-950/60 border border-rose-500/30 hover:border-rose-400/50 rounded-2xl p-4 sm:p-5 transition-all group">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold uppercase tracking-wider text-rose-300 flex items-center gap-1.5">
             <i class="fa-solid fa-circle-xmark"></i>
@@ -161,7 +161,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
           </span>
         </div>
         <div class="mt-3 flex items-baseline gap-2">
-          <span class="text-3xl font-extrabold text-rose-400 tracking-tight" id="kpi-failed">—</span>
+          <span class="text-2xl sm:text-3xl font-extrabold text-rose-400 tracking-tight" id="kpi-failed">—</span>
           <span class="text-xs text-rose-200/80" id="kpi-failed-sub" data-i18n="runs.kpiFailedSub">errori rilevati</span>
         </div>
         <p class="mt-2 text-xs text-rose-300/90 flex items-center gap-1">
@@ -171,7 +171,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
       </button>
 
       <!-- Avg Duration & Last Run -->
-      <div data-tooltip="tt.runsKpiAvg" class="bg-darkcard border border-darkborder rounded-2xl p-5 flex flex-col justify-between">
+      <div data-tooltip="tt.runsKpiAvg" class="bg-darkcard border border-darkborder rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center">
             <span data-i18n="runs.kpiLastRun">Ultima Esecuzione</span>
@@ -192,7 +192,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
     </section>
 
     <!-- 2. VISUAL TIMELINE BAR STRIP -->
-    <section aria-label="Timeline Visiva Ultime Esecuzioni" data-tooltip="tt.runsTimeline" class="bg-darkcard border border-darkborder rounded-2xl p-5">
+    <section aria-label="Timeline Visiva Ultime Esecuzioni" data-tooltip="tt.runsTimeline" class="bg-darkcard border border-darkborder rounded-2xl p-4 sm:p-5">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
         <div>
           <h2 class="text-sm font-bold text-white flex items-center gap-2">
@@ -239,7 +239,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
     </section>
 
     <!-- 4. FILTER BAR & SEARCH -->
-    <section aria-label="Filtri Lista Esecuzioni" class="bg-darkcard border border-darkborder rounded-2xl p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 sticky top-16 z-30 shadow-xl shadow-black/40">
+    <section aria-label="Filtri Lista Esecuzioni" class="bg-darkcard border border-darkborder rounded-2xl p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 lg:sticky lg:top-16 z-30 shadow-xl shadow-black/40">
       <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filtra per esito">
         <button type="button" id="filter-btn-all" onclick="setStatusFilter('all')" data-tooltip="tt.runsKpiTotal" class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-brand-600 text-white shadow-sm">
           <span data-i18n="runs.filterAll">Tutte</span>
