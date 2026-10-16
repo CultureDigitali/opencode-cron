@@ -297,6 +297,43 @@ describe("GUI Server API", () => {
     expect(html).toContain("launchd");
   });
 
+  it("serves syntactically valid inline JS with no TS syntax and no unwrapped script output", async () => {
+    const { spawnSync } = await import("node:child_process");
+    for (const page of ["/", "/runs", "/instructions", "/guide"]) {
+      const res = await fetch(`${baseUrl}${page}`);
+      expect(res.status).toBe(200);
+      const html = await res.text();
+      const scripts = [...html.matchAll(/<script(?![^>]*src=)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+      expect(scripts.length).toBeGreaterThan(0);
+      for (const code of scripts) {
+        // No TypeScript cast syntax in browser-delivered JS (regression: killed all onclick handlers)
+        expect(code).not.toMatch(/\b[a-zA-Z_$][\w$]* as [A-Z][\w$]*/);
+        const f = path.join(tmpDir, `inline-${Date.now()}-${Math.floor(Math.random() * 1e6)}.js`);
+        await fs.writeFile(f, code);
+        const chk = spawnSync("node", ["--check", f], { encoding: "utf-8" });
+        await fs.rm(f, { force: true });
+        expect(chk.status).toBe(0);
+      }
+      // No raw function definitions outside <script> (regression: unwrapped script output on /instructions)
+      const stripped = html.replace(/<script(?![^>]*src=)[^>]*>[\s\S]*?<\/script>/g, "");
+      expect(stripped).not.toContain("function setLanguage");
+      expect(stripped).not.toContain("function openGuideDrawer");
+    }
+  });
+
+  it("serves an inline SVG favicon", async () => {
+    const res = await fetch(`${baseUrl}/favicon.ico`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("image/svg+xml");
+  });
+
+  it("wires delete confirmation to executeDeleteJob without clearing the pending id first", async () => {
+    const res = await fetch(`${baseUrl}/`);
+    const html = await res.text();
+    // Regression: closeConfirmModal() nulled pendingDeleteJobId before the check, so deletes never ran
+    expect(html).toMatch(/const id = pendingDeleteJobId;[\s\S]*?if \(id\) executeDeleteJob\(id\)/);
+  });
+
   it("blocks cross-site mutating requests with 403 (CSRF defense)", async () => {
     const res = await fetch(`${baseUrl}/api/check`, {
       method: "POST",

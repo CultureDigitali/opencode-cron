@@ -8,9 +8,10 @@ import {
 
 export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa — OpenCode Cron"): string {
   return `<!DOCTYPE html>
-<html lang="it" class="dark">
+<html lang="it">
 <head>
   <meta charset="utf-8" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23101828'/%3E%3Ccircle cx='16' cy='16' r='6' fill='white'/%3E%3C/svg%3E" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>${escapeHtml(title)}</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -22,10 +23,10 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
         extend: {
           colors: {
             brand: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
-            darkbg: '#0B0F19',
-            darkcard: '#111827',
-            darkborder: '#1F2937',
-            darkhover: '#1e293b'
+            darkbg: '#E8E9ED',
+            darkcard: '#FFFFFF',
+            darkborder: '#E2E5EA',
+            darkhover: '#F1F3F6'
           }
         }
       }
@@ -50,25 +51,25 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
     ${getUiEnhancementsHeadStyle()}
   </style>
 </head>
-<body class="bg-darkbg text-gray-100 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
+<body class="bg-darkbg text-slate-900 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
 
   ${getUiEnhancementsBodyHtml()}
 
   <!-- Top Navbar: wraps on mobile -->
   <header class="bg-darkcard border-b border-darkborder sticky top-0 z-30 shadow-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
       <!-- Brand & Page Title -->
       <div class="flex items-center space-x-3 min-w-0">
         <a href="/" class="flex items-center gap-2.5 sm:space-x-3 group text-left cursor-pointer min-w-0" data-tooltip="tt.navDashboard">
-          <div class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-            <i class="fa-solid fa-book-open text-white text-lg"></i>
+          <div class="oc-brand-mark" style="width:40px;height:40px;border-radius:12px" aria-hidden="true">
+            <i class="fa-solid fa-book-open text-lg"></i>
           </div>
           <div class="min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-bold text-base tracking-tight text-white group-hover:text-indigo-300 transition-colors whitespace-nowrap">OpenCode Cron</span>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">GUIDA</span>
+              <span class="font-bold text-base tracking-tight text-slate-900 group-hover:text-indigo-700 transition-colors whitespace-nowrap">OpenCode Cron</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 border border-indigo-500/20">GUIDA</span>
             </div>
-            <p class="text-xs text-gray-400 truncate max-w-[60vw] md:max-w-none" data-i18n="instructions.pageSubtitle">Manuale interattivo, architettura e istruzioni complete</p>
+            <p class="text-xs text-slate-500 truncate max-w-[60vw] md:max-w-none" data-i18n="instructions.pageSubtitle">Manuale interattivo, architettura e istruzioni complete</p>
           </div>
         </a>
       </div>
@@ -78,20 +79,20 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
         <!-- Link to Dashboard -->
         <a
           href="/"
-          class="shrink-0 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]"
+          class="shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]"
           data-tooltip="tt.tabJobs"
         >
-          <i class="fa-solid fa-gauge text-indigo-400 text-xs"></i>
+          <i class="fa-solid fa-gauge text-indigo-600 text-xs"></i>
           <span class="hidden md:inline" data-i18n="nav.dashboard">Dashboard</span>
         </a>
 
         <!-- Link to Runs History -->
         <a
           href="/runs"
-          class="shrink-0 bg-gray-900 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]"
+          class="shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]"
           data-tooltip="tt.tabRuns"
         >
-          <i class="fa-solid fa-clock-rotate-left text-emerald-400 text-xs"></i>
+          <i class="fa-solid fa-clock-rotate-left text-emerald-700 text-xs"></i>
           <span class="hidden md:inline" data-i18n="nav.historyRuns">Esiti Runs</span>
         </a>
 
@@ -99,10 +100,10 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
         <button
           type="button"
           onclick="startGuidedDemo()"
-          class="shrink-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition-all cursor-pointer min-h-[40px]"
+          class="shrink-0 bg-[#101828] hover:bg-[#1D2939] text-white font-semibold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition-all cursor-pointer min-h-[40px]"
           data-tooltip="tt.tourBtn"
         >
-          <i class="fa-solid fa-wand-magic-sparkles text-amber-300 text-xs"></i>
+          <i class="fa-solid fa-wand-magic-sparkles text-amber-700 text-xs"></i>
           <span class="hidden sm:inline" data-i18n="tour.startBtn">Avvia Demo</span>
         </button>
 
@@ -112,39 +113,39 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
   </header>
 
   <!-- Main Container -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
 
     <!-- Hero Banner -->
-    <section class="bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-gray-950 border border-indigo-700/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+    <section class="bg-white border border-[#E2E5EA] rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
       <div class="relative z-10 max-w-3xl space-y-4">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
-          <i class="fa-solid fa-graduation-cap text-amber-400"></i>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-700 border border-indigo-500/40">
+          <i class="fa-solid fa-graduation-cap text-amber-600"></i>
           <span data-i18n="instructions.badge">Documentazione Ufficiale OpenCode Cron</span>
         </div>
-        <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight" data-i18n="instructions.heroTitle">
+        <h1 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight" data-i18n="instructions.heroTitle">
           Tutto quello che devi sapere su OpenCode Cron
         </h1>
-        <p class="text-sm sm:text-base text-gray-300 leading-relaxed" data-i18n="instructions.heroDesc">
+        <p class="text-sm sm:text-base text-slate-600 leading-relaxed" data-i18n="instructions.heroDesc">
           Esegui task autonomi stile ChatGPT direttamente dentro le sessioni OpenCode. Questa guida ti accompagna passo dopo passo nella configurazione, nelle pianificazioni temporali, nella memoria persistente e nella gestione degli esiti.
         </p>
 
         <!-- Search Bar -->
         <div class="pt-2">
           <div class="relative max-w-lg">
-            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-sm"></i>
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-500 text-sm"></i>
             <input
               type="text"
               id="instruction-search"
               oninput="filterInstructions(this.value)"
               placeholder="Cerca argomento (es. imposta cron, max runs, launchd, prompt, seenHashes)..."
               data-i18n-placeholder="instructions.searchPlaceholder"
-              class="w-full bg-gray-950/90 border border-darkborder rounded-2xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 shadow-inner"
+              class="w-full bg-slate-100/90 border border-darkborder rounded-2xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-gray-500 focus:outline-none focus:border-indigo-500 shadow-inner"
             />
             <button
               type="button"
               id="instruction-search-clear"
               onclick="clearInstructionSearch()"
-              class="hidden absolute right-3.5 top-2.5 text-gray-400 hover:text-white text-xs cursor-pointer"
+              class="hidden absolute right-3.5 top-2.5 text-slate-500 hover:text-slate-900 text-xs cursor-pointer"
             >
               <i class="fa-solid fa-xmark"></i>
             </button>
@@ -154,14 +155,14 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
 
       <!-- Quick Nav Pills -->
       <div id="quick-nav-pills" class="mt-6 pt-6 border-t border-indigo-700/20 flex flex-wrap gap-2 text-xs">
-        <a href="#sec-overview" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⚡ Cos'è</a>
-        <a href="#sec-setup" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">🎯 Imposta Cron su Sessione</a>
-        <a href="#sec-schedule" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⏰ Orari & Visual Builder</a>
-        <a href="#sec-duration" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">♾️ Max Runs (Infinito vs Finito)</a>
-        <a href="#sec-memory" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">🧠 Memoria & seenHashes</a>
-        <a href="#sec-runs" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">📊 Esiti delle Runs (/runs)</a>
-        <a href="#sec-daemon" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⚙️ Demone launchd 60s</a>
-        <a href="#sec-faq" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">❓ FAQ & Risoluzione</a>
+        <a href="#sec-overview" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">⚡ Cos'è</a>
+        <a href="#sec-setup" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">🎯 Imposta Cron su Sessione</a>
+        <a href="#sec-schedule" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">⏰ Orari & Visual Builder</a>
+        <a href="#sec-duration" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">♾️ Max Runs (Infinito vs Finito)</a>
+        <a href="#sec-memory" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">🧠 Memoria & seenHashes</a>
+        <a href="#sec-runs" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">📊 Esiti delle Runs (/runs)</a>
+        <a href="#sec-daemon" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">⚙️ Demone launchd 60s</a>
+        <a href="#sec-faq" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">❓ FAQ & Risoluzione</a>
       </div>
     </section>
 
@@ -171,30 +172,30 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
       <!-- SECTION 1: ARCHITETTURA E OVERVIEW -->
       <section id="sec-overview" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
         <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
-          <div class="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20 shrink-0">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-500/20 shrink-0">
             <i class="fa-solid fa-bolt text-lg"></i>
           </div>
           <div>
-            <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight" data-i18n="instructions.sec1Title">1. Architettura in 60 Secondi: Non un banale timer bash, ma un vero agente programmato</h2>
-            <p class="text-xs text-gray-400" data-i18n="instructions.sec1Sub">Come OpenCode Cron si differenzia radicalmente da cron di sistema o da semplici script</p>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight" data-i18n="instructions.sec1Title">1. Architettura in 60 Secondi: Non un banale timer bash, ma un vero agente programmato</h2>
+            <p class="text-xs text-slate-500" data-i18n="instructions.sec1Sub">Come OpenCode Cron si differenzia radicalmente da cron di sistema o da semplici script</p>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
-          <div class="bg-gray-950/60 p-4 rounded-2xl border border-darkborder space-y-2">
-            <h3 class="font-bold text-indigo-300 flex items-center gap-1.5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
+          <div class="bg-slate-100/60 p-4 rounded-2xl border border-darkborder space-y-2">
+            <h3 class="font-bold text-indigo-700 flex items-center gap-1.5">
               <i class="fa-solid fa-comments"></i> Continuità di Sessione (Stesso ID Chat)
             </h3>
             <p>
-              I normali cron eseguono un comando isolato e dimenticano tutto. OpenCode Cron riattiva **la medesima conversazione OpenCode** (stesso <code class="text-indigo-300">sessionID</code>). L'agente mantiene l'intero storico contestuale dei turni precedenti.
+              I normali cron eseguono un comando isolato e dimenticano tutto. OpenCode Cron riattiva **la medesima conversazione OpenCode** (stesso <code class="text-indigo-700">sessionID</code>). L'agente mantiene l'intero storico contestuale dei turni precedenti.
             </p>
           </div>
-          <div class="bg-gray-950/60 p-4 rounded-2xl border border-darkborder space-y-2">
-            <h3 class="font-bold text-purple-300 flex items-center gap-1.5">
+          <div class="bg-slate-100/60 p-4 rounded-2xl border border-darkborder space-y-2">
+            <h3 class="font-bold text-purple-700 flex items-center gap-1.5">
               <i class="fa-solid fa-shield-halved"></i> Resistente alla Compattazione (Compaction Safe)
             </h3>
             <p>
-              Quando una conversazione supera centinaia di messaggi e OpenCode compatta il contesto, OpenCode Cron inietta automaticamente il file di memoria persistente <code class="text-purple-300">.opencode/cron/memory/&lt;id&gt;.md</code> nel riassunto, garantendo zero amnesie.
+              Quando una conversazione supera centinaia di messaggi e OpenCode compatta il contesto, OpenCode Cron inietta automaticamente il file di memoria persistente <code class="text-purple-700">.opencode/cron/memory/&lt;id&gt;.md</code> nel riassunto, garantendo zero amnesie.
             </p>
           </div>
         </div>
@@ -203,21 +204,21 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
       <!-- SECTION 2: COME IMPOSTARE UN CRON SU UNA CONVERSAZIONE -->
       <section id="sec-setup" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
         <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
-          <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shrink-0">
+          <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center border border-indigo-500/20 shrink-0">
             <i class="fa-solid fa-calendar-plus text-lg"></i>
           </div>
           <div>
-            <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight" data-i18n="instructions.sec2Title">2. Impostare un Cron su una Conversazione (Modalità 1-Click)</h2>
-            <p class="text-xs text-gray-400" data-i18n="instructions.sec2Sub">Due modalità intuitive per legare un'automazione ricorrente a qualsiasi chat</p>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight" data-i18n="instructions.sec2Title">2. Impostare un Cron su una Conversazione (Modalità 1-Click)</h2>
+            <p class="text-xs text-slate-500" data-i18n="instructions.sec2Sub">Due modalità intuitive per legare un'automazione ricorrente a qualsiasi chat</p>
           </div>
         </div>
 
-        <div class="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+        <div class="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- Modalità 1: 1-Click dalla Live Chat -->
-            <div class="bg-gray-950/70 p-5 rounded-2xl border border-indigo-500/30 space-y-2">
+            <div class="bg-slate-100/70 p-5 rounded-2xl border border-indigo-500/30 space-y-2">
               <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 text-white">
-                <i class="fa-solid fa-bolt text-amber-300"></i> Metodo 1: 1-Click da Live Chat
+                <i class="fa-solid fa-bolt text-amber-700"></i> Metodo 1: 1-Click da Live Chat
               </div>
               <p class="pt-1">
                 1. Apri la scheda **Live Chat** e seleziona la conversazione desiderata.<br>
@@ -227,12 +228,12 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
             </div>
 
             <!-- Modalità 2: Dal pulsante Nuovo Job -->
-            <div class="bg-gray-950/70 p-5 rounded-2xl border border-darkborder space-y-2">
-              <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-800 text-gray-300">
-                <i class="fa-solid fa-plus text-indigo-400"></i> Metodo 2: Dal Pulsante + Nuovo Job
+            <div class="bg-slate-100/70 p-5 rounded-2xl border border-darkborder space-y-2">
+              <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-200 text-slate-600">
+                <i class="fa-solid fa-plus text-indigo-600"></i> Metodo 2: Dal Pulsante + Nuovo Job
               </div>
               <p class="pt-1">
-                1. Clicca in qualsiasi momento su <span class="font-bold text-white">&quot;+ Nuovo Job&quot;</span> in alto a destra nella navbar.<br>
+                1. Clicca in qualsiasi momento su <span class="font-bold text-slate-900">&quot;+ Nuovo Job&quot;</span> in alto a destra nella navbar.<br>
                 2. Nel campo <em>Sessione OpenCode</em>, scegli dal menu a tendina organizzato:<br>
                 &nbsp;&nbsp;• 💬 <strong>Sessioni Principali / Root</strong> (consigliate)<br>
                 &nbsp;&nbsp;• 🤖 <strong>Subagenti</strong> generati automaticamente<br>
@@ -242,16 +243,16 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
           </div>
 
           <!-- Anatomia del Form -->
-          <div class="bg-indigo-950/20 border border-indigo-500/20 p-4 rounded-2xl space-y-2">
-            <h3 class="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
-              <i class="fa-solid fa-sliders text-indigo-400"></i> Cosa inserisci nel form di configurazione
+          <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-2xl space-y-2">
+            <h3 class="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-sliders text-indigo-600"></i> Cosa inserisci nel form di configurazione
             </h3>
-            <ul class="list-disc list-inside space-y-1 text-xs text-gray-300">
-              <li><strong class="text-white">Titolo del Job:</strong> Un nome descrittivo (es. <em>Monitor AI News 5m</em> o <em>Backup Giornaliero</em>).</li>
-              <li><strong class="text-white">Intervallo / Schedule:</strong> Frequenza di esecuzione (es. <code class="text-indigo-300 font-mono">5m</code>, <code class="text-indigo-300 font-mono">1h</code>, <code class="text-indigo-300 font-mono">0 9 * * *</code>).</li>
-              <li><strong class="text-white">Max Runs:</strong> Numero massimo di cicli prima di fermarsi (<code class="text-indigo-300 font-mono">0 = illimitato / infinito</code>).</li>
-              <li><strong class="text-white">System Prompt (Frozen):</strong> L'identità, il ruolo e i vincoli permanenti dell'agente.</li>
-              <li><strong class="text-white">Followup Prompt:</strong> L'azione operativa che l'agente deve compiere ad ogni singolo tick.</li>
+            <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+              <li><strong class="text-slate-900">Titolo del Job:</strong> Un nome descrittivo (es. <em>Monitor AI News 5m</em> o <em>Backup Giornaliero</em>).</li>
+              <li><strong class="text-slate-900">Intervallo / Schedule:</strong> Frequenza di esecuzione (es. <code class="text-indigo-700 font-mono">5m</code>, <code class="text-indigo-700 font-mono">1h</code>, <code class="text-indigo-700 font-mono">0 9 * * *</code>).</li>
+              <li><strong class="text-slate-900">Max Runs:</strong> Numero massimo di cicli prima di fermarsi (<code class="text-indigo-700 font-mono">0 = illimitato / infinito</code>).</li>
+              <li><strong class="text-slate-900">System Prompt (Frozen):</strong> L'identità, il ruolo e i vincoli permanenti dell'agente.</li>
+              <li><strong class="text-slate-900">Followup Prompt:</strong> L'azione operativa che l'agente deve compiere ad ogni singolo tick.</li>
             </ul>
           </div>
         </div>
@@ -260,16 +261,16 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
       <!-- SECTION 3: VISUAL SCHEDULE BUILDER -->
       <section id="sec-schedule" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
         <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
-          <div class="w-10 h-10 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20 shrink-0">
+          <div class="w-10 h-10 rounded-2xl bg-cyan-500/10 text-cyan-700 flex items-center justify-center border border-cyan-500/20 shrink-0">
             <i class="fa-solid fa-clock text-lg"></i>
           </div>
           <div>
-            <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight" data-i18n="instructions.sec3Title">3. Visual Schedule Builder: Orari, Intervalli & Cron a 5 Campi</h2>
-            <p class="text-xs text-gray-400" data-i18n="instructions.sec3Sub">Tutti i formati supportati e l'anteprima predittiva in tempo reale</p>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight" data-i18n="instructions.sec3Title">3. Visual Schedule Builder: Orari, Intervalli & Cron a 5 Campi</h2>
+            <p class="text-xs text-slate-500" data-i18n="instructions.sec3Sub">Tutti i formati supportati e l'anteprima predittiva in tempo reale</p>
           </div>
         </div>
 
-        <div class="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+        <div class="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
           <p>
             OpenCode Cron supporta sia la notazione naturale con intervalli, sia lo standard Unix Cron a 5 campi. Ad ogni digitazione nel form, il motore predittivo calcola all'istante la descrizione in lingua e la data esatta dei <strong>prossimi 3 tick</strong>.
           </p>
@@ -277,31 +278,31 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
               <thead>
-                <tr class="border-b border-darkborder bg-gray-950 text-gray-400">
+                <tr class="border-b border-darkborder bg-slate-100 text-slate-500">
                   <th class="py-2.5 px-3 font-semibold">Tipo</th>
                   <th class="py-2.5 px-3 font-semibold">Espressione</th>
                   <th class="py-2.5 px-3 font-semibold">Descrizione & Esempio di Utilizzo</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-darkborder/50 text-gray-300">
-                <tr class="hover:bg-gray-900/40">
-                  <td class="py-2.5 px-3 font-mono text-indigo-400 font-bold">Intervallo Rapido</td>
-                  <td class="py-2.5 px-3 font-mono text-amber-300">5m, 15m, 30m, 1h, 1d</td>
+              <tbody class="divide-y divide-darkborder/50 text-slate-600">
+                <tr class="hover:bg-slate-100/40">
+                  <td class="py-2.5 px-3 font-mono text-indigo-600 font-bold">Intervallo Rapido</td>
+                  <td class="py-2.5 px-3 font-mono text-amber-700">5m, 15m, 30m, 1h, 1d</td>
                   <td class="py-2.5 px-3">Esegue il job ogni N minuti o ore continuativamente. Minimo consentito di sicurezza: 60s.</td>
                 </tr>
-                <tr class="hover:bg-gray-900/40">
+                <tr class="hover:bg-slate-100/40">
                   <td class="py-2.5 px-3 font-mono text-purple-400 font-bold">Orario Mattutino</td>
-                  <td class="py-2.5 px-3 font-mono text-amber-300">0 9 * * *</td>
+                  <td class="py-2.5 px-3 font-mono text-amber-700">0 9 * * *</td>
                   <td class="py-2.5 px-3">Ogni mattina puntuale alle ore 09:00 (tutti i giorni del mese e della settimana).</td>
                 </tr>
-                <tr class="hover:bg-gray-900/40">
+                <tr class="hover:bg-slate-100/40">
                   <td class="py-2.5 px-3 font-mono text-purple-400 font-bold">Giorni Feriali</td>
-                  <td class="py-2.5 px-3 font-mono text-amber-300">0 9 * * 1-5</td>
+                  <td class="py-2.5 px-3 font-mono text-amber-700">0 9 * * 1-5</td>
                   <td class="py-2.5 px-3">Dal Lunedì al Venerdì alle ore 09:00 (ideale per standup o scraping lavorativo).</td>
                 </tr>
-                <tr class="hover:bg-gray-900/40">
+                <tr class="hover:bg-slate-100/40">
                   <td class="py-2.5 px-3 font-mono text-purple-400 font-bold">Serale / Chiusura</td>
-                  <td class="py-2.5 px-3 font-mono text-amber-300">0 18 * * *</td>
+                  <td class="py-2.5 px-3 font-mono text-amber-700">0 18 * * *</td>
                   <td class="py-2.5 px-3">Tutti i giorni alle 18:00 (ideale per report giornalieri o riassunti commit).</td>
                 </tr>
               </tbody>
@@ -309,32 +310,32 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
           </div>
 
           <!-- SMART ADAPTIVE CADENCE & BURST MODE -->
-          <div class="mt-4 bg-gradient-to-br from-amber-500/10 via-purple-500/5 to-gray-950 p-5 rounded-2xl border border-amber-500/30 space-y-3">
+          <div class="mt-4 bg-amber-50 p-5 rounded-2xl border border-amber-200 space-y-3">
             <div class="flex items-center gap-2">
-              <span class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs border border-amber-500/40">
+              <span class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-600 flex items-center justify-center font-bold text-xs border border-amber-500/40">
                 <i class="fa-solid fa-gauge-high"></i>
               </span>
-              <h3 class="text-sm font-bold text-white">Cadenza Adattiva Intelligente & Burst Mode (Smart Schedule)</h3>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">NOVITÀ</span>
+              <h3 class="text-sm font-bold text-slate-900">Cadenza Adattiva Intelligente & Burst Mode (Smart Schedule)</h3>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-700 border border-amber-500/30">NOVITÀ</span>
             </div>
-            <p class="text-xs text-gray-300 leading-relaxed">
+            <p class="text-xs text-slate-600 leading-relaxed">
               I cron convenzionali sprecano token ed energia eseguendo verifiche fisse anche quando non succede nulla per ore. La **Cadenza Adattiva** regola dinamicamente la frequenza:
             </p>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-xs">
-              <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder space-y-1">
-                <span class="text-amber-400 font-bold flex items-center gap-1"><i class="fa-solid fa-bolt"></i> Burst Mode (Attività)</span>
-                <p class="text-[11px] text-gray-400">Quando l'agente trova nuovi elementi, hash o modifiche, la cadenza accelera all'intervallo rapido (es. ogni <strong class="text-white">1m</strong> o <strong class="text-white">2m</strong>).</p>
+              <div class="bg-slate-100/80 p-3 rounded-xl border border-darkborder space-y-1">
+                <span class="text-amber-600 font-bold flex items-center gap-1"><i class="fa-solid fa-bolt"></i> Burst Mode (Attività)</span>
+                <p class="text-[11px] text-slate-500">Quando l'agente trova nuovi elementi, hash o modifiche, la cadenza accelera all'intervallo rapido (es. ogni <strong class="text-slate-900">1m</strong> o <strong class="text-slate-900">2m</strong>).</p>
               </div>
-              <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder space-y-1">
-                <span class="text-indigo-400 font-bold flex items-center gap-1"><i class="fa-solid fa-arrows-split-up-and-left"></i> Decadimento Graduale</span>
-                <p class="text-[11px] text-gray-400">Se per $N$ tick consecutivi (es. 3) non si registrano novità, il cron rallenta verso la cadenza normale e poi verso la modalità Idle.</p>
+              <div class="bg-slate-100/80 p-3 rounded-xl border border-darkborder space-y-1">
+                <span class="text-indigo-600 font-bold flex items-center gap-1"><i class="fa-solid fa-arrows-split-up-and-left"></i> Decadimento Graduale</span>
+                <p class="text-[11px] text-slate-500">Se per $N$ tick consecutivi (es. 3) non si registrano novità, il cron rallenta verso la cadenza normale e poi verso la modalità Idle.</p>
               </div>
-              <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder space-y-1">
+              <div class="bg-slate-100/80 p-3 rounded-xl border border-darkborder space-y-1">
                 <span class="text-slate-400 font-bold flex items-center gap-1"><i class="fa-solid fa-moon"></i> Modalità Idle (Silenziosa)</span>
-                <p class="text-[11px] text-gray-400">Durante i periodi di inattività il cron si mette in pausa profonda (es. ogni <strong class="text-white">30m</strong> o <strong class="text-white">1h</strong>), pronto a riesplodere in Burst appena rileva attività.</p>
+                <p class="text-[11px] text-slate-500">Durante i periodi di inattività il cron si mette in pausa profonda (es. ogni <strong class="text-slate-900">30m</strong> o <strong class="text-slate-900">1h</strong>), pronto a riesplodere in Burst appena rileva attività.</p>
               </div>
             </div>
-            <div class="text-[11px] text-gray-400 bg-gray-900/60 p-2.5 rounded-xl border border-darkborder flex items-center justify-between">
+            <div class="text-[11px] text-slate-500 bg-slate-100/60 p-2.5 rounded-xl border border-darkborder flex items-center justify-between">
               <span>⚡ <strong>Pulsante Burst 1-Click:</strong> Puoi forzare la modalità Burst per 15 minuti su qualsiasi job cliccando sull'icona fulmine nella scheda del job.</span>
             </div>
           </div>
@@ -344,31 +345,31 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
       <!-- SECTION 4: DURATA E FINE PROGRAMMATA (MAX RUNS) -->
       <section id="sec-duration" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
         <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
-          <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 shrink-0">
+          <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center border border-emerald-500/20 shrink-0">
             <i class="fa-solid fa-infinity text-lg"></i>
           </div>
           <div>
-            <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight" data-i18n="instructions.sec4Title">4. Durata & Fine Programmata: Esecuzione Infinita vs Limite Max Runs</h2>
-            <p class="text-xs text-gray-400" data-i18n="instructions.sec4Sub">Come stabilire se un compito deve durare per sempre o arrestarsi dopo N cicli</p>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight" data-i18n="instructions.sec4Title">4. Durata & Fine Programmata: Esecuzione Infinita vs Limite Max Runs</h2>
+            <p class="text-xs text-slate-500" data-i18n="instructions.sec4Sub">Come stabilire se un compito deve durare per sempre o arrestarsi dopo N cicli</p>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
-          <div class="bg-gray-950/70 p-5 rounded-2xl border border-emerald-500/30 space-y-2">
-            <h3 class="font-bold text-emerald-400 text-sm flex items-center gap-1.5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
+          <div class="bg-slate-100/70 p-5 rounded-2xl border border-emerald-500/30 space-y-2">
+            <h3 class="font-bold text-emerald-700 text-sm flex items-center gap-1.5">
               <i class="fa-solid fa-infinity"></i> Durata Infinita (Max Runs = 0)
             </h3>
             <p>
-              Impostando <code class="text-emerald-300 font-mono font-bold">0</code> nel campo Max Runs (valore di default), il Cron Job <strong>non si fermerà mai</strong>. Continuerà a scattare alla cadenza impostata giorno dopo giorno, finché non decidi tu di metterlo in pausa o eliminarlo.
+              Impostando <code class="text-emerald-700 font-mono font-bold">0</code> nel campo Max Runs (valore di default), il Cron Job <strong>non si fermerà mai</strong>. Continuerà a scattare alla cadenza impostata giorno dopo giorno, finché non decidi tu di metterlo in pausa o eliminarlo.
             </p>
           </div>
 
-          <div class="bg-gray-950/70 p-5 rounded-2xl border border-amber-500/30 space-y-2">
-            <h3 class="font-bold text-amber-300 text-sm flex items-center gap-1.5">
+          <div class="bg-slate-100/70 p-5 rounded-2xl border border-amber-500/30 space-y-2">
+            <h3 class="font-bold text-amber-700 text-sm flex items-center gap-1.5">
               <i class="fa-solid fa-flag-checkered"></i> Fine Programmata (Max Runs = N)
             </h3>
             <p>
-              Impostando un numero positivo (es. <code class="text-amber-300 font-mono font-bold">10</code> o <code class="text-amber-300 font-mono font-bold">50</code>), il motore tiene il conteggio esatto delle esecuzioni completate. Al raggiungimento del tetto, il job passa nello stato <span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30 text-[10px]">COMPLETATO</span> e smette di scattare, azzerando il consumo di risorse.
+              Impostando un numero positivo (es. <code class="text-amber-700 font-mono font-bold">10</code> o <code class="text-amber-700 font-mono font-bold">50</code>), il motore tiene il conteggio esatto delle esecuzioni completate. Al raggiungimento del tetto, il job passa nello stato <span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-700 font-bold border border-blue-500/30 text-[10px]">COMPLETATO</span> e smette di scattare, azzerando il consumo di risorse.
             </p>
           </div>
         </div>
@@ -381,27 +382,27 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
             <i class="fa-solid fa-brain text-lg"></i>
           </div>
           <div>
-            <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight" data-i18n="instructions.sec5Title">5. Memoria Persistente Markdown & Deduplicazione (seenHashes)</h2>
-            <p class="text-xs text-gray-400" data-i18n="instructions.sec5Sub">Come evitare duplicazioni e preservare lo stato tra un ciclo e l'altro</p>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight" data-i18n="instructions.sec5Title">5. Memoria Persistente Markdown & Deduplicazione (seenHashes)</h2>
+            <p class="text-xs text-slate-500" data-i18n="instructions.sec5Sub">Come evitare duplicazioni e preservare lo stato tra un ciclo e l'altro</p>
           </div>
         </div>
 
-        <div class="space-y-3 text-xs sm:text-sm text-gray-300 leading-relaxed">
+        <div class="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
           <p>
-            Ogni cron job possiede un file Markdown dedicato in <code class="text-purple-300 font-mono">.opencode/cron/memory/&lt;jobId&gt;.md</code>. In questo file vengono salvati:
+            Ogni cron job possiede un file Markdown dedicato in <code class="text-purple-700 font-mono">.opencode/cron/memory/&lt;jobId&gt;.md</code>. In questo file vengono salvati:
           </p>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div class="bg-gray-950/60 p-3.5 rounded-xl border border-darkborder">
-              <strong class="text-indigo-400 block mb-1">1. Fatti Chiave</strong>
-              <p class="text-xs text-gray-400">Le informazioni scoperte o confermate nei tick precedenti, sempre a portata di mano per l'agente.</p>
+            <div class="bg-slate-100/60 p-3.5 rounded-xl border border-darkborder">
+              <strong class="text-indigo-600 block mb-1">1. Fatti Chiave</strong>
+              <p class="text-xs text-slate-500">Le informazioni scoperte o confermate nei tick precedenti, sempre a portata di mano per l'agente.</p>
             </div>
-            <div class="bg-gray-950/60 p-3.5 rounded-xl border border-darkborder">
+            <div class="bg-slate-100/60 p-3.5 rounded-xl border border-darkborder">
               <strong class="text-purple-400 block mb-1">2. seenHashes (Deduplicazione)</strong>
-              <p class="text-xs text-gray-400">Elenco degli hash o URL già visitati. L'agente non segnala due volte la stessa notizia o evento.</p>
+              <p class="text-xs text-slate-500">Elenco degli hash o URL già visitati. L'agente non segnala due volte la stessa notizia o evento.</p>
             </div>
-            <div class="bg-gray-950/60 p-3.5 rounded-xl border border-darkborder">
-              <strong class="text-emerald-400 block mb-1">3. Auto-Check Obbligatorio</strong>
-              <p class="text-xs text-gray-400">Prima di ogni azione l'agente risponde a 3 domande di verifica per eliminare allucinazioni.</p>
+            <div class="bg-slate-100/60 p-3.5 rounded-xl border border-darkborder">
+              <strong class="text-emerald-700 block mb-1">3. Auto-Check Obbligatorio</strong>
+              <p class="text-xs text-slate-500">Prima di ogni azione l'agente risponde a 3 domande di verifica per eliminare allucinazioni.</p>
             </div>
           </div>
         </div>
@@ -410,35 +411,35 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
       <!-- SECTION 6: PAGINA DEDICATA ESITI RUNS -->
       <section id="sec-runs" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
         <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
-          <div class="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20 shrink-0">
+          <div class="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-600 flex items-center justify-center border border-rose-500/20 shrink-0">
             <i class="fa-solid fa-chart-line text-lg"></i>
           </div>
           <div>
-            <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight" data-i18n="instructions.sec6Title">6. Pagina Dedicata "Esiti Runs" (/runs)</h2>
-            <p class="text-xs text-gray-400" data-i18n="instructions.sec6Sub">Controllo istantaneo di quali job sono partiti con successo e quali sono falliti</p>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight" data-i18n="instructions.sec6Title">6. Pagina Dedicata "Esiti Runs" (/runs)</h2>
+            <p class="text-xs text-slate-500" data-i18n="instructions.sec6Sub">Controllo istantaneo di quali job sono partiti con successo e quali sono falliti</p>
           </div>
         </div>
 
-        <div class="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+        <div class="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
           <p>
-            Navigando su <a href="/runs" class="text-indigo-400 hover:underline font-bold">/runs</a> accedi alla vista diagnostica unificata:
+            Navigando su <a href="/runs" class="text-indigo-600 hover:underline font-bold">/runs</a> accedi alla vista diagnostica unificata:
           </p>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-            <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder">
-              <span class="text-gray-400 block">✓ Successi vs ✕ Errori</span>
-              <span class="text-emerald-400 font-bold">Badge cromatici immediati</span>
+            <div class="bg-slate-100/80 p-3 rounded-xl border border-darkborder">
+              <span class="text-slate-500 block">✓ Successi vs ✕ Errori</span>
+              <span class="text-emerald-700 font-bold">Badge cromatici immediati</span>
             </div>
-            <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder">
-              <span class="text-gray-400 block">Línea Temporale (Strip)</span>
-              <span class="text-indigo-300 font-bold">Ultime 48 run cliccabili</span>
+            <div class="bg-slate-100/80 p-3 rounded-xl border border-darkborder">
+              <span class="text-slate-500 block">Línea Temporale (Strip)</span>
+              <span class="text-indigo-700 font-bold">Ultime 48 run cliccabili</span>
             </div>
-            <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder">
-              <span class="text-gray-400 block">Esiti per Singolo Job</span>
-              <span class="text-purple-300 font-bold">Tasso di successo %</span>
+            <div class="bg-slate-100/80 p-3 rounded-xl border border-darkborder">
+              <span class="text-slate-500 block">Esiti per Singolo Job</span>
+              <span class="text-purple-700 font-bold">Tasso di successo %</span>
             </div>
-            <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder">
-              <span class="text-gray-400 block">Deep Link Live Chat</span>
-              <span class="text-sky-300 font-bold">Salta al turno esatto</span>
+            <div class="bg-slate-100/80 p-3 rounded-xl border border-darkborder">
+              <span class="text-slate-500 block">Deep Link Live Chat</span>
+              <span class="text-sky-700 font-bold">Salta al turno esatto</span>
             </div>
           </div>
         </div>
@@ -447,20 +448,20 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
       <!-- SECTION 7: DEMONE LAUNCHD -->
       <section id="sec-daemon" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
         <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
-          <div class="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20 shrink-0">
+          <div class="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center border border-blue-500/20 shrink-0">
             <i class="fa-solid fa-server text-lg"></i>
           </div>
           <div>
-            <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight" data-i18n="instructions.sec7Title">7. Demone di Sfondo macOS launchd: Esecuzione Autonoma 24/7</h2>
-            <p class="text-xs text-gray-400" data-i18n="instructions.sec7Sub">I tuoi compiti girano in background anche con il browser e l'interfaccia chiusi</p>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight" data-i18n="instructions.sec7Title">7. Demone di Sfondo macOS launchd: Esecuzione Autonoma 24/7</h2>
+            <p class="text-xs text-slate-500" data-i18n="instructions.sec7Sub">I tuoi compiti girano in background anche con il browser e l'interfaccia chiusi</p>
           </div>
         </div>
 
-        <div class="space-y-3 text-xs sm:text-sm text-gray-300 leading-relaxed">
+        <div class="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
           <p>
-            Il servizio nativo di macOS (<code class="text-blue-300 font-mono">ai.opencode.cron</code>) risiede in <code class="text-gray-400 font-mono">~/Library/LaunchAgents/ai.opencode.cron.plist</code> e scatta automaticamente ogni 60 secondi:
+            Il servizio nativo di macOS (<code class="text-blue-700 font-mono">ai.opencode.cron</code>) risiede in <code class="text-slate-500 font-mono">~/Library/LaunchAgents/ai.opencode.cron.plist</code> e scatta automaticamente ogni 60 secondi:
           </p>
-          <div class="bg-gray-950 p-4 rounded-xl border border-darkborder font-mono text-xs text-gray-300 space-y-1 overflow-x-auto">
+          <div class="bg-slate-100 p-4 rounded-xl border border-darkborder font-mono text-xs text-slate-600 space-y-1 overflow-x-auto">
             <div><span class="text-gray-500"># Verifica dello stato del demone macOS</span></div>
             <div>launchctl list | grep opencode.cron</div>
             <div class="pt-2"><span class="text-gray-500"># Log in tempo reale dello stdout</span></div>
@@ -476,29 +477,29 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
             <i class="fa-solid fa-circle-question text-lg"></i>
           </div>
           <div>
-            <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight" data-i18n="instructions.sec8Title">8. FAQ, Sicurezza & Risoluzione Problemi Rapida</h2>
-            <p class="text-xs text-gray-400" data-i18n="instructions.sec8Sub">Cosa fare in caso di errori consecutivi o riavvio dell'applicazione desktop</p>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight" data-i18n="instructions.sec8Title">8. FAQ, Sicurezza & Risoluzione Problemi Rapida</h2>
+            <p class="text-xs text-slate-500" data-i18n="instructions.sec8Sub">Cosa fare in caso di errori consecutivi o riavvio dell'applicazione desktop</p>
           </div>
         </div>
 
-        <div class="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+        <div class="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
           <div class="border-b border-darkborder/60 pb-3">
-            <h3 class="font-bold text-white mb-1">Cosa succede se un job fallisce ripetutamente?</h3>
-            <p class="text-gray-400">
+            <h3 class="font-bold text-slate-900 mb-1">Cosa succede se un job fallisce ripetutamente?</h3>
+            <p class="text-slate-500">
               Per evitare loop infiniti o sprechi di token, se un job accumula **5 errori consecutivi** viene messo in auto-pausa automaticamente. Per riattivarlo basta cliccare sull'icona Play nella Dashboard.
             </p>
           </div>
           <div class="border-b border-darkborder/60 pb-3">
-            <h3 class="font-bold text-white mb-1">Cosa fare se le run falliscono con errore HTTP 401 dopo aver riavviato l'app desktop?</h3>
-            <p class="text-gray-400">
+            <h3 class="font-bold text-slate-900 mb-1">Cosa fare se le run falliscono con errore HTTP 401 dopo aver riavviato l'app desktop?</h3>
+            <p class="text-slate-500">
               L'app desktop ruota le credenziali della sidecar ad ogni riavvio. Basta eseguire da terminale:
-              <code class="block mt-1 p-2 bg-gray-950 rounded font-mono text-indigo-300">node ./dist/bin/run.js refresh-creds</code>
-              oppure digitare <code class="text-indigo-300">/cron-refresh</code> all'interno della chat OpenCode.
+              <code class="block mt-1 p-2 bg-slate-100 rounded font-mono text-indigo-700">node ./dist/bin/run.js refresh-creds</code>
+              oppure digitare <code class="text-indigo-700">/cron-refresh</code> all'interno della chat OpenCode.
             </p>
           </div>
           <div>
-            <h3 class="font-bold text-white mb-1">Come cambio lingua o attivo la modalità RTL?</h3>
-            <p class="text-gray-400">
+            <h3 class="font-bold text-slate-900 mb-1">Come cambio lingua o attivo la modalità RTL?</h3>
+            <p class="text-slate-500">
               In alto a destra è presente il menu a tendina con le 10 lingue supportate (Italiano, Inglese, Spagnolo, Francese, Tedesco, Portoghese, Cinese, Giapponese, Arabo e Russo). Selezionando l'Arabo il layout si adatta automaticamente da destra a sinistra (**RTL**).
             </p>
           </div>
@@ -523,18 +524,18 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
       <!-- Tour Header -->
       <div class="flex items-center justify-between pb-3 border-b border-darkborder">
         <div class="flex items-center gap-2.5">
-          <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+          <span class="w-8 h-8 rounded-xl bg-[#101828] flex items-center justify-center text-white text-xs font-bold">
             <i class="fa-solid fa-wand-magic-sparkles"></i>
           </span>
           <div>
-            <h3 id="tour-modal-title" class="text-base font-bold text-white">Demo & Tour Guidato</h3>
-            <span id="tour-step-indicator" class="text-[11px] font-mono text-indigo-400">Passo 1 di 5</span>
+            <h3 id="tour-modal-title" class="text-base font-bold text-slate-900">Demo & Tour Guidato</h3>
+            <span id="tour-step-indicator" class="text-[11px] font-mono text-indigo-600">Passo 1 di 5</span>
           </div>
         </div>
         <button
           type="button"
           onclick="closeTourModal(event)"
-          class="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 text-sm transition-colors cursor-pointer"
+          class="text-slate-500 hover:text-slate-900 p-1.5 rounded-lg hover:bg-slate-200 text-sm transition-colors cursor-pointer"
           aria-label="Chiudi demo"
           title="Chiudi demo (Esc)"
         >
@@ -554,7 +555,7 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
             type="button"
             id="tour-prev-btn"
             onclick="prevTourStep()"
-            class="px-3.5 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 font-semibold border border-darkborder transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold border border-darkborder transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <i class="fa-solid fa-arrow-left mr-1"></i> <span id="tour-prev-label">Indietro</span>
           </button>
@@ -562,7 +563,7 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
             type="button"
             id="tour-skip-btn"
             onclick="closeTourModal(event)"
-            class="text-gray-400 hover:text-gray-200 text-xs transition-colors cursor-pointer px-2 py-1"
+            class="text-slate-500 hover:text-slate-700 text-xs transition-colors cursor-pointer px-2 py-1"
           >
             <span id="tour-skip-label">Salta</span>
           </button>
@@ -584,7 +585,9 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
     </div>
   </div>
 
+  <script>
   ${getUiEnhancementsScript()}
+  </script>
 
   <script>
     // Search filter for instructions
@@ -737,7 +740,7 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
           <button
             type="button"
             onclick="renderTourStep(\${i})"
-            class="w-2.5 h-2.5 rounded-full transition-all cursor-pointer \${i === index ? 'bg-indigo-500 w-5' : 'bg-gray-700 hover:bg-gray-500'}"
+            class="w-2.5 h-2.5 rounded-full transition-all cursor-pointer \${i === index ? 'bg-indigo-500 w-5' : 'bg-slate-200 hover:bg-gray-500'}"
             aria-label="\${isEn ? 'Step' : 'Passo'} \${i + 1}"
           ></button>
         \`).join('');
@@ -746,14 +749,14 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
       container.innerHTML = \`
         <div class="space-y-4 animate-fadeIn">
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-2xl bg-gray-900 border border-darkborder flex items-center justify-center shrink-0">
+            <div class="w-12 h-12 rounded-2xl bg-slate-100 border border-darkborder flex items-center justify-center shrink-0">
               <i class="fa-solid \${step.icon} text-xl \${step.color}"></i>
             </div>
-            <h4 class="text-base sm:text-lg font-bold text-white tracking-tight">\${step.title}</h4>
+            <h4 class="text-base sm:text-lg font-bold text-slate-900 tracking-tight">\${step.title}</h4>
           </div>
-          <p class="text-xs sm:text-sm text-gray-300 leading-relaxed">\${step.desc}</p>
-          <div class="p-3 bg-gray-950/80 rounded-xl border border-indigo-500/20 text-xs text-indigo-300 flex items-center gap-2">
-            <i class="fa-solid fa-lightbulb text-amber-400 shrink-0"></i>
+          <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">\${step.desc}</p>
+          <div class="p-3 bg-slate-100/80 rounded-xl border border-indigo-500/20 text-xs text-indigo-700 flex items-center gap-2">
+            <i class="fa-solid fa-lightbulb text-amber-600 shrink-0"></i>
             <span>\${step.highlight}</span>
           </div>
         </div>
@@ -820,25 +823,25 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
       if (pillsContainer) {
         if (isEn) {
           pillsContainer.innerHTML = \`
-            <a href="#sec-overview" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⚡ Overview</a>
-            <a href="#sec-setup" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">🎯 Set Cron on Session</a>
-            <a href="#sec-schedule" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⏰ Schedules & Visual Builder</a>
-            <a href="#sec-duration" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">♾️ Max Runs (Infinite vs Finite)</a>
-            <a href="#sec-memory" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">🧠 Memory & seenHashes</a>
-            <a href="#sec-runs" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">📊 Run Outcomes (/runs)</a>
-            <a href="#sec-daemon" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⚙️ 60s launchd Daemon</a>
-            <a href="#sec-faq" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">❓ FAQs & Troubleshooting</a>
+            <a href="#sec-overview" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">⚡ Overview</a>
+            <a href="#sec-setup" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">🎯 Set Cron on Session</a>
+            <a href="#sec-schedule" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">⏰ Schedules & Visual Builder</a>
+            <a href="#sec-duration" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">♾️ Max Runs (Infinite vs Finite)</a>
+            <a href="#sec-memory" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">🧠 Memory & seenHashes</a>
+            <a href="#sec-runs" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">📊 Run Outcomes (/runs)</a>
+            <a href="#sec-daemon" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">⚙️ 60s launchd Daemon</a>
+            <a href="#sec-faq" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">❓ FAQs & Troubleshooting</a>
           \`;
         } else {
           pillsContainer.innerHTML = \`
-            <a href="#sec-overview" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⚡ Cos'è</a>
-            <a href="#sec-setup" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">🎯 Imposta Cron su Sessione</a>
-            <a href="#sec-schedule" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⏰ Orari & Visual Builder</a>
-            <a href="#sec-duration" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">♾️ Max Runs (Infinito vs Finito)</a>
-            <a href="#sec-memory" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">🧠 Memoria & seenHashes</a>
-            <a href="#sec-runs" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">📊 Esiti delle Runs (/runs)</a>
-            <a href="#sec-daemon" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">⚙️ Demone launchd 60s</a>
-            <a href="#sec-faq" class="px-3 py-1.5 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-darkborder transition-colors">❓ FAQ & Risoluzione</a>
+            <a href="#sec-overview" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">⚡ Cos'è</a>
+            <a href="#sec-setup" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">🎯 Imposta Cron su Sessione</a>
+            <a href="#sec-schedule" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">⏰ Orari & Visual Builder</a>
+            <a href="#sec-duration" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">♾️ Max Runs (Infinito vs Finito)</a>
+            <a href="#sec-memory" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">🧠 Memoria & seenHashes</a>
+            <a href="#sec-runs" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">📊 Esiti delle Runs (/runs)</a>
+            <a href="#sec-daemon" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">⚙️ Demone launchd 60s</a>
+            <a href="#sec-faq" class="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder transition-colors">❓ FAQ & Risoluzione</a>
           \`;
         }
       }
@@ -851,29 +854,29 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
             <!-- SECTION 1: ARCHITECTURE OVERVIEW -->
             <section id="sec-overview" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
               <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
-                <div class="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20 shrink-0">
+                <div class="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-500/20 shrink-0">
                   <i class="fa-solid fa-bolt text-lg"></i>
                 </div>
                 <div>
-                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">1. 60-Second Architecture: An AI Agent Scheduler, Not a Dumb Bash Timer</h2>
-                  <p class="text-xs text-gray-400">How OpenCode Cron radically differs from basic system crons or shell scripts</p>
+                  <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">1. 60-Second Architecture: An AI Agent Scheduler, Not a Dumb Bash Timer</h2>
+                  <p class="text-xs text-slate-500">How OpenCode Cron radically differs from basic system crons or shell scripts</p>
                 </div>
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
-                <div class="bg-gray-950/60 p-4 rounded-2xl border border-darkborder space-y-2">
-                  <h3 class="font-bold text-indigo-300 flex items-center gap-1.5">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                <div class="bg-slate-100/60 p-4 rounded-2xl border border-darkborder space-y-2">
+                  <h3 class="font-bold text-indigo-700 flex items-center gap-1.5">
                     <i class="fa-solid fa-comments"></i> Session Continuity (Same Chat ID)
                   </h3>
                   <p>
-                    Standard crons run an isolated command and forget everything. OpenCode Cron wakes up <strong>the exact same OpenCode conversation</strong> (same <code class="text-indigo-300 font-mono">sessionID</code>). The agent keeps full contextual history from previous turns.
+                    Standard crons run an isolated command and forget everything. OpenCode Cron wakes up <strong>the exact same OpenCode conversation</strong> (same <code class="text-indigo-700 font-mono">sessionID</code>). The agent keeps full contextual history from previous turns.
                   </p>
                 </div>
-                <div class="bg-gray-950/60 p-4 rounded-2xl border border-darkborder space-y-2">
-                  <h3 class="font-bold text-purple-300 flex items-center gap-1.5">
+                <div class="bg-slate-100/60 p-4 rounded-2xl border border-darkborder space-y-2">
+                  <h3 class="font-bold text-purple-700 flex items-center gap-1.5">
                     <i class="fa-solid fa-shield-halved"></i> Compaction Resilient (Zero Amnesia)
                   </h3>
                   <p>
-                    When a conversation spans hundreds of messages and OpenCode compacts context, OpenCode Cron automatically injects the persistent Markdown memory file (<code class="text-purple-300 font-mono">.opencode/cron/memory/&lt;id&gt;.md</code>) into the summary, guaranteeing zero amnesia.
+                    When a conversation spans hundreds of messages and OpenCode compacts context, OpenCode Cron automatically injects the persistent Markdown memory file (<code class="text-purple-700 font-mono">.opencode/cron/memory/&lt;id&gt;.md</code>) into the summary, guaranteeing zero amnesia.
                   </p>
                 </div>
               </div>
@@ -882,19 +885,19 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
             <!-- SECTION 2: BINDING CRON TO CONVERSATION -->
             <section id="sec-setup" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
               <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
-                <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shrink-0">
+                <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center border border-indigo-500/20 shrink-0">
                   <i class="fa-solid fa-calendar-plus text-lg"></i>
                 </div>
                 <div>
-                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">2. Setting a Cron on a Conversation (1-Click Workflow)</h2>
-                  <p class="text-xs text-gray-400">Two intuitive workflows to attach recurring tasks to any OpenCode session</p>
+                  <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">2. Setting a Cron on a Conversation (1-Click Workflow)</h2>
+                  <p class="text-xs text-slate-500">Two intuitive workflows to attach recurring tasks to any OpenCode session</p>
                 </div>
               </div>
-              <div class="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+              <div class="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="bg-gray-950/70 p-5 rounded-2xl border border-indigo-500/30 space-y-2">
+                  <div class="bg-slate-100/70 p-5 rounded-2xl border border-indigo-500/30 space-y-2">
                     <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 text-white">
-                      <i class="fa-solid fa-bolt text-amber-300"></i> Method 1: 1-Click from Live Chat
+                      <i class="fa-solid fa-bolt text-amber-700"></i> Method 1: 1-Click from Live Chat
                     </div>
                     <p class="pt-1">
                       1. Open the <strong>Live Chat</strong> tab and select the conversation.<br>
@@ -902,12 +905,12 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
                       3. The configurator opens with <strong>that specific session pre-selected</strong>, ready to configure!
                     </p>
                   </div>
-                  <div class="bg-gray-950/70 p-5 rounded-2xl border border-darkborder space-y-2">
-                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-800 text-gray-300">
-                      <i class="fa-solid fa-plus text-indigo-400"></i> Method 2: From + New Job Button
+                  <div class="bg-slate-100/70 p-5 rounded-2xl border border-darkborder space-y-2">
+                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-200 text-slate-600">
+                      <i class="fa-solid fa-plus text-indigo-600"></i> Method 2: From + New Job Button
                     </div>
                     <p class="pt-1">
-                      1. Click <strong class="text-white">&quot;+ New Job&quot;</strong> anytime in the top navbar.<br>
+                      1. Click <strong class="text-slate-900">&quot;+ New Job&quot;</strong> anytime in the top navbar.<br>
                       2. Under <em>Target Session</em>, choose from the organized dropdown:<br>
                       &nbsp;&nbsp;• 💬 <strong>Main Sessions (Root)</strong> (recommended)<br>
                       &nbsp;&nbsp;• 🤖 <strong>Subagents</strong> generated automatically<br>
@@ -915,16 +918,16 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
                     </p>
                   </div>
                 </div>
-                <div class="bg-indigo-950/20 border border-indigo-500/20 p-4 rounded-2xl space-y-2">
-                  <h3 class="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <i class="fa-solid fa-sliders text-indigo-400"></i> Configuration Form Fields
+                <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-2xl space-y-2">
+                  <h3 class="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-sliders text-indigo-600"></i> Configuration Form Fields
                   </h3>
-                  <ul class="list-disc list-inside space-y-1 text-xs text-gray-300">
-                    <li><strong class="text-white">Job Title:</strong> Descriptive name (e.g. <em>AI News Monitor 5m</em> or <em>Daily Standup Report</em>).</li>
-                    <li><strong class="text-white">Schedule / Interval:</strong> Execution cadence (e.g. <code class="text-indigo-300 font-mono">5m</code>, <code class="text-indigo-300 font-mono">1h</code>, <code class="text-indigo-300 font-mono">0 9 * * *</code>).</li>
-                    <li><strong class="text-white">Max Runs:</strong> Max completed cycles before stopping (<code class="text-indigo-300 font-mono">0 = infinite / indefinite</code>).</li>
-                    <li><strong class="text-white">System Prompt (Frozen):</strong> Permanent identity, constraints, and instructions for the agent.</li>
-                    <li><strong class="text-white">Followup Prompt:</strong> Actionable task executed on every single automated tick.</li>
+                  <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+                    <li><strong class="text-slate-900">Job Title:</strong> Descriptive name (e.g. <em>AI News Monitor 5m</em> or <em>Daily Standup Report</em>).</li>
+                    <li><strong class="text-slate-900">Schedule / Interval:</strong> Execution cadence (e.g. <code class="text-indigo-700 font-mono">5m</code>, <code class="text-indigo-700 font-mono">1h</code>, <code class="text-indigo-700 font-mono">0 9 * * *</code>).</li>
+                    <li><strong class="text-slate-900">Max Runs:</strong> Max completed cycles before stopping (<code class="text-indigo-700 font-mono">0 = infinite / indefinite</code>).</li>
+                    <li><strong class="text-slate-900">System Prompt (Frozen):</strong> Permanent identity, constraints, and instructions for the agent.</li>
+                    <li><strong class="text-slate-900">Followup Prompt:</strong> Actionable task executed on every single automated tick.</li>
                   </ul>
                 </div>
               </div>
@@ -933,46 +936,46 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
             <!-- SECTION 3: VISUAL SCHEDULE BUILDER -->
             <section id="sec-schedule" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
               <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
-                <div class="w-10 h-10 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20 shrink-0">
+                <div class="w-10 h-10 rounded-2xl bg-cyan-500/10 text-cyan-700 flex items-center justify-center border border-cyan-500/20 shrink-0">
                   <i class="fa-solid fa-clock text-lg"></i>
                 </div>
                 <div>
-                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">3. Visual Schedule Builder: Times, Intervals & 5-Field Cron</h2>
-                  <p class="text-xs text-gray-400">Supported formats with real-time predictive next-runs preview</p>
+                  <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">3. Visual Schedule Builder: Times, Intervals & 5-Field Cron</h2>
+                  <p class="text-xs text-slate-500">Supported formats with real-time predictive next-runs preview</p>
                 </div>
               </div>
-              <div class="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+              <div class="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
                 <p>
                   OpenCode Cron supports both natural intervals and standard Unix 5-field Cron expressions. As you type, the engine instantly computes the human-readable description and exact timestamps for the <strong>next 3 runs</strong>.
                 </p>
                 <div class="overflow-x-auto">
                   <table class="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr class="border-b border-darkborder bg-gray-950 text-gray-400">
+                      <tr class="border-b border-darkborder bg-slate-100 text-slate-500">
                         <th class="py-2.5 px-3 font-semibold">Type</th>
                         <th class="py-2.5 px-3 font-semibold">Expression</th>
                         <th class="py-2.5 px-3 font-semibold">Description & Use Case</th>
                       </tr>
                     </thead>
-                    <tbody class="divide-y divide-darkborder/50 text-gray-300">
-                      <tr class="hover:bg-gray-900/40">
-                        <td class="py-2.5 px-3 font-mono text-indigo-400 font-bold">Quick Interval</td>
-                        <td class="py-2.5 px-3 font-mono text-amber-300">5m, 15m, 30m, 1h, 1d</td>
+                    <tbody class="divide-y divide-darkborder/50 text-slate-600">
+                      <tr class="hover:bg-slate-100/40">
+                        <td class="py-2.5 px-3 font-mono text-indigo-600 font-bold">Quick Interval</td>
+                        <td class="py-2.5 px-3 font-mono text-amber-700">5m, 15m, 30m, 1h, 1d</td>
                         <td class="py-2.5 px-3">Runs every N minutes or hours continuously. Safety minimum allowed: 60s.</td>
                       </tr>
-                      <tr class="hover:bg-gray-900/40">
+                      <tr class="hover:bg-slate-100/40">
                         <td class="py-2.5 px-3 font-mono text-purple-400 font-bold">Daily Morning</td>
-                        <td class="py-2.5 px-3 font-mono text-amber-300">0 9 * * *</td>
+                        <td class="py-2.5 px-3 font-mono text-amber-700">0 9 * * *</td>
                         <td class="py-2.5 px-3">Every day at 09:00 AM sharp (standup prep, news digesting).</td>
                       </tr>
-                      <tr class="hover:bg-gray-900/40">
+                      <tr class="hover:bg-slate-100/40">
                         <td class="py-2.5 px-3 font-mono text-purple-400 font-bold">Weekdays Only</td>
-                        <td class="py-2.5 px-3 font-mono text-amber-300">0 9 * * 1-5</td>
+                        <td class="py-2.5 px-3 font-mono text-amber-700">0 9 * * 1-5</td>
                         <td class="py-2.5 px-3">Monday through Friday at 09:00 AM (workday automations).</td>
                       </tr>
-                      <tr class="hover:bg-gray-900/40">
+                      <tr class="hover:bg-slate-100/40">
                         <td class="py-2.5 px-3 font-mono text-purple-400 font-bold">Evening Summary</td>
-                        <td class="py-2.5 px-3 font-mono text-amber-300">0 18 * * *</td>
+                        <td class="py-2.5 px-3 font-mono text-amber-700">0 18 * * *</td>
                         <td class="py-2.5 px-3">Every day at 06:00 PM (end-of-day reports, commit summaries).</td>
                       </tr>
                     </tbody>
@@ -984,29 +987,29 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
             <!-- SECTION 4: DURATION & MAX RUNS -->
             <section id="sec-duration" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
               <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
-                <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 shrink-0">
+                <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center border border-emerald-500/20 shrink-0">
                   <i class="fa-solid fa-infinity text-lg"></i>
                 </div>
                 <div>
-                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">4. Duration & End Condition: Infinite Execution vs Max Runs Limit</h2>
-                  <p class="text-xs text-gray-400">Configure indefinite runs or auto-stop after N cycles</p>
+                  <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">4. Duration & End Condition: Infinite Execution vs Max Runs Limit</h2>
+                  <p class="text-xs text-slate-500">Configure indefinite runs or auto-stop after N cycles</p>
                 </div>
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
-                <div class="bg-gray-950/70 p-5 rounded-2xl border border-emerald-500/30 space-y-2">
-                  <h3 class="font-bold text-emerald-400 text-sm flex items-center gap-1.5">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                <div class="bg-slate-100/70 p-5 rounded-2xl border border-emerald-500/30 space-y-2">
+                  <h3 class="font-bold text-emerald-700 text-sm flex items-center gap-1.5">
                     <i class="fa-solid fa-infinity"></i> Infinite Execution (Max Runs = 0)
                   </h3>
                   <p>
-                    Setting <code class="text-emerald-300 font-mono font-bold">0</code> in Max Runs (default), the Cron Job <strong>never stops</strong>. It continues running on schedule day after day until you pause or delete it.
+                    Setting <code class="text-emerald-700 font-mono font-bold">0</code> in Max Runs (default), the Cron Job <strong>never stops</strong>. It continues running on schedule day after day until you pause or delete it.
                   </p>
                 </div>
-                <div class="bg-gray-950/70 p-5 rounded-2xl border border-amber-500/30 space-y-2">
-                  <h3 class="font-bold text-amber-300 text-sm flex items-center gap-1.5">
+                <div class="bg-slate-100/70 p-5 rounded-2xl border border-amber-500/30 space-y-2">
+                  <h3 class="font-bold text-amber-700 text-sm flex items-center gap-1.5">
                     <i class="fa-solid fa-flag-checkered"></i> Programmed End (Max Runs = N)
                   </h3>
                   <p>
-                    Setting a positive number (e.g. <code class="text-amber-300 font-mono font-bold">10</code> or <code class="text-amber-300 font-mono font-bold">50</code>), the engine accurately tracks completed ticks. Upon reaching the cap, it marks the job as <span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30 text-[10px]">COMPLETED</span> and stops, saving tokens.
+                    Setting a positive number (e.g. <code class="text-amber-700 font-mono font-bold">10</code> or <code class="text-amber-700 font-mono font-bold">50</code>), the engine accurately tracks completed ticks. Upon reaching the cap, it marks the job as <span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-700 font-bold border border-blue-500/30 text-[10px]">COMPLETED</span> and stops, saving tokens.
                   </p>
                 </div>
               </div>
@@ -1019,26 +1022,26 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
                   <i class="fa-solid fa-brain text-lg"></i>
                 </div>
                 <div>
-                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">5. Persistent Markdown Memory & Deduplication (seenHashes)</h2>
-                  <p class="text-xs text-gray-400">Preserve context across compactions and prevent duplicated work</p>
+                  <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">5. Persistent Markdown Memory & Deduplication (seenHashes)</h2>
+                  <p class="text-xs text-slate-500">Preserve context across compactions and prevent duplicated work</p>
                 </div>
               </div>
-              <div class="space-y-3 text-xs sm:text-sm text-gray-300 leading-relaxed">
+              <div class="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
                 <p>
-                  Every cron job has a dedicated Markdown file in <code class="text-purple-300 font-mono">.opencode/cron/memory/&lt;jobId&gt;.md</code> storing:
+                  Every cron job has a dedicated Markdown file in <code class="text-purple-700 font-mono">.opencode/cron/memory/&lt;jobId&gt;.md</code> storing:
                 </p>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div class="bg-gray-950/60 p-3.5 rounded-xl border border-darkborder">
-                    <strong class="text-indigo-400 block mb-1">1. Key Facts</strong>
-                    <p class="text-xs text-gray-400">Information verified in previous ticks, readily available to the agent.</p>
+                  <div class="bg-slate-100/60 p-3.5 rounded-xl border border-darkborder">
+                    <strong class="text-indigo-600 block mb-1">1. Key Facts</strong>
+                    <p class="text-xs text-slate-500">Information verified in previous ticks, readily available to the agent.</p>
                   </div>
-                  <div class="bg-gray-950/60 p-3.5 rounded-xl border border-darkborder">
+                  <div class="bg-slate-100/60 p-3.5 rounded-xl border border-darkborder">
                     <strong class="text-purple-400 block mb-1">2. seenHashes (Dedup)</strong>
-                    <p class="text-xs text-gray-400">List of visited URLs or hashes to ensure no duplicated reports.</p>
+                    <p class="text-xs text-slate-500">List of visited URLs or hashes to ensure no duplicated reports.</p>
                   </div>
-                  <div class="bg-gray-950/60 p-3.5 rounded-xl border border-darkborder">
-                    <strong class="text-emerald-400 block mb-1">3. Mandatory Self-Check</strong>
-                    <p class="text-xs text-gray-400">3 pre-flight verification questions to prevent LLM hallucinations.</p>
+                  <div class="bg-slate-100/60 p-3.5 rounded-xl border border-darkborder">
+                    <strong class="text-emerald-700 block mb-1">3. Mandatory Self-Check</strong>
+                    <p class="text-xs text-slate-500">3 pre-flight verification questions to prevent LLM hallucinations.</p>
                   </div>
                 </div>
               </div>
@@ -1047,34 +1050,34 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
             <!-- SECTION 6: RUN OUTCOMES -->
             <section id="sec-runs" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
               <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
-                <div class="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20 shrink-0">
+                <div class="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-600 flex items-center justify-center border border-rose-500/20 shrink-0">
                   <i class="fa-solid fa-chart-line text-lg"></i>
                 </div>
                 <div>
-                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">6. Dedicated 'Run Outcomes' Page (/runs)</h2>
-                  <p class="text-xs text-gray-400">Instant verification of succeeded vs failed executions</p>
+                  <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">6. Dedicated 'Run Outcomes' Page (/runs)</h2>
+                  <p class="text-xs text-slate-500">Instant verification of succeeded vs failed executions</p>
                 </div>
               </div>
-              <div class="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+              <div class="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
                 <p>
-                  Navigate to <a href="/runs" class="text-indigo-400 hover:underline font-bold">/runs</a> to access full diagnostics:
+                  Navigate to <a href="/runs" class="text-indigo-600 hover:underline font-bold">/runs</a> to access full diagnostics:
                 </p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-                  <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder">
-                    <span class="text-gray-400 block">✓ Success vs ✕ Failed</span>
-                    <span class="text-emerald-400 font-bold">Immediate color badges</span>
+                  <div class="bg-slate-100/80 p-3 rounded-xl border border-darkborder">
+                    <span class="text-slate-500 block">✓ Success vs ✕ Failed</span>
+                    <span class="text-emerald-700 font-bold">Immediate color badges</span>
                   </div>
-                  <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder">
-                    <span class="text-gray-400 block">Timeline Strip</span>
-                    <span class="text-indigo-300 font-bold">Last 48 clickable runs</span>
+                  <div class="bg-slate-100/80 p-3 rounded-xl border border-darkborder">
+                    <span class="text-slate-500 block">Timeline Strip</span>
+                    <span class="text-indigo-700 font-bold">Last 48 clickable runs</span>
                   </div>
-                  <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder">
-                    <span class="text-gray-400 block">Outcomes per Job</span>
-                    <span class="text-purple-300 font-bold">Health & success rate %</span>
+                  <div class="bg-slate-100/80 p-3 rounded-xl border border-darkborder">
+                    <span class="text-slate-500 block">Outcomes per Job</span>
+                    <span class="text-purple-700 font-bold">Health & success rate %</span>
                   </div>
-                  <div class="bg-gray-950/80 p-3 rounded-xl border border-darkborder">
-                    <span class="text-gray-400 block">Live Chat Deep Link</span>
-                    <span class="text-sky-300 font-bold">Jump to exact turn</span>
+                  <div class="bg-slate-100/80 p-3 rounded-xl border border-darkborder">
+                    <span class="text-slate-500 block">Live Chat Deep Link</span>
+                    <span class="text-sky-700 font-bold">Jump to exact turn</span>
                   </div>
                 </div>
               </div>
@@ -1083,19 +1086,19 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
             <!-- SECTION 7: LAUNCHD DAEMON -->
             <section id="sec-daemon" class="instruction-card bg-darkcard border border-darkborder rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
               <div class="flex items-center gap-3 pb-3 border-b border-darkborder">
-                <div class="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20 shrink-0">
+                <div class="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center border border-blue-500/20 shrink-0">
                   <i class="fa-solid fa-server text-lg"></i>
                 </div>
                 <div>
-                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">7. Background macOS launchd Daemon: 24/7 Autonomous Execution</h2>
-                  <p class="text-xs text-gray-400">Your scheduled tasks run in background even when browser and UI are closed</p>
+                  <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">7. Background macOS launchd Daemon: 24/7 Autonomous Execution</h2>
+                  <p class="text-xs text-slate-500">Your scheduled tasks run in background even when browser and UI are closed</p>
                 </div>
               </div>
-              <div class="space-y-3 text-xs sm:text-sm text-gray-300 leading-relaxed">
+              <div class="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
                 <p>
-                  The native macOS daemon (<code class="text-blue-300 font-mono">ai.opencode.cron</code>) lives in <code class="text-gray-400 font-mono">~/Library/LaunchAgents/ai.opencode.cron.plist</code> and fires automatically every 60 seconds:
+                  The native macOS daemon (<code class="text-blue-700 font-mono">ai.opencode.cron</code>) lives in <code class="text-slate-500 font-mono">~/Library/LaunchAgents/ai.opencode.cron.plist</code> and fires automatically every 60 seconds:
                 </p>
-                <div class="bg-gray-950 p-4 rounded-xl border border-darkborder font-mono text-xs text-gray-300 space-y-1 overflow-x-auto">
+                <div class="bg-slate-100 p-4 rounded-xl border border-darkborder font-mono text-xs text-slate-600 space-y-1 overflow-x-auto">
                   <div><span class="text-gray-500"># Verify macOS launchd daemon status</span></div>
                   <div>launchctl list | grep opencode.cron</div>
                   <div class="pt-2"><span class="text-gray-500"># Real-time stdout tailing</span></div>
@@ -1111,28 +1114,28 @@ export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa
                   <i class="fa-solid fa-circle-question text-lg"></i>
                 </div>
                 <div>
-                  <h2 class="text-lg sm:text-xl font-bold text-white tracking-tight">8. FAQs, Security Guardrails & Quick Troubleshooting</h2>
-                  <p class="text-xs text-gray-400">What to do on consecutive errors or desktop app restarts</p>
+                  <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">8. FAQs, Security Guardrails & Quick Troubleshooting</h2>
+                  <p class="text-xs text-slate-500">What to do on consecutive errors or desktop app restarts</p>
                 </div>
               </div>
-              <div class="space-y-4 text-xs sm:text-sm text-gray-300 leading-relaxed">
+              <div class="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
                 <div class="border-b border-darkborder/60 pb-3">
-                  <h3 class="font-bold text-white mb-1">What happens if a job fails repeatedly?</h3>
-                  <p class="text-gray-400">
+                  <h3 class="font-bold text-slate-900 mb-1">What happens if a job fails repeatedly?</h3>
+                  <p class="text-slate-500">
                     To prevent infinite error loops and token burn, if a job accumulates <strong>5 consecutive failures</strong> it is automatically paused. Click Play on the Dashboard to reset failures and resume.
                   </p>
                 </div>
                 <div class="border-b border-darkborder/60 pb-3">
-                  <h3 class="font-bold text-white mb-1">What to do if ticks fail with HTTP 401 after restarting the desktop app?</h3>
-                  <p class="text-gray-400">
+                  <h3 class="font-bold text-slate-900 mb-1">What to do if ticks fail with HTTP 401 after restarting the desktop app?</h3>
+                  <p class="text-slate-500">
                     The desktop app rotates sidecar credentials on every restart. Run this command in terminal:
-                    <code class="block mt-1 p-2 bg-gray-950 rounded font-mono text-indigo-300">node ./dist/bin/run.js refresh-creds</code>
-                    or type <code class="text-indigo-300">/cron-refresh</code> directly in OpenCode chat.
+                    <code class="block mt-1 p-2 bg-slate-100 rounded font-mono text-indigo-700">node ./dist/bin/run.js refresh-creds</code>
+                    or type <code class="text-indigo-700">/cron-refresh</code> directly in OpenCode chat.
                   </p>
                 </div>
                 <div>
-                  <h3 class="font-bold text-white mb-1">How do I change languages or toggle RTL mode?</h3>
-                  <p class="text-gray-400">
+                  <h3 class="font-bold text-slate-900 mb-1">How do I change languages or toggle RTL mode?</h3>
+                  <p class="text-slate-500">
                     Use the language dropdown at the top right to switch between 10 supported languages (English, Italian, Spanish, French, German, Portuguese, Chinese, Japanese, Arabic, Russian). Selecting Arabic activates native Right-to-Left (<strong>RTL</strong>) styling automatically.
                   </p>
                 </div>

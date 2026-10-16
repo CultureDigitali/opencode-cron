@@ -18,6 +18,18 @@ export function escapeHtml(str: string): string {
 
 export function getUiEnhancementsHeadStyle(): string {
   return `
+    /* ---- Signal-room atmosphere (shared / /runs /instructions) ---- */
+    body {
+      background-color: #070B12;
+      background-image:
+        radial-gradient(1100px 380px at 85% -120px, rgba(99, 102, 241, 0.14), transparent 65%),
+        radial-gradient(900px 340px at -10% 0%, rgba(52, 211, 153, 0.07), transparent 60%);
+    }
+    /* ---- Shared Mandate chrome ---- */
+    .oc-brand-mark {
+      width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+      background: #101828; color: #fff; display: flex; align-items: center; justify-content: center;
+    }
     /* ---- Responsive foundation (mobile-first, shared / /runs /instructions) ---- */
     html { -webkit-text-size-adjust: 100%; }
     body { overflow-x: hidden; text-rendering: optimizeLegibility; }
@@ -144,39 +156,40 @@ export function getUiEnhancementsBodyHtml(): string {
     role="dialog"
     aria-modal="true"
     aria-labelledby="oc-guide-title"
+    aria-hidden="true"
     tabindex="-1"
     class="fixed top-0 right-0 rtl:right-auto rtl:left-0 h-full w-full max-w-xl bg-darkcard border-l rtl:border-l-0 rtl:border-r border-darkborder z-50 shadow-2xl transform translate-x-full rtl:-translate-x-full transition-transform duration-200 flex flex-col"
   >
     <!-- Drawer Header -->
-    <div class="px-6 py-4 border-b border-darkborder flex items-center justify-between bg-gray-900/80">
+    <div class="px-6 py-4 border-b border-darkborder flex items-center justify-between bg-slate-100/80">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 flex items-center justify-center">
+        <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-700 flex items-center justify-center">
           <i class="fa-solid fa-book-open text-sm"></i>
         </div>
         <div>
-          <h2 id="oc-guide-title" class="text-base font-bold text-white" data-i18n="guide.title">Guida & Istruzioni OpenCode Cron</h2>
-          <p class="text-xs text-gray-400" data-i18n="guide.subtitle">Manuale interattivo, architettura e risoluzione problemi</p>
+          <h2 id="oc-guide-title" class="text-base font-bold text-slate-900" data-i18n="guide.title">Guida & Istruzioni OpenCode Cron</h2>
+          <p class="text-xs text-slate-500" data-i18n="guide.subtitle">Manuale interattivo, architettura e risoluzione problemi</p>
         </div>
       </div>
       <button
         type="button"
         onclick="closeGuideDrawer()"
         aria-label="Chiudi guida"
-        class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 border border-gray-700/70 transition-colors"
+        class="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-200 border border-slate-300/70 transition-colors"
       >
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
 
     <!-- Drawer Content -->
-    <div class="flex-1 overflow-y-auto p-6 space-y-5 text-xs leading-relaxed text-gray-300" id="oc-guide-body">
+    <div class="flex-1 overflow-y-auto p-6 space-y-5 text-xs leading-relaxed text-slate-600" id="oc-guide-body">
       <!-- Populated dynamically by renderGuideDrawerContent() in active language -->
     </div>
 
     <!-- Drawer Footer -->
-    <div class="px-6 py-3.5 border-t border-darkborder bg-gray-900/80 flex items-center justify-between text-xs">
-      <span class="text-gray-400">
-        <kbd class="px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded text-[10px] font-mono text-gray-200">?</kbd>
+    <div class="px-6 py-3.5 border-t border-darkborder bg-slate-100/80 flex items-center justify-between text-xs">
+      <span class="text-slate-500">
+        <kbd class="px-1.5 py-0.5 bg-slate-200 border border-slate-300 rounded text-[10px] font-mono text-slate-700">?</kbd>
         <span class="ml-1" data-i18n="guide.shortcutHint">Premi ? in qualsiasi momento per aprire la guida</span>
       </span>
       <button
@@ -231,24 +244,24 @@ export function getUiEnhancementsBodyHtml(): string {
     role="dialog"
     aria-modal="true"
     aria-labelledby="oc-spotlight-title"
-    class="fixed bg-gray-950/95 border-2 border-indigo-500/50 rounded-2xl shadow-2xl p-4 sm:p-5 text-gray-200 max-w-[92vw] sm:max-w-md backdrop-blur-xl hidden flex flex-col space-y-3.5 transition-all duration-300"
+    class="fixed bg-slate-100/95 border-2 border-indigo-500/50 rounded-2xl shadow-2xl p-4 sm:p-5 text-slate-700 max-w-[92vw] sm:max-w-md backdrop-blur-xl hidden flex flex-col space-y-3.5 transition-all duration-300"
     style="z-index: 9995;"
   >
     <!-- Card Header -->
     <div class="flex items-center justify-between pb-2.5 border-b border-darkborder/80">
       <div class="flex items-center gap-2">
-        <span class="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">
+        <span class="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-600 flex items-center justify-center text-xs">
           <i class="fa-solid fa-wand-magic-sparkles"></i>
         </span>
-        <span id="oc-spotlight-badge" class="text-[10px] font-bold tracking-wider uppercase text-indigo-300">GUIDA CRONJOB</span>
+        <span id="oc-spotlight-badge" class="text-[10px] font-bold tracking-wider uppercase text-indigo-700">GUIDA CRONJOB</span>
         <span class="text-gray-600">•</span>
-        <span id="oc-spotlight-step-text" class="text-[11px] font-mono text-gray-400">Passo 1 di 7</span>
+        <span id="oc-spotlight-step-text" class="text-[11px] font-mono text-slate-500">Passo 1 di 7</span>
       </div>
       <button
         type="button"
         id="oc-spotlight-close-btn"
         onclick="stopGuidedDemo(event)"
-        class="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 text-sm transition-colors cursor-pointer"
+        class="text-slate-500 hover:text-slate-900 p-1.5 rounded-lg hover:bg-slate-200 text-sm transition-colors cursor-pointer"
         aria-label="Esci dal tour guidato"
         title="Chiudi demo (Esc)"
       >
@@ -258,8 +271,8 @@ export function getUiEnhancementsBodyHtml(): string {
 
     <!-- Card Content -->
     <div class="space-y-1.5">
-      <h4 id="oc-spotlight-title" class="text-sm sm:text-base font-bold text-white tracking-tight"></h4>
-      <p id="oc-spotlight-desc" class="text-xs text-gray-300 leading-relaxed"></p>
+      <h4 id="oc-spotlight-title" class="text-sm sm:text-base font-bold text-slate-900 tracking-tight"></h4>
+      <p id="oc-spotlight-desc" class="text-xs text-slate-600 leading-relaxed"></p>
     </div>
 
     <!-- Action Helper (Demo Fill) -->
@@ -268,9 +281,9 @@ export function getUiEnhancementsBodyHtml(): string {
         type="button"
         id="oc-spotlight-demo-fill-btn"
         onclick="demoFillStepData()"
-        class="w-full py-1.5 px-3 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+        class="w-full py-1.5 px-3 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-700 hover:text-slate-900 border border-indigo-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
       >
-        <i class="fa-solid fa-wand-magic-sparkles text-amber-400 text-xs"></i>
+        <i class="fa-solid fa-wand-magic-sparkles text-amber-600 text-xs"></i>
         <span id="oc-spotlight-demo-fill-label">Compila Dati Esempio</span>
       </button>
     </div>
@@ -282,7 +295,7 @@ export function getUiEnhancementsBodyHtml(): string {
           type="button"
           id="oc-spotlight-prev-btn"
           onclick="prevSpotlightStep()"
-          class="px-3 py-1.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-gray-300 font-semibold border border-darkborder transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold border border-darkborder transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <i class="fa-solid fa-arrow-left mr-1"></i> <span id="oc-spotlight-prev-label">Indietro</span>
         </button>
@@ -290,7 +303,7 @@ export function getUiEnhancementsBodyHtml(): string {
           type="button"
           id="oc-spotlight-skip-btn"
           onclick="stopGuidedDemo(event)"
-          class="text-gray-400 hover:text-gray-200 text-xs transition-colors cursor-pointer px-1.5 py-1"
+          class="text-slate-500 hover:text-slate-700 text-xs transition-colors cursor-pointer px-1.5 py-1"
         >
           <span id="oc-spotlight-skip-label">Salta</span>
         </button>
@@ -2486,8 +2499,10 @@ export function getUiEnhancementsScript(): string {
       document.documentElement.setAttribute('lang', langCode);
       document.documentElement.setAttribute('dir', langMeta && langMeta.rtl ? 'rtl' : 'ltr');
 
-      const sel = document.getElementById('oc-lang-select');
-      if (sel && sel.value !== langCode) sel.value = langCode;
+      document.querySelectorAll('select[id^="oc-lang-select"]').forEach((el) => {
+        const s = /** @type {HTMLSelectElement} */ (el);
+        if (s.value !== langCode) s.value = langCode;
+      });
 
       applyStaticTranslations();
       renderGuideDrawerContent();
@@ -2546,12 +2561,12 @@ export function getUiEnhancementsScript(): string {
         { title: t('guide.sec5Title'), body: t('guide.sec5Body'), icon: 'fa-shield-halved text-rose-400', border: 'border-rose-500/25' }
       ];
       body.innerHTML = sections.map(s => \`
-        <div class="bg-gray-900/90 border \${s.border} rounded-2xl p-4 space-y-2">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+        <div class="bg-slate-100/90 border \${s.border} rounded-2xl p-4 space-y-2">
+          <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
             <i class="fa-solid \${s.icon}"></i>
             <span>\${s.title}</span>
           </h3>
-          <p class="text-xs text-gray-300 whitespace-pre-line leading-relaxed">\${s.body}</p>
+          <p class="text-xs text-slate-600 whitespace-pre-line leading-relaxed">\${s.body}</p>
         </div>
       \`).join('');
     }
@@ -2563,6 +2578,7 @@ export function getUiEnhancementsScript(): string {
       renderGuideDrawerContent();
       backdrop.classList.remove('hidden');
       drawer.classList.remove('translate-x-full', 'rtl:-translate-x-full');
+      drawer.removeAttribute('aria-hidden');
       setTimeout(() => drawer.focus(), 50);
     }
 
@@ -2571,6 +2587,7 @@ export function getUiEnhancementsScript(): string {
       const backdrop = document.getElementById('oc-guide-backdrop');
       if (!drawer || !backdrop) return;
       drawer.classList.add('translate-x-full', 'rtl:-translate-x-full');
+      drawer.setAttribute('aria-hidden', 'true');
       backdrop.classList.add('hidden');
     }
 
@@ -3172,9 +3189,9 @@ export function getUiEnhancementsScript(): string {
 
       const btn = document.getElementById('oc-spotlight-demo-fill-btn');
       if (btn) {
-        btn.innerHTML = '<i class="fa-solid fa-check text-emerald-400"></i> ' + dict.filledToast;
+        btn.innerHTML = '<i class="fa-solid fa-check text-emerald-700"></i> ' + dict.filledToast;
         setTimeout(() => {
-          btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles text-amber-400 text-xs"></i> <span id="oc-spotlight-demo-fill-label">' + dict.btnFillDemo + '</span>';
+          btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles text-amber-600 text-xs"></i> <span id="oc-spotlight-demo-fill-label">' + dict.btnFillDemo + '</span>';
         }, 1500);
       }
     }
@@ -3254,7 +3271,7 @@ export function getUiEnhancementsScript(): string {
             <button
               type="button"
               onclick="renderSpotlightStep(\${i})"
-              class="w-2.5 h-2.5 rounded-full transition-all cursor-pointer \${i === index ? 'bg-indigo-400 w-5' : 'bg-gray-700 hover:bg-gray-500'}"
+              class="w-2.5 h-2.5 rounded-full transition-all cursor-pointer \${i === index ? 'bg-indigo-400 w-5' : 'bg-slate-200 hover:bg-gray-500'}"
               aria-label="Passo \${i + 1}"
             ></button>
           \`).join('');
@@ -3392,15 +3409,17 @@ export function getUiEnhancementsScript(): string {
   `;
 }
 
-export function getHeaderControlsHtml(): string {
+export function getHeaderControlsHtml(suffix: string = ''): string {
+  const langId = `oc-lang-select${suffix}`;
+  const guideId = `oc-guide-btn${suffix}`;
   return `
     <!-- Direct link to Instructions / Guide Page -->
     <a
       href="/instructions"
       data-tooltip="tt.navInstructions"
-      class="bg-gray-900 hover:bg-gray-800 text-indigo-300 hover:text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border border-indigo-500/30 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+      class="bg-slate-100 hover:bg-slate-200 text-indigo-700 hover:text-slate-900 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border border-indigo-500/30 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
     >
-      <i class="fa-solid fa-book text-indigo-400 text-xs"></i>
+      <i class="fa-solid fa-book text-indigo-600 text-xs"></i>
       <span class="hidden md:inline" data-i18n="nav.instructions">Istruzioni</span>
     </a>
 
@@ -3409,20 +3428,20 @@ export function getHeaderControlsHtml(): string {
       type="button"
       onclick="startGuidedDemo()"
       data-tooltip="tt.tourBtn"
-      class="bg-gray-900 hover:bg-gray-800 text-amber-300 hover:text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border border-amber-500/30 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+      class="bg-slate-100 hover:bg-slate-200 text-amber-700 hover:text-slate-900 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border border-amber-500/30 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
     >
-      <i class="fa-solid fa-wand-magic-sparkles text-amber-400 text-xs"></i>
+      <i class="fa-solid fa-wand-magic-sparkles text-amber-600 text-xs"></i>
       <span class="hidden lg:inline" data-i18n="tour.startBtn">Demo</span>
     </button>
 
     <!-- Language Selector (10 Languages) -->
     <div class="relative flex items-center shrink-0" data-tooltip="tt.liveBadge">
-      <label for="oc-lang-select" class="sr-only">Lingua / Language</label>
+      <label for="${langId}" class="sr-only">Lingua / Language</label>
       <select
-        id="oc-lang-select"
+        id="${langId}"
         onchange="setLanguage(this.value)"
         aria-label="Seleziona lingua interfaccia"
-        class="bg-gray-900 hover:bg-gray-800 text-gray-200 text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-darkborder focus:outline-none focus:border-brand-500 cursor-pointer transition-colors"
+        class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-darkborder focus:outline-none focus:border-brand-500 cursor-pointer transition-colors"
       >
         <option value="it">🇮🇹 IT</option>
         <option value="en">🇬🇧 EN</option>
@@ -3440,12 +3459,12 @@ export function getHeaderControlsHtml(): string {
     <!-- Interactive Guide Drawer Button -->
     <button
       type="button"
-      id="oc-guide-btn"
+      id="${guideId}"
       onclick="openGuideDrawer()"
       data-tooltip="guide.shortcutHint"
-      class="bg-gray-900 hover:bg-gray-800 text-indigo-300 hover:text-white px-3 py-1.5 rounded-xl text-xs font-semibold border border-indigo-500/30 flex items-center gap-1.5 transition-all shrink-0"
+      class="bg-slate-100 hover:bg-slate-200 text-indigo-700 hover:text-slate-900 px-3 py-1.5 rounded-xl text-xs font-semibold border border-indigo-500/30 flex items-center gap-1.5 transition-all shrink-0"
     >
-      <i class="fa-solid fa-circle-question text-indigo-400"></i>
+      <i class="fa-solid fa-circle-question text-indigo-600"></i>
       <span class="hidden sm:inline" data-i18n="nav.guide">Guida</span>
     </button>
   `;
@@ -3454,38 +3473,38 @@ export function getHeaderControlsHtml(): string {
 export function getOnboardingBannerHtml(): string {
   return `
     <!-- Quick-Start Collapsible Instructions Banner -->
-    <section id="oc-onboarding-banner" aria-label="Guida Rapida Primi Passi" class="bg-gradient-to-r from-indigo-950/60 via-darkcard to-emerald-950/40 border border-indigo-500/30 rounded-2xl p-4 sm:p-5 shadow-lg">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-800/80">
+    <section id="oc-onboarding-banner" aria-label="Guida Rapida Primi Passi" class="bg-white border border-[#E2E5EA] rounded-2xl p-4 sm:p-5 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200/80">
         <div class="flex items-center gap-2.5">
-          <span class="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 flex items-center justify-center font-bold">
+          <span class="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-700 flex items-center justify-center font-bold">
             <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
           </span>
           <div>
-            <h2 class="text-sm font-bold text-white" data-i18n="onboard.title">Benvenuto in OpenCode Cron — Guida Rapida</h2>
-            <p class="text-xs text-gray-300" data-i18n="onboard.subtitle">Automatizza task ricorrenti, monitoraggio notizie e controlli codice direttamente nelle sessioni OpenCode.</p>
+            <h2 class="text-sm font-bold text-slate-900" data-i18n="onboard.title">Benvenuto in OpenCode Cron — Guida Rapida</h2>
+            <p class="text-xs text-slate-600" data-i18n="onboard.subtitle">Automatizza task ricorrenti, monitoraggio notizie e controlli codice direttamente nelle sessioni OpenCode.</p>
           </div>
         </div>
         <div class="flex items-center gap-2 self-end sm:self-center">
-          <button type="button" onclick="openGuideDrawer()" class="px-3 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/30 text-xs font-semibold">
+          <button type="button" onclick="openGuideDrawer()" class="px-3 py-1 rounded-lg bg-[#101828] hover:bg-[#1D2939] text-white text-xs font-semibold">
             <i class="fa-solid fa-book-open mr-1"></i> <span data-i18n="nav.guide">Guida</span>
           </button>
-          <button type="button" onclick="dismissOnboardingBanner()" class="px-2.5 py-1 rounded-lg bg-gray-800/80 hover:bg-gray-700 text-gray-400 hover:text-white text-xs" data-i18n="onboard.dismiss">
+          <button type="button" onclick="dismissOnboardingBanner()" class="px-2.5 py-1 rounded-lg bg-slate-200/80 hover:bg-slate-200 text-slate-500 hover:text-slate-900 text-xs" data-i18n="onboard.dismiss">
             Nascondi suggerimenti
           </button>
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 text-xs">
-        <div class="bg-gray-900/70 border border-gray-800 rounded-xl p-3">
-          <p class="font-bold text-indigo-300 mb-1" data-i18n="onboard.step1Title">1. Pianifica un Job</p>
-          <p class="text-gray-300 leading-relaxed" data-i18n="onboard.step1Desc">Scegli una sessione principale, imposta l'intervallo (es. 5m o 0 9 * * *) e definisci System + Followup Prompt.</p>
+        <div class="bg-slate-100/70 border border-slate-200 rounded-xl p-3">
+          <p class="font-bold text-indigo-700 mb-1" data-i18n="onboard.step1Title">1. Pianifica un Job</p>
+          <p class="text-slate-600 leading-relaxed" data-i18n="onboard.step1Desc">Scegli una sessione principale, imposta l'intervallo (es. 5m o 0 9 * * *) e definisci System + Followup Prompt.</p>
         </div>
-        <div class="bg-gray-900/70 border border-gray-800 rounded-xl p-3">
-          <p class="font-bold text-emerald-300 mb-1" data-i18n="onboard.step2Title">2. Esecuzione Autonoma 60s</p>
-          <p class="text-gray-300 leading-relaxed" data-i18n="onboard.step2Desc">Il demone macOS launchd esegue i job scaduti in background anche a browser chiuso e sincronizza il DB SQLite.</p>
+        <div class="bg-slate-100/70 border border-slate-200 rounded-xl p-3">
+          <p class="font-bold text-emerald-700 mb-1" data-i18n="onboard.step2Title">2. Esecuzione Autonoma 60s</p>
+          <p class="text-slate-600 leading-relaxed" data-i18n="onboard.step2Desc">Il demone macOS launchd esegue i job scaduti in background anche a browser chiuso e sincronizza il DB SQLite.</p>
         </div>
-        <div class="bg-gray-900/70 border border-gray-800 rounded-xl p-3">
-          <p class="font-bold text-amber-300 mb-1" data-i18n="onboard.step3Title">3. Controlla Esiti & Chat</p>
-          <p class="text-gray-300 leading-relaxed" data-i18n="onboard.step3Desc">Segui le risposte in tempo reale in Live Chat oppure apri la pagina Esiti Runs per vedere successi ed errori.</p>
+        <div class="bg-slate-100/70 border border-slate-200 rounded-xl p-3">
+          <p class="font-bold text-amber-700 mb-1" data-i18n="onboard.step3Title">3. Controlla Esiti & Chat</p>
+          <p class="text-slate-600 leading-relaxed" data-i18n="onboard.step3Desc">Segui le risposte in tempo reale in Live Chat oppure apri la pagina Esiti Runs per vedere successi ed errori.</p>
         </div>
       </div>
     </section>

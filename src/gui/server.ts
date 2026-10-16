@@ -123,6 +123,14 @@ export function startGuiServer(opts: ServerOpts = {}) {
         }
       }
 
+      // 1a. Favicon (inline SVG, no static assets)
+      if (pathname === "/favicon.ico" && (method === "GET" || method === "HEAD")) {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#101828"/><circle cx="16" cy="16" r="6" fill="white"/></svg>`;
+        return new Response(method === "HEAD" ? null : svg, {
+          headers: { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400" },
+        });
+      }
+
       // 1. Root: Web Dashboard HTML
       if (pathname === "/" && (method === "GET" || method === "HEAD")) {
         return new Response(method === "HEAD" ? null : getHtml(`OpenCode Cron — ${path.basename(directory)}`), {
