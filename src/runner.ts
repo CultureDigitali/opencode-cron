@@ -14,6 +14,9 @@ import {
   quarantineJob,
   resolveDLQEntry,
 } from "./dlq.ts";
+import { evaluateJobGuard } from "./guards.ts";
+import { recordRunMetric } from "./metrics.ts";
+import { dispatchJobNotification } from "./notifications.ts";
 
 export async function acquireLock(directory: string, jobId: string): Promise<boolean> {
   assertJobId(jobId);
@@ -277,6 +280,13 @@ export async function runJobHeadless(
     console.log(`skip ${jobId}: circuit breaker OPEN (${cbStatus.reason})`);
     return 0;
   }
+  if (job.guard && job.guard.enabled) {
+    const guardRes = await evaluateJobGuard(job.guard, job.directory || directory);
+    if (!guardRes.passed) {
+      console.log(`skip ${jobId}: pre-flight guard check failed (${guardRes.reason || "unspecified"})`);
+      return 0;
+    }
+  }
   if (!(await acquireLock(directory, jobId))) {
     console.log(`skip ${jobId}: locked (already running)`);
     return 0;
@@ -288,39 +298,54 @@ export async function runJobHeadless(
     const prompt = buildTickPrompt({ systemPrompt: job.systemPrompt, followupPrompt: job.followupPrompt, memoryMd: md });
     const cwd = job.directory || directory;
     const httpCfg = readHttpPromptConfig();
+    const timeoutMs = job.timeoutMs && job.timeoutMs >= 5000 ? job.timeoutMs : 600_000;
     let code: number;
     let errMsg: string | null = null;
-    if (httpCfg) {
-      console.log(`http prompt -> ${httpCfg.url} session=${job.sessionID} (cwd=${cwd})`);
-      try {
-        // OPENCODE_NO_REPIN=1: skip the variant-less model re-pin. The drain
-        // then fails to resolve the session model and leaves the prompt
-        // pending — it steers into the session's next ACTIVE turn instead
-        // (deferred/live mode for desktop GUIs whose chat view renders
-        // only event-driven writes).
-        let pinned = false;
-        if (process.env.OPENCODE_NO_REPIN !== "1") {
-          if (job.model) pinned = await switchModelViaHttp(httpCfg, job.sessionID, job.model);
-          else pinned = await repinSessionModel(httpCfg, job.sessionID);
-          if (!pinned) console.log("model re-pin not confirmed (continuing)");
+    let timedOut = false;
+    let timeoutTimer: any = null;
+    const timeoutPromise = new Promise<number>((resolve) => {
+      timeoutTimer = setTimeout(() => {
+        timedOut = true;
+        resolve(124);
+      }, timeoutMs);
+    });
+
+    const execPromise = (async () => {
+      if (httpCfg) {
+        console.log(`http prompt -> ${httpCfg.url} session=${job.sessionID} (cwd=${cwd})`);
+        try {
+          let pinned = false;
+          if (process.env.OPENCODE_NO_REPIN !== "1") {
+            if (job.model) pinned = await switchModelViaHttp(httpCfg, job.sessionID, job.model);
+            else pinned = await repinSessionModel(httpCfg, job.sessionID);
+            if (!pinned) console.log("model re-pin not confirmed (continuing)");
+          }
+          await promptViaHttp(httpCfg, job.sessionID, prompt);
+          return 0;
+        } catch (e: any) {
+          errMsg = String(e?.message ?? e);
+          console.error(errMsg);
+          return 1;
         }
-        await promptViaHttp(httpCfg, job.sessionID, prompt);
-        code = 0;
-      } catch (e: any) {
-        errMsg = String(e?.message ?? e);
-        console.error(errMsg);
-        code = 1;
+      } else {
+        const args = tickArgs(job, prompt);
+        const bin = await resolveOpencodeBin();
+        console.log(`opencode ${args.slice(0, 6).join(" ")} ... (cwd=${cwd})`);
+        return await spawnFn(bin, args, cwd);
       }
-    } else {
-      const args = tickArgs(job, prompt);
-      const bin = await resolveOpencodeBin();
-      console.log(`opencode ${args.slice(0, 6).join(" ")} ... (cwd=${cwd})`);
-      code = await spawnFn(bin, args, cwd);
-      if (code !== 0) {
-        errMsg = code === 124 ? "Timeout esecuzione (10m superati)" : `Processo opencode terminato con exit code ${code}`;
-      }
+    })();
+
+    code = await Promise.race([execPromise, timeoutPromise]);
+    if (timeoutTimer) clearTimeout(timeoutTimer);
+    if (timedOut || code === 124) {
+      code = 124;
+      errMsg = `Timeout esecuzione (${Math.round(timeoutMs / 1000)}s superati)`;
+    } else if (code !== 0 && !errMsg) {
+      errMsg = `Processo opencode terminato con exit code ${code}`;
     }
+
     const finishedAtMs = Date.now();
+    const durationMs = Math.max(0, finishedAtMs - startedAtMs);
     const now = new Date(finishedAtMs).toISOString();
     if (code === 0) {
       job.runCount += 1;
@@ -328,6 +353,11 @@ export async function runJobHeadless(
       job.lastRunAt = now;
       resetCircuitBreaker(job);
       await resolveDLQEntry(directory, job.id).catch(() => {});
+      await recordRunMetric(directory, job.id, durationMs, "success").catch(() => {});
+      dispatchJobNotification(directory, "onSuccess", job, { exitCode: 0, durationMs }).catch(() => {});
+      if (prevState.consecutiveFailures > 0 || cbStatus.isCanary) {
+        dispatchJobNotification(directory, "onRecovery", job, { durationMs }).catch(() => {});
+      }
       const { md: postMd, state: postState } = await readMemory(directory, jobId).catch(() => ({ md: "", state: prevState }));
       const prevCounts = (prevState.counts ?? {}) as Record<string, number>;
       const postCounts = (postState.counts ?? {}) as Record<string, number>;
@@ -344,9 +374,12 @@ export async function runJobHeadless(
       applyAdaptiveTransition(job, hasActivity, new Date(finishedAtMs));
     } else {
       job.consecutiveFailures += 1;
+      await recordRunMetric(directory, job.id, durationMs, "failed").catch(() => {});
+      dispatchJobNotification(directory, "onFailure", job, { exitCode: code, errorMessage: errMsg ?? `Exit code ${code}`, durationMs }).catch(() => {});
       if (job.consecutiveFailures >= job.maxConsecutiveFailures || cbStatus.isCanary) {
         tripCircuitBreaker(job, errMsg ?? `Exit code ${code}`);
         await quarantineJob(directory, job, errMsg ?? `Exit code ${code}`, code).catch(() => {});
+        dispatchJobNotification(directory, "onCircuitTrip", job, { errorMessage: errMsg ?? `Exit code ${code}` }).catch(() => {});
         job.enabled = false;
         console.log(`auto-quarantined ${jobId} (circuit breaker open) after ${job.consecutiveFailures} failures`);
       }

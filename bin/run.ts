@@ -307,14 +307,120 @@ async function main(): Promise<void> {
       console.error(`Unknown circuit action: ${action}. Use reset, trip, or half-open.`);
       process.exit(2);
     }
+  } else if (cmd === "template") {
+    const { listJobTemplates, applyJobTemplate, getJobTemplate } = await import("../src/templates.ts");
+    const sub = process.argv[3];
+    if (!sub || sub === "list") {
+      const list = listJobTemplates();
+      console.log(`=== Available Job Templates (${list.length}) ===`);
+      for (const t of list) {
+        console.log(`- [${t.id}] ${t.name} (Category: ${t.category})`);
+        console.log(`  Tags: ${t.tags.join(", ")}`);
+        console.log(`  Description: ${t.description}`);
+      }
+    } else if (sub === "apply") {
+      const tplId = process.argv[4];
+      if (!tplId) {
+        console.error("Usage: opencode-cron template apply <templateId> [--id customId] [--title customTitle] [--dir <dir>]");
+        process.exit(2);
+      }
+      const customId = arg("--id");
+      const customTitle = arg("--title");
+      const job = await applyJobTemplate(dir, tplId, { id: customId, title: customTitle });
+      console.log(`Job '${job.id}' created successfully from template '${tplId}'!`);
+      console.log(`Next run scheduled at: ${job.nextRunAt}`);
+    } else {
+      console.error(`Unknown template command: ${sub}. Use 'list' or 'apply <templateId>'`);
+      process.exit(2);
+    }
+  } else if (cmd === "backup") {
+    const { createBackup, listBackups, restoreBackup, deleteBackup } = await import("../src/backup.ts");
+    const sub = process.argv[3];
+    if (!sub || sub === "list") {
+      const list = await listBackups(dir);
+      console.log(`=== Snapshots & Backups (${list.length}) ===`);
+      if (list.length === 0) console.log("(No backups found)");
+      else {
+        for (const b of list) {
+          console.log(`- [${b.id}] Date: ${b.createdAt} | Jobs: ${b.jobCount} | Size: ${b.byteSize} bytes`);
+          if (b.note) console.log(`  Note: ${b.note}`);
+        }
+      }
+    } else if (sub === "create") {
+      const note = arg("--note");
+      const res = await createBackup(dir, note);
+      console.log(`Snapshot created: ${res.id} (Jobs: ${res.jobCount}, Size: ${res.byteSize} bytes)`);
+    } else if (sub === "restore") {
+      const id = process.argv[4];
+      if (!id) {
+        console.error("Usage: opencode-cron backup restore <backupId> [--dir <dir>]");
+        process.exit(2);
+      }
+      const res = await restoreBackup(dir, id);
+      console.log(`Successfully restored backup '${id}': ${res.restoredJobs} jobs, ${res.restoredMemoryFiles} memory files.`);
+    } else if (sub === "delete") {
+      const id = process.argv[4];
+      if (!id) {
+        console.error("Usage: opencode-cron backup delete <backupId> [--dir <dir>]");
+        process.exit(2);
+      }
+      const ok = await deleteBackup(dir, id);
+      console.log(ok ? `Deleted backup '${id}'.` : `Backup '${id}' not found.`);
+    } else {
+      console.error(`Unknown backup command: ${sub}. Use list, create, restore <id>, delete <id>.`);
+      process.exit(2);
+    }
+  } else if (cmd === "history") {
+    const { pruneRunHistory, loadRunHistory } = await import("../src/history.ts");
+    const sub = process.argv[3];
+    if (sub === "prune") {
+      const daysArg = arg("--days");
+      const maxPerJobArg = arg("--max-per-job");
+      const days = daysArg ? parseInt(daysArg, 10) : 30;
+      const maxPerJob = maxPerJobArg ? parseInt(maxPerJobArg, 10) : 200;
+      const res = await pruneRunHistory(dir, { maxAgeDays: days, maxRunsPerJob: maxPerJob });
+      console.log(`History pruned: before=${res.beforeCount}, after=${res.afterCount}, removed=${res.prunedCount} runs.`);
+    } else {
+      const runs = await loadRunHistory(dir);
+      console.log(`=== History (${runs.length} runs recorded) ===`);
+      for (const r of runs.slice(0, 20)) {
+        console.log(`- [${r.status.toUpperCase()}] ${r.jobId} (${r.jobTitle}) at ${r.startedAt} (${r.durationMs}ms)`);
+      }
+    }
+  } else if (cmd === "metrics") {
+    const { getSystemMetrics, generatePrometheusMetrics } = await import("../src/metrics.ts");
+    const jobs = await loadJobs(dir);
+    if (has("--prom")) {
+      console.log(generatePrometheusMetrics(jobs));
+    } else {
+      console.log(JSON.stringify(getSystemMetrics(jobs), null, 2));
+    }
+  } else if (cmd === "notify") {
+    const { loadNotificationConfig, sendTestNotification } = await import("../src/notifications.ts");
+    const sub = process.argv[3];
+    if (sub === "test") {
+      const channelId = process.argv[4];
+      const cfg = await loadNotificationConfig(dir);
+      const target = cfg.channels.find((c) => c.id === channelId) || cfg.channels[0];
+      if (!target) {
+        console.error("No notification channels configured.");
+        process.exit(1);
+      }
+      console.log(`Sending test notification to channel '${target.name}' (${target.url})...`);
+      const res = await sendTestNotification(target);
+      console.log(res.ok ? "Test notification delivered successfully!" : `Failed: ${res.error || res.status}`);
+    } else {
+      const cfg = await loadNotificationConfig(dir);
+      console.log(JSON.stringify(cfg, null, 2));
+    }
   } else {
-    console.error(`Commands: check [--concurrency N] | run <id> | os-install | refresh-creds | list | gui | desktop | tray | webhook-token <id> | concurrency [N] | priority <id> [level] | queue | dlq [retry|clear|resolve] | circuit <id> [reset|trip|half-open] [--dir ...]`);
+    console.error(`Commands: check [--concurrency N] | run <id> | os-install | refresh-creds | list | gui | desktop | tray | webhook-token <id> | concurrency [N] | priority <id> [level] | queue | dlq [retry|clear|resolve] | circuit <id> [reset|trip|half-open] | template [list|apply] | backup [list|create|restore] | history [prune] | metrics [--prom] | notify [test] [--dir ...]`);
     process.exit(2);
   }
 }
 
 if (has("--help") || has("-h")) {
-  console.log("opencode-cron check [--concurrency N] | run <id> | os-install | refresh-creds | list | gui | desktop | tray | webhook-token <id> | concurrency [N] | priority <id> [level] | queue | dlq [retry|clear|resolve] | circuit <id> [reset|trip|half-open] [--dir ...]");
+  console.log("opencode-cron check [--concurrency N] | run <id> | os-install | refresh-creds | list | gui | desktop | tray | webhook-token <id> | concurrency [N] | priority <id> [level] | queue | dlq [retry|clear|resolve] | circuit <id> [reset|trip|half-open] | template [list|apply] | backup [list|create|restore] | history [prune] | metrics [--prom] | notify [test] [--dir ...]");
   process.exit(0);
 }
 await main();

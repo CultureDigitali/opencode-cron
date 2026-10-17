@@ -13,32 +13,63 @@ export function parseEveryToMs(input: string): number {
   return ms;
 }
 
-export function normalizeSchedule(raw: { every?: string; cron?: string; everyMs?: number }): { everyMs?: number; cron?: string; kind: "interval" | "cron" } {
+export const CRON_ALIASES: Record<string, string> = {
+  "@yearly": "0 0 1 1 *",
+  "@annually": "0 0 1 1 *",
+  "@monthly": "0 0 1 * *",
+  "@weekly": "0 0 * * 0",
+  "@daily": "0 0 * * *",
+  "@midnight": "0 0 * * *",
+  "@hourly": "0 * * * *",
+};
+
+export function resolveCronAlias(input: string): string {
+  const lower = input.trim().toLowerCase();
+  return CRON_ALIASES[lower] ?? input.trim();
+}
+
+export function isValidTimezone(tz: string): boolean {
+  if (!tz || typeof tz !== "string") return false;
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function normalizeSchedule(raw: { every?: string; cron?: string; everyMs?: number; timezone?: string }): { everyMs?: number; cron?: string; kind: "interval" | "cron"; timezone?: string } {
+  if (raw.timezone && !isValidTimezone(raw.timezone)) {
+    throw new Error(`Invalid IANA timezone: "${raw.timezone}". Example: Europe/Rome, America/New_York, UTC.`);
+  }
+
   if (raw.cron) {
-    const cron = raw.cron.trim();
+    const cron = resolveCronAlias(raw.cron);
     if (cron.length > 100) throw new Error("Cron expression too long (max 100 chars).");
     const parts = cron.split(/\s+/);
-    if (parts.length !== 5) throw new Error(`Invalid cron "${raw.cron}". Expected 5 fields (e.g. */5 * * * *).`);
+    if (parts.length !== 5) throw new Error(`Invalid cron "${raw.cron}". Expected 5 fields (e.g. */5 * * * *) or alias like @daily.`);
     // Semantic validation via cron-parser (throws on invalid like 99 99 * * *)
-    validateCron(cron);
-    return { cron, everyMs: raw.everyMs, kind: "cron" };
+    validateCron(cron, raw.timezone);
+    return { cron, everyMs: raw.everyMs, kind: "cron", timezone: raw.timezone };
   }
   if (raw.everyMs !== undefined) {
     if (!Number.isFinite(raw.everyMs) || raw.everyMs < 60_000) {
       throw new Error("Interval too small or invalid. Minimum is 60000ms.");
     }
-    return { everyMs: raw.everyMs, kind: "interval" };
+    return { everyMs: raw.everyMs, kind: "interval", timezone: raw.timezone };
   }
-  if (raw.every) return { everyMs: parseEveryToMs(raw.every), kind: "interval" };
-  throw new Error("Provide either every (e.g. 5m) or cron (e.g. */5 * * * *).");
+  if (raw.every) return { everyMs: parseEveryToMs(raw.every), kind: "interval", timezone: raw.timezone };
+  throw new Error("Provide either every (e.g. 5m) or cron (e.g. */5 * * * *, @daily).");
 }
 
-export function validateCron(cron: string): void {
-  parseExpression(cron);
+export function validateCron(cron: string, timezone?: string): void {
+  const resolved = resolveCronAlias(cron);
+  parseExpression(resolved, timezone ? { tz: timezone } : undefined);
 }
 
 export function nextCronOccurrence(cron: string, from: Date = new Date(), timezone?: string): string {
-  const it = parseExpression(cron, { currentDate: from, tz: timezone });
+  const resolved = resolveCronAlias(cron);
+  const it = parseExpression(resolved, { currentDate: from, tz: timezone });
   return (it.next().toDate() as Date).toISOString();
 }
 
@@ -124,17 +155,18 @@ export function explainSchedule(input: string, fromDate: Date = new Date(), lang
     return { ok: true, valid: true, kind: "interval", description: desc, humanDescription: desc, nextRuns };
   }
 
-  // 2. Cron 5 fields
-  const parts = trimmed.split(/\s+/);
+  // 2. Cron 5 fields or alias
+  const resolved = resolveCronAlias(trimmed);
+  const parts = resolved.split(/\s+/);
   if (parts.length !== 5) {
     const err = isEn
-      ? "Invalid format. Use an interval (e.g. 5m, 1h) or 5-field cron (e.g. */5 * * * *)"
-      : "Formato non valido. Usa un intervallo (es. 5m, 1h) o cron a 5 campi (es. */5 * * * *)";
+      ? "Invalid format. Use an interval (e.g. 5m, 1h), 5-field cron (e.g. */5 * * * *), or alias (@daily, @hourly)"
+      : "Formato non valido. Usa un intervallo (es. 5m, 1h), cron a 5 campi (es. */5 * * * *), o alias (@daily, @hourly)";
     return { ok: false, valid: false, error: err, description: err, humanDescription: err, nextRuns: [] };
   }
 
   try {
-    const it = parseExpression(trimmed, { currentDate: fromDate });
+    const it = parseExpression(resolved, { currentDate: fromDate });
     const nextRuns = [
       (it.next().toDate() as Date).toISOString(),
       (it.next().toDate() as Date).toISOString(),

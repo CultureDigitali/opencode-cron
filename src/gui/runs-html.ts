@@ -7,7 +7,7 @@ import {
   getOnboardingBannerHtml,
 } from "./i18n.ts";
 
-export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenCode Cron"): string {
+export function getRunsHtml(title: string = "Storico Runs & Esiti Cron - OpenCode Cron"): string {
   return `<!DOCTYPE html>
 <html lang="it">
 <head>
@@ -121,7 +121,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
           </span>
         </div>
         <div class="mt-3 flex items-baseline gap-2">
-          <span class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight" id="kpi-total">—</span>
+          <span class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight" id="kpi-total">-</span>
           <span class="text-xs text-slate-500" data-i18n="runs.kpiTotalSub">runs registrate</span>
         </div>
         <p class="mt-2 text-xs text-indigo-700/90 flex items-center gap-1">
@@ -138,10 +138,10 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
             <span data-i18n="runs.kpiSuccess">Partite con Successo</span>
             <span class="oc-help-badge">?</span>
           </span>
-          <span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-700 border border-emerald-500/30" id="kpi-rate">—%</span>
+          <span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-700 border border-emerald-500/30" id="kpi-rate">-%</span>
         </div>
         <div class="mt-3 flex items-baseline gap-2">
-          <span class="text-2xl sm:text-3xl font-extrabold text-emerald-700 tracking-tight" id="kpi-succeeded">—</span>
+          <span class="text-2xl sm:text-3xl font-extrabold text-emerald-700 tracking-tight" id="kpi-succeeded">-</span>
           <span class="text-xs text-emerald-700/80" data-i18n="runs.kpiSuccessSub">completate OK</span>
         </div>
         <div class="mt-3 w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
@@ -162,7 +162,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
           </span>
         </div>
         <div class="mt-3 flex items-baseline gap-2">
-          <span class="text-2xl sm:text-3xl font-extrabold text-rose-600 tracking-tight" id="kpi-failed">—</span>
+          <span class="text-2xl sm:text-3xl font-extrabold text-rose-600 tracking-tight" id="kpi-failed">-</span>
           <span class="text-xs text-rose-700/80" id="kpi-failed-sub" data-i18n="runs.kpiFailedSub">errori rilevati</span>
         </div>
         <p class="mt-2 text-xs text-rose-700/90 flex items-center gap-1">
@@ -183,10 +183,10 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
           </span>
         </div>
         <div class="mt-3">
-          <p class="text-lg font-bold text-slate-900 truncate" id="kpi-last-run">—</p>
+          <p class="text-lg font-bold text-slate-900 truncate" id="kpi-last-run">-</p>
           <p class="text-xs text-slate-500 mt-1">
             <span data-i18n="runs.kpiAvgDuration">Durata media risposta:</span>
-            <strong class="text-slate-700 font-mono" id="kpi-avg-duration">—</strong>
+            <strong class="text-slate-700 font-mono" id="kpi-avg-duration">-</strong>
           </p>
         </div>
       </div>
@@ -318,7 +318,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
     }
 
     function formatDateTime(iso) {
-      if (!iso) return '—';
+      if (!iso) return '-';
       try {
         const d = new Date(iso);
         if (isNaN(d.getTime())) return String(iso);
@@ -337,7 +337,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
     }
 
     function formatRelativeTime(iso) {
-      if (!iso) return '—';
+      if (!iso) return '-';
       const ms = Date.now() - new Date(iso).getTime();
       if (isNaN(ms)) return '';
       if (ms < 0) return '0s';
@@ -352,7 +352,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
     }
 
     function formatDuration(ms) {
-      if (ms === null || ms === undefined || isNaN(ms)) return '—';
+      if (ms === null || ms === undefined || isNaN(ms)) return '-';
       if (ms < 1000) return ms + ' ms';
       const s = (ms / 1000).toFixed(1);
       return s + ' s';
@@ -390,10 +390,10 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
 
       document.getElementById('kpi-last-run').textContent = statsData.lastRunAt
         ? formatRelativeTime(statsData.lastRunAt) + ' (' + formatDateTime(statsData.lastRunAt) + ')'
-        : '—';
+        : '-';
       document.getElementById('kpi-avg-duration').textContent = statsData.avgDurationMs
         ? formatDuration(statsData.avgDurationMs)
-        : '—';
+        : '-';
 
       document.getElementById('badge-count-all').textContent = allRuns.length;
       document.getElementById('badge-count-success').textContent = allRuns.filter(r => r.status === 'success').length;
@@ -404,7 +404,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
       const container = document.getElementById('timeline-strip');
       const recent = allRuns.slice(0, 48).reverse();
       if (recent.length === 0) {
-        container.innerHTML = '<div class="text-xs text-slate-500 py-2">—</div>';
+        container.innerHTML = '<div class="text-xs text-slate-500 py-2">-</div>';
         return;
       }
 
@@ -418,7 +418,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
           : 'bg-amber-500 hover:bg-amber-400 h-6';
         const symbol = isOk ? '✓' : isFail ? '✕' : '⏭';
         const label = escapeHtml(
-          symbol + ' ' + r.jobTitle + ' — ' + (isOk ? t('runs.statusSuccess') : t('runs.statusFailed')) + ' (' + formatDateTime(r.startedAt) + ')'
+          symbol + ' ' + r.jobTitle + ' - ' + (isOk ? t('runs.statusSuccess') : t('runs.statusFailed')) + ' (' + formatDateTime(r.startedAt) + ')'
         );
         return \`
           <button
@@ -443,7 +443,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
       }
 
       if (byJobData.length === 0) {
-        grid.innerHTML = '<div class="col-span-full text-xs text-slate-500 bg-darkcard border border-darkborder rounded-xl p-4">—</div>';
+        grid.innerHTML = '<div class="col-span-full text-xs text-slate-500 bg-darkcard border border-darkborder rounded-xl p-4">-</div>';
         return;
       }
 
@@ -469,7 +469,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
           ? \`<span class="text-emerald-700 font-bold">\${escapeHtml(t('runs.legendSuccess'))}</span>\`
           : j.lastStatus === 'failed'
           ? \`<span class="text-rose-600 font-bold">\${escapeHtml(t('runs.legendFailed'))}</span>\`
-          : '<span class="text-slate-500">—</span>';
+          : '<span class="text-slate-500">-</span>';
 
         return \`
           <div
@@ -484,7 +484,7 @@ export function getRunsHtml(title: string = "Storico Runs & Esiti Cron — OpenC
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0">
                 <h3 class="text-sm font-bold text-slate-900 truncate">\${escapeHtml(j.jobTitle)}</h3>
-                <p class="text-[11px] text-slate-500 mt-0.5">\${lastOutcomeBadge} · \${j.lastRunAt ? formatRelativeTime(j.lastRunAt) : '—'}</p>
+                <p class="text-[11px] text-slate-500 mt-0.5">\${lastOutcomeBadge} · \${j.lastRunAt ? formatRelativeTime(j.lastRunAt) : '-'}</p>
               </div>
               \${statusBadge}
             </div>

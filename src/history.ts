@@ -1,6 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { loadJobs } from "./store.ts";
+import { redactSensitiveData } from "./redact.ts";
 
 export interface RunEntry {
   id: string;
@@ -83,6 +84,8 @@ export async function recordRunEntry(
     ...entry,
     id: entry.id ?? `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
     source: "history",
+    error: entry.error ? redactSensitiveData(entry.error) : null,
+    outputPreview: entry.outputPreview ? redactSensitiveData(entry.outputPreview) : null,
   };
   const updated = [full, ...existing].slice(0, 300);
   const filePath = historyFilePath(directory);
@@ -91,6 +94,61 @@ export async function recordRunEntry(
   await fs.writeFile(tmpPath, JSON.stringify(updated, null, 2), "utf-8");
   await fs.rename(tmpPath, filePath);
   return full;
+}
+
+export interface PruneHistoryOptions {
+  maxAgeDays?: number;
+  maxRunsPerJob?: number;
+  maxTotalRuns?: number;
+}
+
+export async function pruneRunHistory(
+  directory: string,
+  options: PruneHistoryOptions = {}
+): Promise<{ beforeCount: number; afterCount: number; prunedCount: number }> {
+  const existing = await loadRunHistory(directory);
+  const beforeCount = existing.length;
+  if (beforeCount === 0) {
+    return { beforeCount: 0, afterCount: 0, prunedCount: 0 };
+  }
+
+  const maxAgeDays = options.maxAgeDays ?? 30;
+  const maxRunsPerJob = options.maxRunsPerJob ?? 200;
+  const maxTotalRuns = options.maxTotalRuns ?? 300;
+
+  const cutoffMs = Date.now() - maxAgeDays * 86_400_000;
+  const runsByJob = new Map<string, number>();
+
+  let filtered = existing.filter((run) => {
+    const started = new Date(run.startedAt).getTime();
+    if (!isNaN(started) && started < cutoffMs) {
+      return false;
+    }
+
+    const currentCount = runsByJob.get(run.jobId) ?? 0;
+    if (currentCount >= maxRunsPerJob) {
+      return false;
+    }
+
+    runsByJob.set(run.jobId, currentCount + 1);
+    return true;
+  });
+
+  if (filtered.length > maxTotalRuns) {
+    filtered = filtered.slice(0, maxTotalRuns);
+  }
+
+  const afterCount = filtered.length;
+  const prunedCount = beforeCount - afterCount;
+
+  if (prunedCount > 0) {
+    const filePath = historyFilePath(directory);
+    const tmpPath = `${filePath}.${Date.now()}.${Math.random().toString(36).slice(2, 7)}.tmp`;
+    await fs.writeFile(tmpPath, JSON.stringify(filtered, null, 2), "utf-8");
+    await fs.rename(tmpPath, filePath);
+  }
+
+  return { beforeCount, afterCount, prunedCount };
 }
 
 function slugifyTitle(t: string): string {

@@ -7,12 +7,12 @@ import { fileURLToPath } from "node:url";
 import { getHtml } from "./html.ts";
 import { getRunsHtml } from "./runs-html.ts";
 import { getInstructionsHtml } from "./instructions-html.ts";
-import { loadJobs, saveJobs, upsertJob, removeJob, ensureCronDir, computeNextRun, assertJobId } from "../store.ts";
+import { loadJobs, saveJobs, upsertJob, removeJob, ensureCronDir, computeNextRun, assertJobId, filterJobs } from "../store.ts";
 import { normalizeSchedule, explainSchedule, explainAdaptive, parseEveryToMs } from "../schedule.ts";
 import { readMemory, writeMemory, initialMemoryMd } from "../memory.ts";
 import { runJobHeadless, checkDue } from "../runner.ts";
-import { getUnifiedRuns } from "../history.ts";
-import { CronJobSchema, JobPrioritySchema, CronSettingsSchema } from "../types.ts";
+import { getUnifiedRuns, pruneRunHistory } from "../history.ts";
+import { CronJobSchema, JobPrioritySchema, CronSettingsSchema, NotificationConfigSchema, type NotificationConfig, type NotificationChannel } from "../types.ts";
 import { validatePipelineDAG, getPipelineGraph } from "../pipeline.ts";
 import { generateWebhookToken, verifyWebhookAuth, formatWebhookSummary, triggerWebhookJob } from "../webhook.ts";
 import { ConcurrencyManager, loadCronSettings, saveCronSettings, getActiveLocks } from "../concurrency.ts";
@@ -26,6 +26,11 @@ import {
   tripCircuitBreaker,
   setHalfOpen,
 } from "../dlq.ts";
+import { getSystemMetrics, generatePrometheusMetrics } from "../metrics.ts";
+import { listJobTemplates, applyJobTemplate, getJobTemplate } from "../templates.ts";
+import { createBackup, listBackups, restoreBackup, deleteBackup, pruneBackups } from "../backup.ts";
+import { loadNotificationConfig, saveNotificationConfig, sendTestNotification } from "../notifications.ts";
+import { redactSensitiveData } from "../redact.ts";
 
 let DatabaseClass: any = null;
 async function getSqliteDatabase() {
@@ -133,21 +138,21 @@ export function startGuiServer(opts: ServerOpts = {}) {
 
       // 1. Root: Web Dashboard HTML
       if (pathname === "/" && (method === "GET" || method === "HEAD")) {
-        return new Response(method === "HEAD" ? null : getHtml(`OpenCode Cron — ${path.basename(directory)}`), {
+        return new Response(method === "HEAD" ? null : getHtml(`OpenCode Cron - ${path.basename(directory)}`), {
           headers: { "Content-Type": "text/html; charset=utf-8" },
         });
       }
 
       // 1b. Dedicated Runs History Page HTML
       if (pathname === "/runs" && (method === "GET" || method === "HEAD")) {
-        return new Response(method === "HEAD" ? null : getRunsHtml(`Storico Runs & Esiti — ${path.basename(directory)}`), {
+        return new Response(method === "HEAD" ? null : getRunsHtml(`Storico Runs & Esiti - ${path.basename(directory)}`), {
           headers: { "Content-Type": "text/html; charset=utf-8" },
         });
       }
 
       // 1c. Dedicated Instructions Page HTML
       if ((pathname === "/instructions" || pathname === "/guide") && (method === "GET" || method === "HEAD")) {
-        return new Response(method === "HEAD" ? null : getInstructionsHtml(`Istruzioni & Guida Completa — ${path.basename(directory)}`), {
+        return new Response(method === "HEAD" ? null : getInstructionsHtml(`Istruzioni & Guida Completa - ${path.basename(directory)}`), {
           headers: { "Content-Type": "text/html; charset=utf-8" },
         });
       }
@@ -162,17 +167,22 @@ export function startGuiServer(opts: ServerOpts = {}) {
         }), { headers });
       }
 
-      // 3. GET /api/jobs
+      // 3. GET /api/jobs (with query filtering by tag, category, status, and search)
       if (pathname === "/api/jobs" && method === "GET") {
         const jobs = await loadJobs(directory);
-        return new Response(JSON.stringify(jobs), { headers });
+        const tag = url.searchParams.get("tag") || undefined;
+        const category = url.searchParams.get("category") || undefined;
+        const status = (url.searchParams.get("status") as any) || undefined;
+        const search = url.searchParams.get("search") || undefined;
+        const filtered = filterJobs(jobs, { tag, category, status, search });
+        return new Response(JSON.stringify(filtered), { headers });
       }
 
       // 4. POST /api/jobs (Create new job)
       if (pathname === "/api/jobs" && method === "POST") {
         try {
           const body: any = await req.json();
-          const norm = normalizeSchedule(parseScheduleStr(body.scheduleStr));
+          const norm = normalizeSchedule({ ...parseScheduleStr(body.scheduleStr), timezone: body.timezone ? String(body.timezone).trim() : undefined });
 
           const rand = Math.random().toString(36).slice(2, 8);
           const slug = (body.title || "job").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
@@ -222,6 +232,24 @@ export function startGuiServer(opts: ServerOpts = {}) {
             };
           }
 
+          let guard: any = undefined;
+          if (body.guard && typeof body.guard === "object" && body.guard.enabled) {
+            guard = {
+              enabled: true,
+              command: body.guard.command ? String(body.guard.command).trim() : undefined,
+              httpUrl: body.guard.httpUrl ? String(body.guard.httpUrl).trim() : undefined,
+              expectedStatus: parseInt(body.guard.expectedStatus) || 200,
+              timeoutMs: Math.min(60_000, Math.max(1000, parseInt(body.guard.timeoutMs) || 5000)),
+            };
+          }
+
+          let tags: string[] = [];
+          if (Array.isArray(body.tags)) {
+            tags = body.tags.map((t: any) => String(t).toLowerCase().trim()).filter(Boolean).slice(0, 10);
+          } else if (typeof body.tags === "string" && body.tags.trim()) {
+            tags = body.tags.split(",").map((t: string) => t.toLowerCase().trim()).filter(Boolean).slice(0, 10);
+          }
+
           const job = CronJobSchema.parse({
             id,
             sessionID: body.sessionID,
@@ -229,11 +257,15 @@ export function startGuiServer(opts: ServerOpts = {}) {
             title: body.title,
             systemPrompt: body.systemPrompt,
             followupPrompt: body.followupPrompt,
-            schedule: { kind: norm.kind, everyMs: norm.everyMs, cron: norm.cron },
+            schedule: { kind: norm.kind, everyMs: norm.everyMs, cron: norm.cron, timezone: norm.timezone },
             adaptive,
             pipeline,
             webhook,
             priority: body.priority ? JobPrioritySchema.parse(body.priority) : "normal",
+            guard,
+            tags,
+            category: body.category ? String(body.category).trim() : undefined,
+            timeoutMs: typeof body.timeoutMs === "number" && body.timeoutMs >= 5000 ? Math.floor(body.timeoutMs) : undefined,
             agent: body.agent || "build",
             model: body.model || undefined,
             enabled: true,
@@ -344,9 +376,41 @@ export function startGuiServer(opts: ServerOpts = {}) {
             }
           }
 
-          if (body.scheduleStr) {
-            const norm = normalizeSchedule(parseScheduleStr(body.scheduleStr));
-            j.schedule = { kind: norm.kind, everyMs: norm.everyMs, cron: norm.cron };
+          if (body.tags !== undefined) {
+            if (Array.isArray(body.tags)) {
+              j.tags = body.tags.map((t: any) => String(t).toLowerCase().trim()).filter(Boolean).slice(0, 10);
+            } else if (typeof body.tags === "string") {
+              j.tags = body.tags.split(",").map((t: string) => t.toLowerCase().trim()).filter(Boolean).slice(0, 10);
+            }
+          }
+
+          if (body.category !== undefined) {
+            j.category = body.category ? String(body.category).trim() : undefined;
+          }
+
+          if (body.timeoutMs !== undefined) {
+            j.timeoutMs = typeof body.timeoutMs === "number" && body.timeoutMs >= 5000 ? Math.floor(body.timeoutMs) : undefined;
+          }
+
+          if (body.guard !== undefined) {
+            if (body.guard === null || body.guard.enabled === false) {
+              j.guard = undefined;
+            } else {
+              j.guard = {
+                enabled: true,
+                command: body.guard.command ? String(body.guard.command).trim() : undefined,
+                httpUrl: body.guard.httpUrl ? String(body.guard.httpUrl).trim() : undefined,
+                expectedStatus: parseInt(body.guard.expectedStatus) || 200,
+                timeoutMs: Math.min(60_000, Math.max(1000, parseInt(body.guard.timeoutMs) || 5000)),
+              };
+            }
+          }
+
+          if (body.scheduleStr || body.timezone !== undefined) {
+            const schedInput = body.scheduleStr || (j.schedule.cron || (j.schedule.everyMs ? `${j.schedule.everyMs / 1000}s` : "5m"));
+            const targetTz = body.timezone !== undefined ? (body.timezone ? String(body.timezone).trim() : undefined) : j.schedule.timezone;
+            const norm = normalizeSchedule({ ...parseScheduleStr(schedInput), timezone: targetTz });
+            j.schedule = { kind: norm.kind, everyMs: norm.everyMs, cron: norm.cron, timezone: norm.timezone };
             j.nextRunAt = computeNextRun(j, new Date());
           } else if (j.enabled && (!j.nextRunAt || new Date(j.nextRunAt).getTime() <= Date.now())) {
             j.nextRunAt = computeNextRun(j, new Date());
@@ -900,6 +964,219 @@ export function startGuiServer(opts: ServerOpts = {}) {
         }
       }
 
+      // 9n. GET /api/metrics (JSON Telemetry and Execution Stats)
+      if (pathname === "/api/metrics" && method === "GET") {
+        try {
+          const jobs = await loadJobs(directory);
+          const metrics = getSystemMetrics(jobs);
+          metrics.activeWorkers = concurrencyManager.getStatus().activeCount;
+          metrics.queuedTasks = concurrencyManager.getStatus().queuedCount;
+          return new Response(JSON.stringify({ ok: true, metrics, ...metrics }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
+      // 9o. GET /api/metrics/prometheus (Prometheus Exposition Format)
+      if (pathname === "/api/metrics/prometheus" && method === "GET") {
+        try {
+          const jobs = await loadJobs(directory);
+          const promText = generatePrometheusMetrics(jobs);
+          return new Response(promText, {
+            headers: {
+              ...headers,
+              "Content-Type": "text/plain; version=0.0.4; charset=utf-8",
+            },
+          });
+        } catch (e: any) {
+          return new Response(`# Error generating metrics: ${e.message}`, { status: 500, headers: { ...headers, "Content-Type": "text/plain" } });
+        }
+      }
+
+      // 9p. GET /api/templates (List Builtin Job Templates)
+      if (pathname === "/api/templates" && method === "GET") {
+        try {
+          const templates = listJobTemplates();
+          return new Response(JSON.stringify({ ok: true, templates }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
+      // 9q. POST /api/templates/:id/apply (Instantiate Template)
+      if (pathname.startsWith("/api/templates/") && pathname.endsWith("/apply") && method === "POST") {
+        const templateId = decodeURIComponent(pathname.slice("/api/templates/".length, -"/apply".length));
+        try {
+          const body: any = await req.json().catch(() => ({}));
+          const job = await applyJobTemplate(directory, templateId, {
+            id: body.id ? String(body.id).trim() : undefined,
+            title: body.title ? String(body.title).trim() : undefined,
+            schedule: body.schedule ? String(body.schedule).trim() : undefined,
+            priority: body.priority,
+          });
+          return new Response(JSON.stringify({ ok: true, job }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 9r. GET /api/backup (List Snapshots)
+      if (pathname === "/api/backup" && method === "GET") {
+        try {
+          const backups = await listBackups(directory);
+          return new Response(JSON.stringify({ ok: true, backups }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
+      // 9s. POST /api/backup (Create Snapshot)
+      if (pathname === "/api/backup" && method === "POST") {
+        try {
+          const body: any = await req.json().catch(() => ({}));
+          const metadata = await createBackup(directory, body.note ? String(body.note) : undefined);
+          return new Response(JSON.stringify({ ok: true, backup: metadata }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
+      // 9t. POST /api/backup/:id/restore (Restore Snapshot)
+      if (pathname.startsWith("/api/backup/") && pathname.endsWith("/restore") && method === "POST") {
+        const id = decodeURIComponent(pathname.slice("/api/backup/".length, -"/restore".length));
+        try {
+          const res = await restoreBackup(directory, id);
+          return new Response(JSON.stringify({ ok: true, ...res }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 9u. DELETE /api/backup/:id (Delete Snapshot)
+      if (pathname.startsWith("/api/backup/") && method === "DELETE") {
+        const id = decodeURIComponent(pathname.slice("/api/backup/".length));
+        try {
+          const ok = await deleteBackup(directory, id);
+          return new Response(JSON.stringify({ ok }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 9v. GET /api/notifications (Get Notification Config)
+      if (pathname === "/api/notifications" && method === "GET") {
+        try {
+          const config = await loadNotificationConfig(directory);
+          const slack = config.channels.find(c => c.type === "slack");
+          const discord = config.channels.find(c => c.type === "discord");
+          const custom = config.channels.find(c => c.type === "webhook");
+          return new Response(JSON.stringify({
+            ok: true,
+            config: {
+              ...config,
+              slackWebhookUrl: slack?.url,
+              discordWebhookUrl: discord?.url,
+              customWebhookUrl: custom?.url,
+              notifyOnFailure: config.channels.some(c => c.events.includes("onFailure")),
+              notifyOnQuarantine: config.channels.some(c => c.events.includes("onCircuitTrip") || c.events.includes("onDLQ")),
+              notifyOnRecovery: config.channels.some(c => c.events.includes("onRecovery")),
+            }
+          }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
+      // 9w. POST /api/notifications (Save Notification Config)
+      if (pathname === "/api/notifications" && method === "POST") {
+        try {
+          const body: any = await req.json();
+          let config: NotificationConfig;
+          if (Array.isArray(body.channels)) {
+            config = NotificationConfigSchema.parse(body);
+          } else {
+            const channels: NotificationChannel[] = [];
+            const events: any[] = [];
+            if (body.notifyOnFailure !== false) events.push("onFailure");
+            if (body.notifyOnQuarantine !== false) events.push("onCircuitTrip", "onDLQ");
+            if (body.notifyOnRecovery !== false) events.push("onRecovery");
+
+            if (body.slackWebhookUrl) {
+              channels.push({
+                id: "slack-default",
+                name: "Slack",
+                type: "slack",
+                url: body.slackWebhookUrl,
+                enabled: true,
+                events,
+              });
+            }
+            if (body.discordWebhookUrl) {
+              channels.push({
+                id: "discord-default",
+                name: "Discord",
+                type: "discord",
+                url: body.discordWebhookUrl,
+                enabled: true,
+                events,
+              });
+            }
+            if (body.customWebhookUrl) {
+              channels.push({
+                id: "webhook-default",
+                name: "Custom Webhook",
+                type: "webhook",
+                url: body.customWebhookUrl,
+                enabled: true,
+                events,
+              });
+            }
+            config = {
+              channels,
+              cooldownSeconds: typeof body.cooldownSeconds === "number" ? body.cooldownSeconds : 300,
+            };
+          }
+          await saveNotificationConfig(directory, config);
+          return new Response(JSON.stringify({ ok: true, config }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 9x. POST /api/notifications/test (Send Test Alert)
+      if (pathname === "/api/notifications/test" && method === "POST") {
+        try {
+          const body: any = await req.json().catch(() => ({}));
+          let channel = body.channel;
+          if (!channel) {
+            const config = await loadNotificationConfig(directory);
+            channel = config.channels[0];
+          }
+          if (!channel) {
+            return new Response(JSON.stringify({ ok: true, message: "No notification channels configured for test" }), { headers });
+          }
+          const res = await sendTestNotification(channel);
+          return new Response(JSON.stringify(res), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
+      // 9y. POST /api/history/prune (Prune History)
+      if (pathname === "/api/history/prune" && method === "POST") {
+        try {
+          const body: any = await req.json().catch(() => ({}));
+          const res = await pruneRunHistory(directory, {
+            maxAgeDays: typeof body.maxAgeDays === "number" ? body.maxAgeDays : undefined,
+            maxRunsPerJob: typeof body.maxRunsPerJob === "number" ? body.maxRunsPerJob : undefined,
+            maxTotalRuns: typeof body.maxTotalRuns === "number" ? body.maxTotalRuns : undefined,
+          });
+          return new Response(JSON.stringify({ ok: true, ...res }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
       // 10. GET /api/sessions (List sessions from opencode.db with metadata)
       if (pathname === "/api/sessions" && method === "GET") {
         let db: any = null;
@@ -1204,7 +1481,11 @@ export function startGuiServer(opts: ServerOpts = {}) {
           }
           if (!stderr) stderr = "Err file not found.";
 
-          return new Response(JSON.stringify({ ok: true, stdout, stderr }), { headers });
+          return new Response(JSON.stringify({
+            ok: true,
+            stdout: redactSensitiveData(stdout),
+            stderr: redactSensitiveData(stderr),
+          }), { headers });
         } catch (e: any) {
           return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
         }
@@ -1313,7 +1594,12 @@ export function startGuiServer(opts: ServerOpts = {}) {
           const limitParam = parseInt(url.searchParams.get("limit") ?? "200", 10);
           const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 500) : 200;
           const result = await getUnifiedRuns({ directory, dbPath, limit });
-          return new Response(JSON.stringify(result), { headers });
+          const sanitizedRuns = (result.runs || []).map((r: any) => ({
+            ...r,
+            outputPreview: r.outputPreview ? redactSensitiveData(r.outputPreview) : null,
+            error: r.error ? redactSensitiveData(r.error) : null,
+          }));
+          return new Response(JSON.stringify({ ...result, runs: sanitizedRuns }), { headers });
         } catch (e: any) {
           return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
         }

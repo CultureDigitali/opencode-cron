@@ -19,6 +19,10 @@ export type JobPriority = z.infer<typeof JobPrioritySchema>;
 
 export const CronSettingsSchema = z.object({
   maxConcurrency: z.number().int().min(1).max(10).default(2),
+  retentionDays: z.number().int().min(1).max(365).default(30),
+  maxHistoryRunsPerJob: z.number().int().min(10).max(5000).default(200),
+  autoBackupEnabled: z.boolean().default(true),
+  maxBackups: z.number().int().min(1).max(50).default(10),
 });
 export type CronSettings = z.infer<typeof CronSettingsSchema>;
 
@@ -124,6 +128,44 @@ export const DLQEntrySchema = z.object({
 });
 export type DLQEntry = z.infer<typeof DLQEntrySchema>;
 
+export const JobGuardSchema = z.object({
+  enabled: z.boolean().default(false),
+  command: z.string().max(1024).optional(),
+  httpUrl: z.string().url().max(1024).optional(),
+  expectedStatus: z.number().int().min(100).max(599).default(200).optional(),
+  timeoutMs: z.number().int().min(1000).max(60_000).default(5000).optional(),
+});
+export type JobGuard = z.infer<typeof JobGuardSchema>;
+
+export const NotificationChannelTypeSchema = z.enum(["slack", "discord", "webhook"]);
+export type NotificationChannelType = z.infer<typeof NotificationChannelTypeSchema>;
+
+export const NotificationEventSchema = z.enum([
+  "onFailure",
+  "onCircuitTrip",
+  "onDLQ",
+  "onSuccess",
+  "onRecovery",
+]);
+export type NotificationEvent = z.infer<typeof NotificationEventSchema>;
+
+export const NotificationChannelSchema = z.object({
+  id: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/),
+  name: z.string().min(1).max(100),
+  type: NotificationChannelTypeSchema,
+  url: z.string().url(),
+  enabled: z.boolean().default(true),
+  events: z.array(NotificationEventSchema).default(["onFailure", "onCircuitTrip", "onDLQ"]),
+  secret: z.string().optional(),
+});
+export type NotificationChannel = z.infer<typeof NotificationChannelSchema>;
+
+export const NotificationConfigSchema = z.object({
+  channels: z.array(NotificationChannelSchema).default([]),
+  cooldownSeconds: z.number().int().min(10).max(3600).default(300),
+});
+export type NotificationConfig = z.infer<typeof NotificationConfigSchema>;
+
 export const CronJobSchema = z.object({
   id: z.string().min(1).max(64).regex(/^[a-z0-9-]+$/),
   sessionID: z.string().min(1),
@@ -137,6 +179,10 @@ export const CronJobSchema = z.object({
   webhook: WebhookConfigSchema.optional(),
   priority: JobPrioritySchema.optional(),
   circuitBreaker: CircuitBreakerConfigSchema.optional(),
+  guard: JobGuardSchema.optional(),
+  tags: z.array(z.string().min(1).max(30).regex(/^[a-z0-9_-]+$/)).max(10).optional(),
+  category: z.string().max(50).optional(),
+  timeoutMs: z.number().int().min(5000).max(3_600_000).optional(),
   agent: z.string().optional(),
   model: z.string().optional(),
   enabled: z.boolean().default(true),
@@ -167,3 +213,60 @@ export const MemoryStateSchema = z.object({
 });
 
 export type MemoryState = z.infer<typeof MemoryStateSchema>;
+
+export interface JobTemplate {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  tags: string[];
+  systemPrompt: string;
+  followupPrompt: string;
+  schedule: {
+    kind: "interval" | "cron";
+    every?: string;
+    everyMs?: number;
+    cron?: string;
+    timezone?: string;
+  };
+  priority?: JobPriority;
+  adaptive?: Partial<AdaptiveSchedule>;
+  guard?: Partial<JobGuard>;
+}
+
+export interface BackupMetadata {
+  id: string;
+  createdAt: string;
+  note?: string;
+  jobCount: number;
+  byteSize: number;
+  checksum: string;
+  files: string[];
+}
+
+export interface JobMetrics {
+  totalRuns: number;
+  successRuns: number;
+  failedRuns: number;
+  skippedRuns: number;
+  timeoutRuns: number;
+  lastDurationMs?: number;
+  avgDurationMs: number;
+  minDurationMs: number;
+  maxDurationMs: number;
+  p95DurationMs: number;
+  lastRunAt?: string;
+}
+
+export interface SystemMetrics {
+  uptimeSeconds: number;
+  totalJobs: number;
+  activeJobs: number;
+  quarantinedJobs: number;
+  activeWorkers: number;
+  queuedTasks: number;
+  dlqTotal: number;
+  circuitOpenTotal: number;
+  jobs: Record<string, JobMetrics>;
+}
+

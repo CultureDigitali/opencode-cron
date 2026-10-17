@@ -77,9 +77,9 @@ export async function loadCronSettings(directory: string): Promise<CronSettings>
     // File not found or unparseable, return defaults
   }
 
-  return {
+  return CronSettingsSchema.parse({
     maxConcurrency: envConcurrency ?? 2,
-  };
+  });
 }
 
 export async function saveCronSettings(

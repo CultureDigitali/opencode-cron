@@ -64,6 +64,45 @@ export async function saveJobs(directory: string, jobs: CronJob[]): Promise<void
   }
 }
 
+export interface JobFilterOptions {
+  tag?: string;
+  category?: string;
+  status?: "enabled" | "disabled" | "running" | "quarantined";
+  search?: string;
+}
+
+export function filterJobs(jobs: CronJob[], options: JobFilterOptions): CronJob[] {
+  let res = jobs;
+  if (options.tag) {
+    const t = options.tag.toLowerCase().trim();
+    res = res.filter((j) => (j.tags || []).some((tag) => tag.toLowerCase() === t));
+  }
+  if (options.category) {
+    const c = options.category.toLowerCase().trim();
+    res = res.filter((j) => (j.category || "").toLowerCase() === c);
+  }
+  if (options.status) {
+    if (options.status === "enabled") {
+      res = res.filter((j) => j.enabled && j.circuitBreaker?.state !== "open");
+    } else if (options.status === "disabled") {
+      res = res.filter((j) => !j.enabled);
+    } else if (options.status === "quarantined") {
+      res = res.filter((j) => j.circuitBreaker?.state === "open");
+    }
+  }
+  if (options.search) {
+    const s = options.search.toLowerCase().trim();
+    res = res.filter(
+      (j) =>
+        j.id.toLowerCase().includes(s) ||
+        j.title.toLowerCase().includes(s) ||
+        (j.category && j.category.toLowerCase().includes(s)) ||
+        (j.tags && j.tags.some((tag) => tag.toLowerCase().includes(s)))
+    );
+  }
+  return res;
+}
+
 export function applyAdaptiveTransition(
   job: CronJob,
   hasActivity: boolean,

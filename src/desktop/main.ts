@@ -80,7 +80,7 @@ async function ensureServer(): Promise<number> {
 
 /** Formats ISO string into human readable time */
 function formatNextRun(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   try {
     const d = new Date(iso);
     const now = new Date();
@@ -154,8 +154,8 @@ async function updateTrayMenu() {
 
   tray.setToolTip(
     isConnected
-      ? `OpenCode Cron — Connesso (${activeJobs.length} attivi, ${pausedJobs.length} in pausa)`
-      : `OpenCode Cron — Disconnesso da OpenCode`
+      ? `OpenCode Cron - Connesso (${activeJobs.length} attivi, ${pausedJobs.length} in pausa)`
+      : `OpenCode Cron - Disconnesso da OpenCode`
   );
 
   const jobSubmenu: Electron.MenuItemConstructorOptions[] = jobs.length === 0
@@ -300,7 +300,7 @@ function createMainWindow() {
     minWidth: 960,
     minHeight: 620,
     backgroundColor: "#030712",
-    title: "OpenCode Cron — Mission Control",
+    title: "OpenCode Cron - Mission Control",
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     trafficLightPosition: { x: 18, y: 18 },
     icon: iconPath,
@@ -348,7 +348,7 @@ function createTray() {
   }
 
   tray = new Tray(nImage);
-  tray.setToolTip("OpenCode Cron — Connesso");
+  tray.setToolTip("OpenCode Cron - Connesso");
 
   // Single-click toggles main window
   tray.on("click", () => {

@@ -6,7 +6,7 @@ import {
   getHeaderControlsHtml,
 } from "./i18n.ts";
 
-export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa — OpenCode Cron"): string {
+export function getInstructionsHtml(title: string = "Istruzioni & Guida Completa - OpenCode Cron"): string {
   return `<!DOCTYPE html>
 <html lang="it">
 <head>

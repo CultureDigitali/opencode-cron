@@ -117,7 +117,7 @@ export function verifyWebhookAuth(opts: {
 function sanitizePayloadString(str: string): string {
   if (!str) return "";
   return String(str)
-    .replace(/---/g, "—")
+    .replace(/---/g, " - ")
     .replace(/\[WEBHOOK TRIGGER\]/gi, "(WEBHOOK TRIGGER)")
     .replace(/<!--/g, "<! - -")
     .replace(/-->/g, "- - >");

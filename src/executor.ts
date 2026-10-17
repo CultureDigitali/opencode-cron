@@ -10,6 +10,10 @@ import {
   quarantineJob,
   resolveDLQEntry,
 } from "./dlq.ts";
+import { evaluateJobGuard } from "./guards.ts";
+import { recordRunMetric } from "./metrics.ts";
+import { dispatchJobNotification } from "./notifications.ts";
+import { redactSensitiveData } from "./redact.ts";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
@@ -63,6 +67,17 @@ export async function executeTick(
     return { ok: false, skipped: "locked" };
   }
 
+  // Feature 14: Pre-Flight Guard check
+  if (job.guard && job.guard.enabled) {
+    const guardRes = await evaluateJobGuard(job.guard, directory);
+    if (!guardRes.passed) {
+      await appendRunLog(directory, jobId, `SKIP guard condition unmet (${guardRes.reason}) at ${new Date().toISOString()}\n`);
+      await recordRunMetric(directory, job.id, guardRes.durationMs, "skipped").catch(() => {});
+      await releaseLock(directory, jobId).catch(() => {});
+      return { ok: false, skipped: "guard-failed" };
+    }
+  }
+
   const { md, state: prevState } = await readMemory(directory, jobId);
   const text = buildTickPrompt({
     systemPrompt: job.systemPrompt,
@@ -74,14 +89,31 @@ export async function executeTick(
   const startedAt = new Date(startedAtMs).toISOString();
   prompt.inFlight?.add(key);
   try {
-    await prompt.promptSession(job.sessionID, text);
+    const timeoutMs = job.timeoutMs && job.timeoutMs >= 5000 ? job.timeoutMs : 600_000;
+    let timer: any;
+    const timeoutPromise = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        reject(new Error(`Execution timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    });
+
+    try {
+      await Promise.race([prompt.promptSession(job.sessionID, text), timeoutPromise]);
+    } finally {
+      clearTimeout(timer);
+    }
+
     const finishedAtMs = Date.now();
+    const durationMs = Math.max(0, finishedAtMs - startedAtMs);
     const now = new Date(finishedAtMs).toISOString();
     job.runCount += 1;
     job.consecutiveFailures = 0;
     job.lastRunAt = now;
     resetCircuitBreaker(job);
     await resolveDLQEntry(directory, job.id).catch(() => {});
+
+    await recordRunMetric(directory, job.id, durationMs, "success").catch(() => {});
+    dispatchJobNotification(directory, "onSuccess", job).catch(() => {});
 
     const { md: postMd, state: postState } = await readMemory(directory, jobId).catch(() => ({ md: "", state: prevState }));
     const prevCounts = (prevState.counts ?? {}) as Record<string, number>;
@@ -151,13 +183,26 @@ export async function executeTick(
     return { ok: true };
   } catch (err: any) {
     const finishedAtMs = Date.now();
+    const durationMs = Math.max(0, finishedAtMs - startedAtMs);
     const now = new Date(finishedAtMs).toISOString();
-    const errMsg = String(err?.message ?? err);
+    const rawMsg = String(err?.message ?? err);
+    const errMsg = redactSensitiveData(rawMsg);
+    const isTimeout = rawMsg.includes("timed out");
+
     job.consecutiveFailures += 1;
+    let trippedBreaker = false;
     if (job.consecutiveFailures >= job.maxConsecutiveFailures || cbStatus.isCanary) {
       tripCircuitBreaker(job, errMsg);
       await quarantineJob(directory, job, errMsg, 1).catch(() => {});
       job.enabled = false;
+      trippedBreaker = true;
+    }
+
+    await recordRunMetric(directory, job.id, durationMs, isTimeout ? "timeout" : "failed").catch(() => {});
+    if (trippedBreaker) {
+      dispatchJobNotification(directory, "onCircuitTrip", job, { errorMessage: errMsg }).catch(() => {});
+    } else {
+      dispatchJobNotification(directory, "onFailure", job, { errorMessage: errMsg }).catch(() => {});
     }
     applyAdaptiveTransition(job, false, new Date(finishedAtMs));
     job.nextRunAt = computeNextRun(job, new Date(finishedAtMs));

@@ -7,7 +7,7 @@ import {
   getOnboardingBannerHtml,
 } from "./i18n.ts";
 
-export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
+export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
   return `<!DOCTYPE html>
 <html lang="it">
 <head>
@@ -63,7 +63,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
     ${getUiEnhancementsHeadStyle()}
 
     /* ===== Mandate chrome: light ops console ===== */
-    body { background-color: #E8E9ED; }
+    body { background-color: #E8E9ED; background-image: none !important; }
     .tabular, .oc-num { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
     :focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; border-radius: 6px; }
     .safe-area-pad { padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)); }
@@ -148,6 +148,22 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           <div class="hidden xl:flex items-center gap-1.5">
             ${getHeaderControlsHtml()}
           </div>
+          <button id="btn-header-templates" onclick="openTemplatesModal()" data-tooltip="tt.templatesBtn" aria-label="Modelli e Blueprint" class="oc-btn-light px-2.5 sm:px-3 py-2 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer min-h-[40px]">
+            <i class="fa-solid fa-shapes text-indigo-600"></i>
+            <span class="hidden md:inline" data-i18n="nav.templates">Modelli</span>
+          </button>
+          <button id="btn-header-backup" onclick="openBackupModal()" data-tooltip="tt.backupBtn" aria-label="Snapshot e Backup" class="oc-btn-light px-2.5 sm:px-3 py-2 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer min-h-[40px]">
+            <i class="fa-solid fa-box-archive text-cyan-600"></i>
+            <span class="hidden md:inline" data-i18n="nav.backup">Snapshot</span>
+          </button>
+          <button id="btn-header-metrics" onclick="openMetricsModal()" data-tooltip="tt.metricsBtn" aria-label="Metriche e Telemetria" class="oc-btn-light px-2.5 sm:px-3 py-2 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer min-h-[40px]">
+            <i class="fa-solid fa-chart-pie text-emerald-600"></i>
+            <span class="hidden md:inline" data-i18n="nav.metrics">Metriche</span>
+          </button>
+          <button id="btn-header-notify" onclick="openNotificationsModal()" data-tooltip="tt.notifyBtn" aria-label="Notifiche e Alert" class="oc-btn-light px-2.5 sm:px-3 py-2 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer min-h-[40px]">
+            <i class="fa-solid fa-bell text-violet-600"></i>
+            <span class="hidden md:inline" data-i18n="nav.notifications">Notifiche</span>
+          </button>
           <button id="btn-header-queue" onclick="openQueueModal()" data-tooltip="tt.queueBtn" aria-label="Coda e Worker" class="oc-btn-light px-2.5 sm:px-3 py-2 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer min-h-[40px]">
             <i class="fa-solid fa-layer-group text-amber-600"></i>
             <span class="hidden md:inline" data-i18n="nav.queue">Coda & Worker</span>
@@ -256,7 +272,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
               <span data-i18n="kpi.nextTick">Prossimo Tick</span>
               <span class="oc-help-badge">?</span>
             </p>
-            <p class="text-sm font-semibold text-slate-200 mt-2 font-mono tabular tracking-tight" id="stat-next-tick">—</p>
+            <p class="text-sm font-semibold text-slate-200 mt-2 font-mono tabular tracking-tight" id="stat-next-tick">-</p>
             <p class="oc-band-sub">orario prossimo trigger</p>
           </div>
         </div>
@@ -275,6 +291,72 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           <button onclick="runAllDue()" data-tooltip="tt.runDueBtn" class="bg-slate-200 hover:bg-slate-200 text-slate-700 border border-darkborder px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
             <i class="fa-solid fa-play text-[10px]"></i> <span data-i18n="jobs.runDueNow">Esegui Scaduti Ora</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Search, Tag & Filter Toolbar (Anti-Slop Utility Bar) -->
+      <div class="bg-darkcard border border-darkborder rounded-xl p-3 flex flex-col gap-2.5 shadow-sm">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <!-- Text Search input -->
+          <div class="relative flex-1">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+            <input
+              type="text"
+              id="job-filter-search"
+              placeholder="Filtra per titolo, tag o ID..."
+              data-i18n-placeholder="filter.searchPlaceholder"
+              oninput="applyJobFilters()"
+              class="w-full bg-slate-100 border border-darkborder rounded-lg pl-8 pr-7 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30"
+            />
+            <button
+              type="button"
+              onclick="clearJobSearch()"
+              id="job-filter-search-clear"
+              class="hidden absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Category dropdown -->
+          <div class="shrink-0">
+            <select
+              id="job-filter-category"
+              onchange="applyJobFilters()"
+              class="w-full sm:w-auto bg-slate-100 border border-darkborder rounded-lg px-2.5 py-1.5 text-xs text-slate-700 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
+            >
+              <option value="all" data-i18n="filter.allCategories">Tutte le Categorie</option>
+              <option value="ops">ops</option>
+              <option value="ci">ci</option>
+              <option value="security">security</option>
+              <option value="ai">ai</option>
+              <option value="general">general</option>
+            </select>
+          </div>
+
+          <!-- Status dropdown -->
+          <div class="shrink-0">
+            <select
+              id="job-filter-status"
+              onchange="applyJobFilters()"
+              class="w-full sm:w-auto bg-slate-100 border border-darkborder rounded-lg px-2.5 py-1.5 text-xs text-slate-700 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
+            >
+              <option value="all" data-i18n="filter.allStatuses">Tutti gli Stati</option>
+              <option value="enabled" data-i18n="filter.statusEnabled">Abilitati</option>
+              <option value="disabled" data-i18n="filter.statusDisabled">In Pausa</option>
+              <option value="quarantined" data-i18n="filter.statusQuarantined">In Quarantena</option>
+            </select>
+          </div>
+
+          <!-- Match count readout -->
+          <div class="text-[11px] text-slate-500 font-mono text-right sm:text-left shrink-0 whitespace-nowrap self-center px-1">
+            <span id="job-filtered-count">0</span> / <span id="job-total-count">0</span>
+          </div>
+        </div>
+
+        <!-- Tag pills strip -->
+        <div id="job-tags-strip" class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-darkborder/50 text-[10px]">
+          <!-- Populated by JS -->
         </div>
       </div>
 
@@ -324,7 +406,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                 Caricamento...
               </span>
               <span id="session-trigger-time" class="text-[10px] text-gray-500 hidden sm:inline-block font-mono">
-                —
+                -
               </span>
               <i id="session-trigger-chevron" class="fa-solid fa-chevron-down text-[10px] text-slate-500 group-hover:text-slate-700 transition-transform duration-200"></i>
             </button>
@@ -463,7 +545,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           </div>
           <div class="flex items-center gap-3 text-[11px] text-slate-500 shrink-0">
             <span id="banner-session-updated" class="flex items-center gap-1">
-              <i class="fa-regular fa-clock text-[10px]"></i> <span id="banner-updated-text">—</span>
+              <i class="fa-regular fa-clock text-[10px]"></i> <span id="banner-updated-text">-</span>
             </span>
             <span id="banner-job-link-container"></span>
             <button onclick="switchTab('diff')" data-tooltip="tt.tabDiff" class="bg-slate-200 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-darkborder px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 transition-colors cursor-pointer">
@@ -785,6 +867,52 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           </div>
         </div>
 
+        <!-- Category & Tags Section -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="form-category" class="block font-medium text-slate-600 mb-1" data-i18n="modal.fieldCategory">Categoria</label>
+            <input type="text" id="form-category" placeholder="es. ops, sync, ci, devops" class="w-full bg-slate-100 border border-darkborder rounded-lg px-3 py-1.5 text-slate-900 focus:outline-none focus:border-indigo-500 text-xs">
+          </div>
+          <div>
+            <label for="form-tags" class="block font-medium text-slate-600 mb-1" data-i18n="modal.fieldTags">Tag (separati da virgola)</label>
+            <input type="text" id="form-tags" placeholder="es. prod, critical, backup" class="w-full bg-slate-100 border border-darkborder rounded-lg px-3 py-1.5 text-slate-900 focus:outline-none focus:border-indigo-500 text-xs">
+          </div>
+        </div>
+
+        <!-- Timezone & Timeout Watchdog Section -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="form-timezone" class="block font-medium text-slate-600 mb-1" data-i18n="modal.fieldTimezone">Fuso Orario (IANA Timezone)</label>
+            <input type="text" id="form-timezone" placeholder="es. Europe/Rome, UTC, America/New_York" class="w-full bg-slate-100 border border-darkborder rounded-lg px-3 py-1.5 text-slate-900 focus:outline-none focus:border-indigo-500 font-mono text-xs">
+          </div>
+          <div>
+            <label for="form-timeout" class="block font-medium text-slate-600 mb-1" data-i18n="modal.fieldTimeout">Watchdog Timeout (secondi)</label>
+            <input type="number" id="form-timeout" placeholder="es. 120 (0 = default)" min="5" max="3600" class="w-full bg-slate-100 border border-darkborder rounded-lg px-3 py-1.5 text-slate-900 focus:outline-none focus:border-indigo-500 font-mono text-xs">
+          </div>
+        </div>
+
+        <!-- Pre-flight Guard Check Section -->
+        <div class="p-3 rounded-xl bg-slate-100/70 border border-darkborder space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-shield-halved text-emerald-600 text-xs"></i>
+              <label for="form-guard-enabled" class="text-xs font-bold text-slate-700 cursor-pointer" data-i18n="modal.guardTitle">Pre-Flight Guard & Condizioni</label>
+            </div>
+            <input type="checkbox" id="form-guard-enabled" onchange="toggleGuardFields()" class="w-4 h-4 rounded text-emerald-600 bg-slate-100 border-slate-300 cursor-pointer">
+          </div>
+          <p class="text-[11px] text-slate-500 leading-relaxed" data-i18n="modal.guardHelp">Verifica condizioni preliminari prima di ogni esecuzione: se il controllo fallisce, il tick viene saltato in sicurezza.</p>
+          <div id="guard-fields" class="space-y-2 pt-1 hidden">
+            <div>
+              <label for="form-guard-command" class="text-[10px] text-slate-500 block mb-0.5" data-i18n="modal.guardCommand">Comando Shell (exit code 0)</label>
+              <input type="text" id="form-guard-command" placeholder="es. test -f /tmp/ready || git diff --quiet" class="w-full bg-slate-100 border border-darkborder rounded-lg px-2.5 py-1 text-xs text-slate-900 font-mono focus:outline-none focus:border-emerald-500">
+            </div>
+            <div>
+              <label for="form-guard-http" class="text-[10px] text-slate-500 block mb-0.5" data-i18n="modal.guardHttpUrl">Controllo Salute HTTP (status 200)</label>
+              <input type="url" id="form-guard-http" placeholder="es. http://127.0.0.1:3000/health" class="w-full bg-slate-100 border border-darkborder rounded-lg px-2.5 py-1 text-xs text-slate-900 font-mono focus:outline-none focus:border-emerald-500">
+            </div>
+          </div>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label for="form-session-id" class="block font-medium text-slate-600 mb-1" data-i18n="modal.fieldSession">Sessione OpenCode</label>
@@ -1055,6 +1183,194 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         <button onclick="closeDlqModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 text-slate-600 hover:bg-slate-200 text-xs font-semibold transition-colors cursor-pointer">Chiudi</button>
       </div>
     </div>
+  <!-- ============================================== -->
+  <!-- MODAL: TEMPLATES & BLUEPRINT ENGINE            -->
+  <!-- ============================================== -->
+  <div id="templates-modal" role="dialog" aria-modal="true" aria-labelledby="templates-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-3xl w-full my-4 p-4 sm:p-6 max-h-[92vh] overflow-y-auto shadow-2xl relative flex flex-col">
+      <div class="flex items-center justify-between pb-4 border-b border-darkborder mb-4">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600">
+            <i class="fa-solid fa-layer-group text-sm"></i>
+          </div>
+          <div>
+            <h3 id="templates-modal-title" class="text-base font-bold text-slate-900" data-i18n="templates.modalTitle">Libreria Blueprint & Template</h3>
+            <p class="text-[11px] text-slate-500" data-i18n="templates.subtitle">Job preconfigurati e pronti all'attivazione con un clic</p>
+          </div>
+        </div>
+        <button onclick="closeTemplatesModal()" aria-label="Chiudi finestra" class="text-slate-500 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 flex-1 overflow-y-auto pr-1">
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+          <input type="text" id="template-search-input" oninput="filterTemplates(this.value)" placeholder="Cerca template per titolo, categoria o tag..." class="w-full bg-slate-100 border border-darkborder rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500">
+        </div>
+        <div id="templates-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end pt-4 mt-3 border-t border-darkborder">
+        <button type="button" onclick="closeTemplatesModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 text-slate-600 hover:bg-slate-200 text-xs font-semibold">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: SNAPSHOT & BACKUP / RESTORE             -->
+  <!-- ============================================== -->
+  <div id="backup-modal" role="dialog" aria-modal="true" aria-labelledby="backup-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-2xl w-full my-4 p-4 sm:p-6 max-h-[92vh] overflow-y-auto shadow-2xl relative flex flex-col">
+      <div class="flex items-center justify-between pb-4 border-b border-darkborder mb-4">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600">
+            <i class="fa-solid fa-box-archive text-sm"></i>
+          </div>
+          <div>
+            <h3 id="backup-modal-title" class="text-base font-bold text-slate-900" data-i18n="backup.modalTitle">Snapshot & Backup / Ripristino</h3>
+            <p class="text-[11px] text-slate-500" data-i18n="backup.subtitle">Punti di ripristino per job e memorie persistenti</p>
+          </div>
+        </div>
+        <button onclick="closeBackupModal()" aria-label="Chiudi finestra" class="text-slate-500 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs text-slate-500" data-i18n="backup.snapshotList">Snapshot archiviati</span>
+        <button type="button" onclick="createBackupSnapshot()" id="btn-create-snapshot" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer">
+          <i class="fa-solid fa-camera text-[10px]"></i> <span data-i18n="backup.createBtn">Crea Snapshot Ora</span>
+        </button>
+      </div>
+
+      <div id="backup-list-container" class="space-y-2 flex-1 overflow-y-auto pr-1 text-xs">
+        <!-- Populated by JS -->
+      </div>
+
+      <div class="flex items-center justify-between pt-4 mt-3 border-t border-darkborder">
+        <button type="button" onclick="refreshBackupModal()" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium flex items-center gap-1.5 transition-colors">
+          <i class="fa-solid fa-arrows-rotate text-[10px]"></i> Aggiorna
+        </button>
+        <button type="button" onclick="closeBackupModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 text-slate-600 hover:bg-slate-200 text-xs font-semibold">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: EXECUTION METRICS & PROMETHEUS          -->
+  <!-- ============================================== -->
+  <div id="metrics-modal" role="dialog" aria-modal="true" aria-labelledby="metrics-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-2xl w-full my-4 p-4 sm:p-6 max-h-[92vh] overflow-y-auto shadow-2xl relative flex flex-col">
+      <div class="flex items-center justify-between pb-4 border-b border-darkborder mb-4">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-600">
+            <i class="fa-solid fa-chart-line text-sm"></i>
+          </div>
+          <div>
+            <h3 id="metrics-modal-title" class="text-base font-bold text-slate-900" data-i18n="metrics.modalTitle">Metriche & Prometheus Exporter</h3>
+            <p class="text-[11px] text-slate-500" data-i18n="metrics.subtitle">Statistiche aggregate di esecuzione, latenza e scrape endpoint</p>
+          </div>
+        </div>
+        <button onclick="closeMetricsModal()" aria-label="Chiudi finestra" class="text-slate-500 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Metrics KPI Band -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <div class="bg-slate-100 p-3 rounded-xl border border-darkborder text-center">
+          <span class="text-[10px] uppercase font-bold text-slate-500 block">Esecuzioni Totali</span>
+          <span id="metric-total-runs" class="text-lg font-bold font-mono text-slate-900 mt-0.5 block">0</span>
+        </div>
+        <div class="bg-slate-100 p-3 rounded-xl border border-darkborder text-center">
+          <span class="text-[10px] uppercase font-bold text-slate-500 block">Success Rate</span>
+          <span id="metric-success-rate" class="text-lg font-bold font-mono text-emerald-600 mt-0.5 block">100%</span>
+        </div>
+        <div class="bg-slate-100 p-3 rounded-xl border border-darkborder text-center">
+          <span class="text-[10px] uppercase font-bold text-slate-500 block">Latenza Media</span>
+          <span id="metric-avg-latency" class="text-lg font-bold font-mono text-cyan-600 mt-0.5 block">0ms</span>
+        </div>
+        <div class="bg-slate-100 p-3 rounded-xl border border-darkborder text-center">
+          <span class="text-[10px] uppercase font-bold text-slate-500 block">Latenza P95</span>
+          <span id="metric-p95-latency" class="text-lg font-bold font-mono text-indigo-600 mt-0.5 block">0ms</span>
+        </div>
+      </div>
+
+      <!-- Prometheus Scrape Endpoint -->
+      <div class="bg-slate-100 p-3.5 rounded-xl border border-darkborder mb-3">
+        <label class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">Scrape Endpoint Prometheus (OpenMetrics)</label>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input type="text" id="metrics-prometheus-url" readonly value="/api/metrics/prometheus" class="flex-1 bg-white border border-darkborder rounded-lg px-3 py-1.5 text-xs text-cyan-700 font-mono select-all focus:outline-none">
+          <button type="button" onclick="copyPrometheusScrapeUrl()" class="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer">
+            <i class="fa-solid fa-copy"></i> Copia URL
+          </button>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end pt-3 border-t border-darkborder">
+        <button type="button" onclick="closeMetricsModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 text-slate-600 hover:bg-slate-200 text-xs font-semibold">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: NOTIFICATIONS & ALERTING                -->
+  <!-- ============================================== -->
+  <div id="notifications-modal" role="dialog" aria-modal="true" aria-labelledby="notifications-modal-title" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-darkcard border border-darkborder rounded-2xl max-w-xl w-full my-4 p-4 sm:p-6 max-h-[92vh] overflow-y-auto shadow-2xl relative flex flex-col">
+      <div class="flex items-center justify-between pb-4 border-b border-darkborder mb-4">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600">
+            <i class="fa-solid fa-bell text-sm"></i>
+          </div>
+          <div>
+            <h3 id="notifications-modal-title" class="text-base font-bold text-slate-900" data-i18n="notify.modalTitle">Notifiche & Alerting Multi-Canale</h3>
+            <p class="text-[11px] text-slate-500" data-i18n="notify.subtitle">Avvisi automatici su errore verso Slack, Discord o Webhook</p>
+          </div>
+        </div>
+        <button onclick="closeNotificationsModal()" aria-label="Chiudi finestra" class="text-slate-500 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="notifications-form" onsubmit="handleNotificationSettingsSubmit(event)" class="space-y-3 text-xs">
+        <div>
+          <label for="form-notify-slack" class="block font-medium text-slate-600 mb-1" data-i18n="notify.slackWebhook">Slack Incoming Webhook URL</label>
+          <input type="url" id="form-notify-slack" placeholder="https://hooks.slack.com/services/..." class="w-full bg-slate-100 border border-darkborder rounded-lg px-3 py-1.5 text-slate-900 font-mono text-xs focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div>
+          <label for="form-notify-discord" class="block font-medium text-slate-600 mb-1" data-i18n="notify.discordWebhook">Discord Webhook URL</label>
+          <input type="url" id="form-notify-discord" placeholder="https://discord.com/api/webhooks/..." class="w-full bg-slate-100 border border-darkborder rounded-lg px-3 py-1.5 text-slate-900 font-mono text-xs focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div>
+          <label for="form-notify-custom" class="block font-medium text-slate-600 mb-1" data-i18n="notify.genericWebhook">Webhook HTTP Personalizzato</label>
+          <input type="url" id="form-notify-custom" placeholder="https://my-service.com/api/cron-alerts" class="w-full bg-slate-100 border border-darkborder rounded-lg px-3 py-1.5 text-slate-900 font-mono text-xs focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div class="p-3 bg-slate-100 rounded-xl border border-darkborder space-y-2">
+          <span class="text-[10px] font-bold uppercase text-slate-500 tracking-wider block">Regole di Invio Notifiche</span>
+          <div class="flex items-center space-x-2">
+            <input type="checkbox" id="form-notify-on-failure" checked class="w-4 h-4 rounded text-amber-600 bg-white border-slate-300 cursor-pointer">
+            <label for="form-notify-on-failure" class="text-xs text-slate-700 cursor-pointer" data-i18n="notify.onFailure">Invia notifica su fallimento esecuzione</label>
+          </div>
+          <div class="flex items-center space-x-2">
+            <input type="checkbox" id="form-notify-on-quarantine" checked class="w-4 h-4 rounded text-amber-600 bg-white border-slate-300 cursor-pointer">
+            <label for="form-notify-on-quarantine" class="text-xs text-slate-700 cursor-pointer" data-i18n="notify.onQuarantine">Invia notifica su quarantena DLQ e circuit breaker aperto</label>
+          </div>
+          <div class="flex items-center space-x-2">
+            <input type="checkbox" id="form-notify-on-recovery" checked class="w-4 h-4 rounded text-amber-600 bg-white border-slate-300 cursor-pointer">
+            <label for="form-notify-on-recovery" class="text-xs text-slate-700 cursor-pointer" data-i18n="notify.onRecovery">Invia notifica su ripristino automatico job</label>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-4 mt-3 border-t border-darkborder">
+          <button type="button" onclick="sendTestNotificationPing()" id="btn-test-notification" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-darkborder rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer">
+            <i class="fa-solid fa-paper-plane text-[10px]"></i> <span data-i18n="notify.testBtn">Invia Test Ping</span>
+          </button>
+          <div class="flex gap-2">
+            <button type="button" onclick="closeNotificationsModal()" class="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-600 hover:bg-slate-200 text-xs font-medium">Annulla</button>
+            <button type="submit" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer">Salva Notifiche</button>
+          </div>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Client JavaScript Logic -->
@@ -1150,7 +1466,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       try {
         const res = await fetch('/api/status');
         const data = await res.json();
-        document.getElementById('current-dir').textContent = data.directory || '—';
+        document.getElementById('current-dir').textContent = data.directory || '-';
       } catch (err) {
         console.error(err);
       }
@@ -1169,22 +1485,136 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       }
     }
 
+    let activeFilterTag = '';
+
+    function filterByTag(tag) {
+      if (activeFilterTag === tag) {
+        activeFilterTag = '';
+      } else {
+        activeFilterTag = tag;
+      }
+      renderJobs();
+    }
+
+    function clearJobSearch() {
+      const searchInput = document.getElementById('job-filter-search');
+      if (searchInput) searchInput.value = '';
+      const clearBtn = document.getElementById('job-filter-search-clear');
+      if (clearBtn) clearBtn.classList.add('hidden');
+      activeFilterTag = '';
+      renderJobs();
+    }
+
+    function applyJobFilters() {
+      renderJobs();
+    }
+
     function renderJobs() {
       const container = document.getElementById('jobs-container');
-      if (!currentJobs.length) {
+      const totalCountEl = document.getElementById('job-total-count');
+      const filteredCountEl = document.getElementById('job-filtered-count');
+      const searchInput = document.getElementById('job-filter-search');
+      const searchClearBtn = document.getElementById('job-filter-search-clear');
+      const categorySelect = document.getElementById('job-filter-category');
+      const statusSelect = document.getElementById('job-filter-status');
+      const tagsStrip = document.getElementById('job-tags-strip');
+
+      // Update global KPI stats against ALL currentJobs (independent of active filters)
+      let globalActiveCount = 0;
+      let globalTotalRuns = 0;
+      let earliestNext = null;
+      currentJobs.forEach(job => {
+        const isMaxed = job.maxRuns > 0 && job.runCount >= job.maxRuns;
+        if (job.enabled && !isMaxed) globalActiveCount++;
+        globalTotalRuns += (job.runCount || 0);
+        if (job.enabled && !isMaxed && job.nextRunAt) {
+          const ts = new Date(job.nextRunAt).getTime();
+          if (!earliestNext || ts < earliestNext) earliestNext = ts;
+        }
+      });
+      const statActiveEl = document.getElementById('stat-active');
+      if (statActiveEl) statActiveEl.textContent = String(globalActiveCount);
+      const statRunsEl = document.getElementById('stat-runs');
+      if (statRunsEl) statRunsEl.textContent = String(globalTotalRuns);
+      const statNextEl = document.getElementById('stat-next-tick');
+      if (statNextEl) {
+        statNextEl.textContent = earliestNext ? new Date(earliestNext).toLocaleTimeString() : '-';
+      }
+
+      // Dynamically populate category dropdown options from currentJobs
+      if (categorySelect) {
+        const selectedCat = categorySelect.value || 'all';
+        const uniqueCategories = new Set(['all']);
+        currentJobs.forEach(j => {
+          if (j.category && j.category.trim()) uniqueCategories.add(j.category.trim().toLowerCase());
+        });
+        const currentOptions = Array.from(categorySelect.options).map(o => o.value);
+        const needsUpdate = Array.from(uniqueCategories).some(c => !currentOptions.includes(c));
+        if (needsUpdate) {
+          categorySelect.innerHTML = '<option value="all">Tutte le categorie</option>' +
+            Array.from(uniqueCategories).filter(c => c !== 'all').map(c => \`<option value="\${escapeHtml(c)}">\${escapeHtml(c.charAt(0).toUpperCase() + c.slice(1))}</option>\`).join('');
+          categorySelect.value = selectedCat;
+        }
+      }
+
+      const searchQuery = (searchInput?.value || '').toLowerCase().trim();
+      if (searchClearBtn) {
+        if (searchQuery) searchClearBtn.classList.remove('hidden');
+        else searchClearBtn.classList.add('hidden');
+      }
+      const categoryFilter = categorySelect?.value || 'all';
+      const statusFilter = statusSelect?.value || 'all';
+
+      if (totalCountEl) totalCountEl.textContent = String(currentJobs.length);
+
+      // Collect all unique tags for tags strip
+      const allTags = new Set();
+      currentJobs.forEach(j => {
+        if (Array.isArray(j.tags)) j.tags.forEach(t => allTags.add(t));
+      });
+      if (tagsStrip) {
+        if (allTags.size === 0) {
+          tagsStrip.innerHTML = '<span class="text-slate-600 font-medium italic text-[11px]">Nessun tag configurato</span>';
+        } else {
+          tagsStrip.innerHTML = Array.from(allTags).map(tag => {
+            const isSelected = activeFilterTag === tag;
+            const safeTag = escapeHtml(tag);
+            return \`<button type="button" onclick="filterByTag('\${safeTag}')" class="px-2 py-0.5 rounded-full border text-[10px] font-medium transition-colors cursor-pointer \${isSelected ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-100 text-slate-600 hover:text-slate-900 border-darkborder'}">#\${safeTag}</button>\`;
+          }).join(' ');
+        }
+      }
+
+      // Filter jobs
+      const filteredJobs = currentJobs.filter(job => {
+        if (categoryFilter !== 'all' && (job.category || 'general').toLowerCase() !== categoryFilter.toLowerCase()) return false;
+        if (statusFilter === 'enabled' && !job.enabled) return false;
+        if (statusFilter === 'disabled' && job.enabled) return false;
+        if (statusFilter === 'quarantined' && (!job.circuitBreaker || job.circuitBreaker.state === 'closed')) return false;
+        if (activeFilterTag && (!Array.isArray(job.tags) || !job.tags.includes(activeFilterTag))) return false;
+        if (searchQuery) {
+          const matchTitle = (job.title || '').toLowerCase().includes(searchQuery);
+          const matchId = (job.id || '').toLowerCase().includes(searchQuery);
+          const matchCategory = (job.category || '').toLowerCase().includes(searchQuery);
+          const matchTags = Array.isArray(job.tags) && job.tags.some(t => t.toLowerCase().includes(searchQuery));
+          if (!matchTitle && !matchId && !matchCategory && !matchTags) return false;
+        }
+        return true;
+      });
+
+      if (filteredCountEl) filteredCountEl.textContent = String(filteredJobs.length);
+
+      if (!filteredJobs.length) {
+        const isFiltered = currentJobs.length > 0;
         container.innerHTML = '<div class="col-span-full py-16 text-center text-gray-500 bg-darkcard/50 rounded-2xl border border-dashed border-darkborder">' +
-          '<i class="fa-solid fa-clock text-3xl mb-3 text-gray-600"></i>' +
-          '<p class="text-sm font-medium text-slate-500">' + escapeHtml(t('jobs.emptyTitle')) + '</p>' +
-          '<p class="text-xs text-gray-500 mt-1">' + escapeHtml(t('jobs.emptyDesc')) + '</p>' +
+          '<i class="fa-solid fa-filter-circle-xmark text-3xl mb-3 text-slate-400"></i>' +
+          '<p class="text-sm font-semibold text-slate-700">' + (isFiltered ? 'Nessun job corrisponde ai filtri attivi' : escapeHtml(t('jobs.emptyTitle'))) + '</p>' +
+          '<p class="text-xs text-slate-500 mt-1">' + (isFiltered ? 'Prova a modificare i termini di ricerca o la categoria selezionata.' : escapeHtml(t('jobs.emptyDesc'))) + '</p>' +
+          (isFiltered ? '<button type="button" onclick="clearJobSearch()" class="mt-3 px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"><i class="fa-solid fa-rotate-left mr-1"></i> Resetta Filtri</button>' : '') +
         '</div>';
         return;
       }
 
-      let activeCount = 0;
-      let totalRuns = 0;
-      let earliestNext = null;
-
-      container.innerHTML = currentJobs.map(job => {
+      container.innerHTML = filteredJobs.map(job => {
         const isMaxed = job.maxRuns > 0 && job.runCount >= job.maxRuns;
         if (job.enabled && !isMaxed) activeCount++;
         totalRuns += (job.runCount || 0);
@@ -1240,6 +1670,26 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
             ? \`<span data-tooltip="tt.priorityLow" class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-200 text-slate-500 border border-slate-300 flex items-center gap-1"><i class="fa-solid fa-bed text-slate-500"></i> \${escapeHtml(t('priority.low'))}</span>\`
             : \`<span data-tooltip="tt.priorityNormal" class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-700 border border-blue-500/20 flex items-center gap-1"><i class="fa-solid fa-bolt text-blue-600"></i> \${escapeHtml(t('priority.normal'))}</span>\`;
 
+        const categoryBadge = job.category
+          ? \`<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 border border-slate-300 flex items-center gap-1"><i class="fa-solid fa-folder text-[9px] text-slate-500"></i> \${escapeHtml(job.category)}</span>\`
+          : '';
+
+        const guardBadge = (job.guard && (job.guard.command || job.guard.httpUrl))
+          ? \`<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 flex items-center gap-1"><i class="fa-solid fa-shield-halved text-[9px] text-emerald-600"></i> Guard</span>\`
+          : '';
+
+        const timeoutBadge = job.timeoutMs
+          ? \`<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-darkborder flex items-center gap-1"><i class="fa-solid fa-stopwatch text-[9px] text-slate-500"></i> \${Math.round(job.timeoutMs / 1000)}s</span>\`
+          : '';
+
+        const tagsPills = (Array.isArray(job.tags) && job.tags.length > 0)
+          ? job.tags.map(tag => \`<span onclick="filterByTag('\${escapeHtml(tag)}')" class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 text-slate-600 hover:text-slate-900 border border-darkborder cursor-pointer transition-colors">#\${escapeHtml(tag)}</span>\`).join(' ')
+          : '';
+
+        const tzBadge = job.schedule?.timezone
+          ? \`<span class="text-slate-500 font-mono text-[9px]">(\${escapeHtml(job.schedule.timezone)})</span>\`
+          : '';
+
         const schedDesc = job.schedule.kind === 'interval'
           ? formatInterval(job.schedule.everyMs)
           : 'Cron: ' + escapeHtml(job.schedule.cron || '');
@@ -1260,11 +1710,15 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
                     \${statusBadge}
                     \${circuitBadge}
                     \${priorityBadge}
+                    \${categoryBadge}
+                    \${guardBadge}
+                    \${timeoutBadge}
                     \${adaptiveBadge}
                     \${pipelineBadge}
                     \${webhookBadge}
                   </div>
                   <p class="text-[11px] font-mono text-indigo-600 mt-1">\${safeId}</p>
+                  \${tagsPills ? \`<div class="flex flex-wrap gap-1 mt-1.5">\${tagsPills}</div>\` : ''}
                 </div>
                 <div class="oc-scrollrow no-scrollbar flex items-center gap-1.5 pb-0.5 shrink-0">
                   <button id="webhook-btn-\${safeId}" data-job-id="\${safeId}" onclick="openWebhookModal(this.dataset.jobId)" data-tooltip="tt.webhookBtn" aria-label="\${escapeHtml(t('job.webhookBtn'))}" class="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-violet-600 hover:text-violet-800 hover:bg-violet-50 rounded-lg transition-colors border border-violet-200/60 cursor-pointer">
@@ -1291,10 +1745,10 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
               </div>
 
               <div class="mt-4 grid grid-cols-2 gap-2 text-[11px] bg-slate-100/70 p-3 rounded-xl border border-darkborder">
-                <div><span class="text-gray-500">\${escapeHtml(t('job.schedule'))}:</span> <span class="text-slate-700 font-medium">\${schedDesc}</span></div>
+                <div><span class="text-gray-500">\${escapeHtml(t('job.schedule'))}:</span> <span class="text-slate-700 font-medium">\${schedDesc} \${tzBadge}</span></div>
                 <div><span class="text-gray-500">\${escapeHtml(t('job.executions'))}:</span> <span class="text-slate-700 font-medium font-mono">\${job.runCount}\${job.maxRuns ? '/' + job.maxRuns : ''}</span></div>
-                <div><span class="text-gray-500">\${escapeHtml(t('job.lastRun'))}:</span> <span class="text-slate-700 font-mono">\${job.lastRunAt ? new Date(job.lastRunAt).toLocaleTimeString() : '—'}</span></div>
-                <div><span class="text-gray-500">\${escapeHtml(t('job.nextRun'))}:</span> <span class="\${isMaxed ? 'text-amber-600' : 'text-emerald-700'} font-mono">\${(job.enabled && !isMaxed && job.nextRunAt) ? new Date(job.nextRunAt).toLocaleTimeString() : (isMaxed ? escapeHtml(t('job.completed')) : '—')}</span></div>
+                <div><span class="text-gray-500">\${escapeHtml(t('job.lastRun'))}:</span> <span class="text-slate-700 font-mono">\${job.lastRunAt ? new Date(job.lastRunAt).toLocaleTimeString() : '-'}</span></div>
+                <div><span class="text-gray-500">\${escapeHtml(t('job.nextRun'))}:</span> <span class="\${isMaxed ? 'text-amber-600' : 'text-emerald-700'} font-mono">\${(job.enabled && !isMaxed && job.nextRunAt) ? new Date(job.nextRunAt).toLocaleTimeString() : (isMaxed ? escapeHtml(t('job.completed')) : '-')}</span></div>
                 \${job.adaptive && job.adaptive.enabled ? \`
                 <div class="col-span-2 pt-1 border-t border-darkborder/50 text-[10px] text-slate-500 flex items-center justify-between">
                   <span><i class="fa-solid fa-gauge-high text-indigo-600 mr-1"></i>\${escapeHtml(t('job.cadence'))}: <strong class="text-slate-700">\${job.adaptive.currentCadence}</strong> (quiet: \${job.adaptive.consecutiveQuietTicks ?? 0}/\${job.adaptive.quietThreshold ?? 3})</span>
@@ -1353,7 +1807,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       document.getElementById('stat-runs').textContent = totalRuns;
       document.getElementById('stat-next-tick').textContent = earliestNext
         ? new Date(earliestNext).toLocaleTimeString()
-        : '—';
+        : '-';
     }
 
     // Trigger Tick Now
@@ -1450,7 +1904,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
     let isSessionPickerOpen = false;
 
     function timeAgo(ts) {
-      if (!ts) return '—';
+      if (!ts) return '-';
       const now = Date.now();
       const diff = Math.max(0, now - ts);
       const sec = Math.floor(diff / 1000);
@@ -1814,7 +2268,7 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       const bannerJobLink = document.getElementById('banner-job-link-container');
 
       if (!s) {
-        if (bannerTitle) bannerTitle.textContent = activeSessionId || '—';
+        if (bannerTitle) bannerTitle.textContent = activeSessionId || '-';
         if (bannerId) bannerId.textContent = activeSessionId || '';
         return;
       }
@@ -2194,16 +2648,30 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         return;
       }
 
+      const ACTIVE_MODALS = [
+        { id: 'templates-modal', close: closeTemplatesModal },
+        { id: 'backup-modal', close: closeBackupModal },
+        { id: 'metrics-modal', close: closeMetricsModal },
+        { id: 'notifications-modal', close: closeNotificationsModal },
+        { id: 'pipeline-modal', close: closePipelineModal },
+        { id: 'job-modal', close: closeModal },
+        { id: 'queue-modal', close: closeQueueModal },
+        { id: 'dlq-modal', close: closeDlqModal },
+        { id: 'confirm-modal', close: closeConfirmModal },
+      ];
+
+      if (e.key === 'Escape') {
+        for (const m of ACTIVE_MODALS) {
+          const el = document.getElementById(m.id);
+          if (el && !el.classList.contains('hidden') && el.style.display !== 'none') {
+            m.close();
+            return;
+          }
+        }
+      }
+
       const modal = document.getElementById('job-modal');
       const isModalOpen = modal && !modal.classList.contains('hidden');
-      if (e.key === 'Escape' && isModalOpen) {
-        closeModal();
-        return;
-      }
-      const qm = document.getElementById('queue-modal');
-      if (e.key === 'Escape' && qm && !qm.classList.contains('hidden')) { closeQueueModal(); return; }
-      const dm = document.getElementById('dlq-modal');
-      if (e.key === 'Escape' && dm && !dm.classList.contains('hidden')) { closeDlqModal(); return; }
       if (e.key === 'Tab' && isModalOpen) {
         const focusables = modal.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
         if (focusables.length === 0) return;
@@ -2216,6 +2684,19 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
           e.preventDefault();
           first.focus();
         }
+      }
+    });
+
+    // Unified backdrop click dismiss for all modals
+    ['templates-modal', 'backup-modal', 'metrics-modal', 'notifications-modal', 'pipeline-modal', 'job-modal', 'queue-modal', 'dlq-modal', 'confirm-modal'].forEach((modalId) => {
+      const el = document.getElementById(modalId);
+      if (el) {
+        el.addEventListener('click', (e) => {
+          if (e.target === el) {
+            el.classList.add('hidden');
+            el.style.display = 'none';
+          }
+        });
       }
     });
 
@@ -2679,6 +3160,24 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       const webhookPayload = document.getElementById('form-webhook-payload');
       if (webhookPayload) webhookPayload.checked = true;
 
+      const catInput = document.getElementById('form-category');
+      if (catInput) catInput.value = '';
+      const tagsInput = document.getElementById('form-tags');
+      if (tagsInput) tagsInput.value = '';
+      const tzInput = document.getElementById('form-timezone');
+      if (tzInput) tzInput.value = '';
+      const timeoutInput = document.getElementById('form-timeout');
+      if (timeoutInput) timeoutInput.value = '';
+      const guardCheck = document.getElementById('form-guard-enabled');
+      if (guardCheck) {
+        guardCheck.checked = false;
+        toggleGuardFields();
+      }
+      const guardCmd = document.getElementById('form-guard-command');
+      if (guardCmd) guardCmd.value = '';
+      const guardHttp = document.getElementById('form-guard-http');
+      if (guardHttp) guardHttp.value = '';
+
       const targetSessionId = presetSessionId || (currentTab === 'chat' ? activeSessionId : '');
       if (targetSessionId) {
         const sessionSelect = document.getElementById('form-session-id');
@@ -2722,6 +3221,26 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
       document.getElementById('form-model').value = job.model || '';
       document.getElementById('form-system-prompt').value = job.systemPrompt || '';
       document.getElementById('form-followup-prompt').value = job.followupPrompt || '';
+
+      const catInput = document.getElementById('form-category');
+      if (catInput) catInput.value = job.category || '';
+      const tagsInput = document.getElementById('form-tags');
+      if (tagsInput) tagsInput.value = Array.isArray(job.tags) ? job.tags.join(', ') : '';
+      const tzInput = document.getElementById('form-timezone');
+      if (tzInput) tzInput.value = job.schedule?.timezone || '';
+      const timeoutInput = document.getElementById('form-timeout');
+      if (timeoutInput) timeoutInput.value = job.timeoutMs ? String(Math.round(job.timeoutMs / 1000)) : '';
+
+      const hasGuard = Boolean(job.guard && (job.guard.command || job.guard.httpUrl));
+      const guardCheck = document.getElementById('form-guard-enabled');
+      if (guardCheck) {
+        guardCheck.checked = hasGuard;
+        toggleGuardFields();
+      }
+      const guardCmd = document.getElementById('form-guard-command');
+      if (guardCmd) guardCmd.value = job.guard?.command || '';
+      const guardHttp = document.getElementById('form-guard-http');
+      if (guardHttp) guardHttp.value = job.guard?.httpUrl || '';
 
       const adaptiveCheck = document.getElementById('form-adaptive-enabled');
       if (adaptiveCheck) {
@@ -2820,6 +3339,26 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         passPayload: Boolean(document.getElementById('form-webhook-payload')?.checked),
       } : (id ? { enabled: false } : undefined);
 
+      const category = document.getElementById('form-category')?.value.trim() || undefined;
+      const tagsStr = document.getElementById('form-tags')?.value.trim() || '';
+      const tags = tagsStr ? tagsStr.split(',').map(s => s.trim()).filter(Boolean) : undefined;
+      const timezone = document.getElementById('form-timezone')?.value.trim() || undefined;
+      const timeoutSec = parseInt(document.getElementById('form-timeout')?.value, 10);
+      const timeoutMs = (!isNaN(timeoutSec) && timeoutSec > 0) ? timeoutSec * 1000 : undefined;
+
+      const isGuard = Boolean(document.getElementById('form-guard-enabled')?.checked);
+      let guard = undefined;
+      if (isGuard) {
+        const cmd = document.getElementById('form-guard-command')?.value.trim();
+        const http = document.getElementById('form-guard-http')?.value.trim();
+        if (cmd || http) {
+          guard = {
+            command: cmd || undefined,
+            httpUrl: http || undefined,
+          };
+        }
+      }
+
       const payload = {
         title: document.getElementById('form-title').value.trim(),
         scheduleStr: schedStr,
@@ -2827,6 +3366,11 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         sessionID: sessionID,
         model: document.getElementById('form-model').value.trim() || undefined,
         priority: document.getElementById('form-priority')?.value || 'normal',
+        category,
+        tags,
+        timezone,
+        timeoutMs,
+        guard: isGuard ? guard : (id ? null : undefined),
         systemPrompt: document.getElementById('form-system-prompt').value.trim(),
         followupPrompt: document.getElementById('form-followup-prompt').value.trim(),
         adaptive: adaptivePayload,
@@ -3453,6 +3997,381 @@ export function getHtml(title: string = "OpenCode Cron — Web GUI"): string {
         }
       } catch (err) {
         showToast('Errore rete: ' + err.message, 'error');
+      }
+    }
+
+    // Guard fields toggle
+    function toggleGuardFields() {
+      const check = document.getElementById('form-guard-enabled');
+      const fields = document.getElementById('guard-fields');
+      if (fields) {
+        if (check && check.checked) fields.classList.remove('hidden');
+        else fields.classList.add('hidden');
+      }
+    }
+
+    // Templates Modal Logic
+    let allTemplates = [];
+    async function openTemplatesModal() {
+      const modal = document.getElementById('templates-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
+      await loadTemplates();
+    }
+
+    function closeTemplatesModal() {
+      const modal = document.getElementById('templates-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+    }
+
+    async function loadTemplates() {
+      const container = document.getElementById('templates-list-container');
+      if (container) {
+        container.innerHTML = '<div class="col-span-2 py-8 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-lg text-indigo-600 mb-2"></i><p>Caricamento template...</p></div>';
+      }
+      try {
+        const res = await fetch('/api/templates');
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          allTemplates = data.templates || [];
+          renderTemplatesList(allTemplates);
+        }
+      } catch (err) {
+        if (container) container.innerHTML = '<div class="col-span-2 text-rose-500 text-xs text-center py-4">Errore: ' + escapeHtml(err.message) + '</div>';
+      }
+    }
+
+    function filterTemplates(query) {
+      const q = (query || '').toLowerCase().trim();
+      if (!q) {
+        renderTemplatesList(allTemplates);
+        return;
+      }
+      const filtered = allTemplates.filter(t =>
+        (t.title || '').toLowerCase().includes(q) ||
+        (t.category || '').toLowerCase().includes(q) ||
+        (t.description || '').toLowerCase().includes(q) ||
+        (Array.isArray(t.tags) && t.tags.some(tag => tag.toLowerCase().includes(q)))
+      );
+      renderTemplatesList(filtered);
+    }
+
+    function renderTemplatesList(list) {
+      const container = document.getElementById('templates-list-container');
+      if (!container) return;
+      if (!list.length) {
+        container.innerHTML = '<div class="col-span-2 py-8 text-center text-slate-500 text-xs">Nessun template corrispondente</div>';
+        return;
+      }
+      container.innerHTML = list.map(item => {
+        const tags = (item.tags || []).map(tag => '<span class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 text-[9px]">#' + escapeHtml(tag) + '</span>').join(' ');
+        const cat = item.category ? '<span class="px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 font-bold text-[9px]">' + escapeHtml(item.category) + '</span>' : '';
+        return '<div class="p-3 bg-slate-100 rounded-xl border border-darkborder flex flex-col justify-between gap-2.5 hover:border-indigo-500/40 transition-colors">' +
+          '<div>' +
+            '<div class="flex items-center justify-between gap-1.5">' +
+              '<h4 class="font-bold text-slate-900 text-xs tracking-tight">' + escapeHtml(item.title) + '</h4>' +
+              cat +
+            '</div>' +
+            '<p class="text-[11px] text-slate-600 mt-1 leading-relaxed">' + escapeHtml(item.description) + '</p>' +
+            '<div class="flex items-center gap-2 mt-2 font-mono text-[10px] text-slate-500">' +
+              '<span><i class="fa-regular fa-clock mr-1 text-indigo-600"></i>' + escapeHtml(item.every || item.cron || '-') + '</span>' +
+              (item.timeoutMs ? ('<span><i class="fa-solid fa-stopwatch mr-1 text-slate-400"></i>' + Math.round(item.timeoutMs/1000) + 's</span>') : '') +
+            '</div>' +
+            (tags ? ('<div class="flex flex-wrap gap-1 mt-2">' + tags + '</div>') : '') +
+          '</div>' +
+          '<div class="pt-2 border-t border-darkborder/50 flex justify-end">' +
+            '<button type="button" onclick="applyTemplateBlueprint(&quot;' + escapeHtml(item.id) + '&quot;)" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm transition-colors cursor-pointer">' +
+              '<i class="fa-solid fa-plus text-[10px]"></i> Applica Template' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    async function applyTemplateBlueprint(templateId) {
+      const sessionID = activeSessionId || (currentSessions[0] ? currentSessions[0].id : '');
+      if (!sessionID) {
+        showToast('Nessuna sessione OpenCode disponibile. Seleziona prima una sessione.', 'error');
+        return;
+      }
+      try {
+        const res = await fetch('/api/templates/' + encodeURIComponent(templateId) + '/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionID })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast('Template applicato con successo!', 'success');
+          closeTemplatesModal();
+          await loadJobs();
+        } else {
+          showToast('Errore applicazione template: ' + (data.error || 'Operazione fallita'), 'error');
+        }
+      } catch (err) {
+        showToast('Errore rete: ' + err.message, 'error');
+      }
+    }
+
+    // Backup & Restore Logic
+    async function openBackupModal() {
+      const modal = document.getElementById('backup-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
+      await refreshBackupModal();
+    }
+
+    function closeBackupModal() {
+      const modal = document.getElementById('backup-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+    }
+
+    async function refreshBackupModal() {
+      const container = document.getElementById('backup-list-container');
+      if (container) {
+        container.innerHTML = '<div class="py-6 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-base text-emerald-600 mb-2"></i><p>Caricamento snapshot...</p></div>';
+      }
+      try {
+        const res = await fetch('/api/backup');
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          const list = data.backups || [];
+          if (!list.length) {
+            container.innerHTML = '<div class="py-8 text-center text-slate-500 bg-slate-100/50 rounded-xl border border-dashed border-darkborder">Nessuno snapshot archiviato. Clicca su "Crea Snapshot Ora" per salvare una copia di sicurezza.</div>';
+            return;
+          }
+          container.innerHTML = list.map(b => {
+            const dateStr = new Date(b.createdAt).toLocaleString();
+            return '<div class="p-3 bg-slate-100 rounded-xl border border-darkborder flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">' +
+              '<div>' +
+                '<div class="flex items-center gap-2">' +
+                  '<span class="font-bold text-slate-900 font-mono text-xs">' + escapeHtml(b.id) + '</span>' +
+                  '<span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-700 font-bold border border-emerald-500/20">' + b.jobCount + ' job</span>' +
+                  '<span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-200 text-slate-600">' + b.memoryCount + ' memorie</span>' +
+                '</div>' +
+                '<p class="text-[10px] text-slate-500 mt-1">' + dateStr + ' • SHA: <span class="font-mono text-slate-700">' + escapeHtml(b.checksum?.slice(0, 12) || '-') + '</span></p>' +
+              '</div>' +
+              '<div class="flex items-center gap-1.5 shrink-0">' +
+                '<button type="button" onclick="restoreBackupSnapshot(&quot;' + escapeHtml(b.id) + '&quot;)" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer">' +
+                  '<i class="fa-solid fa-rotate-left text-[9px]"></i> Ripristina' +
+                '</button>' +
+                '<button type="button" onclick="deleteBackupSnapshot(&quot;' + escapeHtml(b.id) + '&quot;)" class="px-2 py-1 bg-rose-600/10 hover:bg-rose-600/20 text-rose-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer">' +
+                  '<i class="fa-solid fa-trash text-[9px]"></i>' +
+                '</button>' +
+              '</div>' +
+            '</div>';
+          }).join('');
+        }
+      } catch (err) {
+        if (container) container.innerHTML = '<div class="text-rose-500 text-xs text-center py-4">Errore: ' + escapeHtml(err.message) + '</div>';
+      }
+    }
+
+    async function createBackupSnapshot() {
+      const btn = document.getElementById('btn-create-snapshot');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[10px]"></i> Salvataggio...';
+      }
+      try {
+        const res = await fetch('/api/backup', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast('Snapshot creato con successo!', 'success');
+          await refreshBackupModal();
+        } else {
+          showToast('Errore creazione snapshot: ' + (data.error || 'fallito'), 'error');
+        }
+      } catch (err) {
+        showToast('Errore rete: ' + err.message, 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-camera text-[10px]"></i> Crea Snapshot Ora';
+        }
+      }
+    }
+
+    async function restoreBackupSnapshot(id) {
+      if (!confirm('Sei sicuro di voler ripristinare questo snapshot? Tutti i job e file di memoria verranno sovrascritti dallo snapshot ' + id)) return;
+      try {
+        const res = await fetch('/api/backup/' + encodeURIComponent(id) + '/restore', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast('Snapshot ripristinato con successo!', 'success');
+          closeBackupModal();
+          await loadJobs();
+        } else {
+          showToast('Errore ripristino snapshot: ' + (data.error || 'fallito'), 'error');
+        }
+      } catch (err) {
+        showToast('Errore rete: ' + err.message, 'error');
+      }
+    }
+
+    async function deleteBackupSnapshot(id) {
+      if (!confirm('Eliminare lo snapshot ' + id + '?')) return;
+      try {
+        const res = await fetch('/api/backup/' + encodeURIComponent(id), { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast('Snapshot eliminato', 'info');
+          await refreshBackupModal();
+        } else {
+          showToast('Errore eliminazione: ' + (data.error || 'fallito'), 'error');
+        }
+      } catch (err) {
+        showToast('Errore rete: ' + err.message, 'error');
+      }
+    }
+
+    // Metrics Modal Logic
+    async function openMetricsModal() {
+      const modal = document.getElementById('metrics-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
+      await refreshMetricsModal();
+    }
+
+    function closeMetricsModal() {
+      const modal = document.getElementById('metrics-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+    }
+
+    async function refreshMetricsModal() {
+      try {
+        const res = await fetch('/api/metrics');
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          const m = data.metrics || {};
+          const total = m.totalRuns || 0;
+          const succ = m.successfulRuns || 0;
+          const rate = total > 0 ? Math.round((succ / total) * 100) : 100;
+          document.getElementById('metric-total-runs').textContent = String(total);
+          document.getElementById('metric-success-rate').textContent = rate + '%';
+          document.getElementById('metric-avg-latency').textContent = (m.latencyAvgMs || 0) + 'ms';
+          document.getElementById('metric-p95-latency').textContent = (m.latencyP95Ms || 0) + 'ms';
+        }
+      } catch (err) {
+        console.error('Error loading metrics:', err);
+      }
+    }
+
+    function copyPrometheusScrapeUrl() {
+      const url = window.location.origin + '/api/metrics/prometheus';
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('URL Prometheus copiato negli appunti!', 'success');
+      }).catch(() => {
+        showToast('URL: ' + url, 'info');
+      });
+    }
+
+    // Notifications Modal Logic
+    async function openNotificationsModal() {
+      const modal = document.getElementById('notifications-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
+      await refreshNotificationsModal();
+    }
+
+    function closeNotificationsModal() {
+      const modal = document.getElementById('notifications-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+    }
+
+    async function refreshNotificationsModal() {
+      try {
+        const res = await fetch('/api/notifications');
+        const data = await res.json();
+        if (res.ok && data.ok && data.config) {
+          const c = data.config;
+          const slackInput = document.getElementById('form-notify-slack');
+          if (slackInput) slackInput.value = c.slackWebhookUrl || '';
+          const discordInput = document.getElementById('form-notify-discord');
+          if (discordInput) discordInput.value = c.discordWebhookUrl || '';
+          const customInput = document.getElementById('form-notify-custom');
+          if (customInput) customInput.value = c.customWebhookUrl || '';
+          const failCheck = document.getElementById('form-notify-on-failure');
+          if (failCheck) failCheck.checked = c.notifyOnFailure !== false;
+          const quarCheck = document.getElementById('form-notify-on-quarantine');
+          if (quarCheck) quarCheck.checked = c.notifyOnQuarantine !== false;
+          const recCheck = document.getElementById('form-notify-on-recovery');
+          if (recCheck) recCheck.checked = c.notifyOnRecovery !== false;
+        }
+      } catch (err) {
+        console.error('Error refreshing notifications:', err);
+      }
+    }
+
+    async function handleNotificationSettingsSubmit(e) {
+      e.preventDefault();
+      const payload = {
+        slackWebhookUrl: document.getElementById('form-notify-slack')?.value.trim() || undefined,
+        discordWebhookUrl: document.getElementById('form-notify-discord')?.value.trim() || undefined,
+        customWebhookUrl: document.getElementById('form-notify-custom')?.value.trim() || undefined,
+        notifyOnFailure: Boolean(document.getElementById('form-notify-on-failure')?.checked),
+        notifyOnQuarantine: Boolean(document.getElementById('form-notify-on-quarantine')?.checked),
+        notifyOnRecovery: Boolean(document.getElementById('form-notify-on-recovery')?.checked),
+      };
+      try {
+        const res = await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast('Configurazione notifiche salvata!', 'success');
+          closeNotificationsModal();
+        } else {
+          showToast('Errore salvataggio notifiche: ' + (data.error || 'fallito'), 'error');
+        }
+      } catch (err) {
+        showToast('Errore rete: ' + err.message, 'error');
+      }
+    }
+
+    async function sendTestNotificationPing() {
+      const btn = document.getElementById('btn-test-notification');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[10px]"></i> Invio...';
+      }
+      try {
+        const res = await fetch('/api/notifications/test', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast('Notifica di test inviata con successo!', 'success');
+        } else {
+          showToast('Test notifica: ' + (data.error || data.message || 'Nessun canale configurato'), 'info');
+        }
+      } catch (err) {
+        showToast('Errore rete: ' + err.message, 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-paper-plane text-[10px]"></i> Invia Test Ping';
+        }
       }
     }
 
