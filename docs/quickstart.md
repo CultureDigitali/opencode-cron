@@ -1,4 +1,4 @@
-# opencode scheduled tasks — 30-second quickstart
+# opencode scheduled tasks - 30-second quickstart
 
 Install the plugin, create your first job, verify the tick, persist it past TUI close.
 
@@ -19,7 +19,7 @@ The model calls `cron_add` with your `sessionID` bound automatically. Check with
 
 ## 3. Test immediately
 
-Use `cron_run_now` with the new id — verify the tick lands in the same session before waiting 5 minutes.
+Use `cron_run_now` with the new id - verify the tick lands in the same session before waiting 5 minutes.
 
 ## 4. Survive TUI close
 

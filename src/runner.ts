@@ -184,7 +184,7 @@ export async function writeCredentialsFile(
   const un = env.OPENCODE_SERVER_USERNAME;
   const pw = env.OPENCODE_SERVER_PASSWORD;
   if (!un || !pw) {
-    throw new Error("missing OPENCODE_SERVER_USERNAME/OPENCODE_SERVER_PASSWORD in environment — run this from inside an opencode agent session");
+    throw new Error("missing OPENCODE_SERVER_USERNAME/OPENCODE_SERVER_PASSWORD in environment - run this from inside an opencode agent session");
   }
   const home = env.HOME ?? process.env.HOME;
   const target = filePath ?? path.join(home ?? "~", ".config", "opencode-cron", "credentials");
@@ -236,7 +236,7 @@ export const defaultSpawn: SpawnFn = (cmd, args, cwd) =>
   });
 
 export function tickArgs(job: { sessionID: string; agent?: string; model?: string }, prompt: string): string[] {
-  // NOTE: `opencode run` has no --dir flag (v2) — cwd carries the directory.
+  // NOTE: `opencode run` has no --dir flag (v2) - cwd carries the directory.
   const args = ["run", "--session", job.sessionID];
   // Sessions can live in a different opencode server instance (e.g. the
   // desktop app's service, not the CLI's background service). Point the

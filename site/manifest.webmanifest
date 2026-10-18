@@ -1,5 +1,5 @@
 {
-  "name": "opencode-cron — ChatGPT Scheduled Tasks for opencode",
+  "name": "opencode-cron - ChatGPT Scheduled Tasks for opencode",
   "short_name": "opencode-cron",
   "description": "An intelligent AI agent scheduler with persistent memory, a Mission Control Web GUI and a cross-platform desktop app.",
   "start_url": "/opencode-cron/",

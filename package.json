@@ -1,7 +1,7 @@
 {
   "name": "@culturedigitali/opencode-cron",
-  "version": "1.0.0",
-  "description": "ChatGPT Scheduled Tasks for opencode — session-bound cron + persistent memory for AI agents",
+  "version": "1.1.0",
+  "description": "ChatGPT Scheduled Tasks for opencode - session-bound cron + persistent memory for AI agents",
   "license": "MIT",
   "author": "opencode-cron contributors",
   "repository": {
@@ -64,6 +64,50 @@
     "./schedule": {
       "types": "./dist/schedule.d.ts",
       "import": "./dist/schedule.js"
+    },
+    "./metrics": {
+      "types": "./dist/metrics.d.ts",
+      "import": "./dist/metrics.js"
+    },
+    "./notifications": {
+      "types": "./dist/notifications.d.ts",
+      "import": "./dist/notifications.js"
+    },
+    "./templates": {
+      "types": "./dist/templates.d.ts",
+      "import": "./dist/templates.js"
+    },
+    "./backup": {
+      "types": "./dist/backup.d.ts",
+      "import": "./dist/backup.js"
+    },
+    "./dlq": {
+      "types": "./dist/dlq.d.ts",
+      "import": "./dist/dlq.js"
+    },
+    "./pipeline": {
+      "types": "./dist/pipeline.d.ts",
+      "import": "./dist/pipeline.js"
+    },
+    "./webhook": {
+      "types": "./dist/webhook.d.ts",
+      "import": "./dist/webhook.js"
+    },
+    "./history": {
+      "types": "./dist/history.d.ts",
+      "import": "./dist/history.js"
+    },
+    "./guards": {
+      "types": "./dist/guards.d.ts",
+      "import": "./dist/guards.js"
+    },
+    "./concurrency": {
+      "types": "./dist/concurrency.d.ts",
+      "import": "./dist/concurrency.js"
+    },
+    "./redact": {
+      "types": "./dist/redact.d.ts",
+      "import": "./dist/redact.js"
     }
   },
   "bin": {

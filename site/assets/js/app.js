@@ -1,5 +1,5 @@
 /* =============================================================================
- * app.js — UI behaviour for the opencode-cron launch site.
+ * app.js - UI behaviour for the opencode-cron launch site.
  * Nav, language picker, scroll reveal, FAQ accordion, copy button, stat
  * counters and the contact form.
  * ========================================================================== */
@@ -108,7 +108,7 @@
   const form = document.getElementById("contact-form");
   function mailto(to, d) {
     const subject = d.subject || ("Contact from " + d.name);
-    const body = `${d.message}\n\n— ${d.name} (${d.email})`;
+    const body = `${d.message}\n\n- ${d.name} (${d.email})`;
     return `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
   if (form) {

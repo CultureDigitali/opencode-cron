@@ -1,5 +1,5 @@
 /* =============================================================================
- * config.js — SINGLE SOURCE OF TRUTH for site-wide identity & contact details.
+ * config.js - SINGLE SOURCE OF TRUTH for site-wide identity & contact details.
  * -----------------------------------------------------------------------------
  * IMPORTANT: set CONTACT_EMAIL to the real address you want visitors to reach
  * (it is used by the contact form's mailto: fallback, the footer, JSON-LD and

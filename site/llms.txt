@@ -1,6 +1,6 @@
 # opencode-cron
 
-> ChatGPT Scheduled Tasks for opencode — session-bound cron + persistent markdown memory for AI agents, by Culture Digitali Srl.
+> ChatGPT Scheduled Tasks for opencode - session-bound cron + persistent markdown memory for AI agents, by Culture Digitali Srl.
 
 opencode-cron is an open-source (MIT) plugin for opencode that brings ChatGPT-style Scheduled Tasks to AI coding agents. Unlike plain cron, it re-prompts the same AI session on every scheduled tick with persistent memory, so the agent keeps full context, deduplicates alerts, and avoids burning tokens.
 
@@ -32,5 +32,5 @@ opencode-cron is an open-source (MIT) plugin for opencode that brings ChatGPT-st
 Background execution: `npx @culturedigitali/opencode-cron os-install`
 
 ## Contact
-- Culture Digitali Srl — https://github.com/CultureDigitali
-- Luigi Strazzullo (creator) — https://github.com/CultureDigitali
+- Culture Digitali Srl - https://github.com/CultureDigitali
+- Luigi Strazzullo (creator) - https://github.com/CultureDigitali

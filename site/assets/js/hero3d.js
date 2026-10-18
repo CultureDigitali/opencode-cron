@@ -1,7 +1,7 @@
 /* =============================================================================
- * hero3d.js — Three.js hero animation for opencode-cron.
+ * hero3d.js - Three.js hero animation for opencode-cron.
  * A glowing "agent core" orbited by scheduled-task nodes on tilted rings, with
- * a particle field and connecting pulses — evoking an intelligent scheduler
+ * a particle field and connecting pulses - evoking an intelligent scheduler
  * firing ticks. Falls back gracefully if WebGL is absent.
  * Loaded as an ES module (see importmap in index.html).
  * ========================================================================== */

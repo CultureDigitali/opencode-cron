@@ -1,10 +1,10 @@
-# robots.txt — opencode-cron launch site
+# robots.txt - opencode-cron launch site
 # https://culturedigitali.github.io/opencode-cron/
 
 User-agent: *
 Allow: /
 
-# Major AI crawlers (GEO — Generative Engine Optimization): explicitly welcome them
+# Major AI crawlers (GEO - Generative Engine Optimization): explicitly welcome them
 User-agent: GPTBot
 Allow: /
 

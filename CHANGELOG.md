@@ -1,45 +1,52 @@
 # Changelog
 
-## Unreleased — desktop GUI support
+All notable changes to this project will be documented in this file.
 
-- **HTTP prompt transport** for sessions served by a remote opencode server (e.g. the
-  desktop app's sidecar): `OPENCODE_PROMPT_HTTP=1` + `OPENCODE_SERVER_URL/USERNAME/PASSWORD`.
-  `opencode run --session` cannot reach desktop-app sessions (separate storage), so
-  ticks are admitted via `POST /api/session/:id/prompt` instead.
-- **`refresh-creds` command**: the desktop app rotates sidecar credentials on every
-  restart; `opencode-cron-run refresh-creds` (run from inside an agent session, where
-  fresh credentials are injected) rewrites `~/.config/opencode-cron/credentials` (0600).
-- `/cron-refresh` slash command + AGENTS.md note documenting the rotation flow.
-- Windows/Linux unaffected: plain spawn transport remains the default.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased — reliability fixes
+## [1.1.0] - 2026-10-18
 
-- Failure path advances `nextRunAt` to a full interval (was: overdue timestamp refired
-  every 5s until auto-pause).
-- `catchUp` flag now honored: past-due + `catchUp: false` skips the backlog with a fresh
-  `nextRunAt`; `catchUp: true` fires soon. Exposed as `cron_add(catchUp)`.
-- `checkDue` no longer reports maxed-out jobs as executed.
-- Headless runner extracted to testable `src/runner.ts` (atomic locks, `cwd` spawn, no `--dir`).
-- npm `files` now ships `docs/`, `llms.txt`, `SECURITY.md`, `CHANGELOG.md` so README links
-  resolve on the npm page too.
+### Added
+- **Job Tags & Multi-Criteria Live Filtering**: Live search by text, category dropdown, status filter, tag pills strip, and real-time match counter.
+- **Real-Time Execution Metrics & Prometheus Exporter**: Latency KPIs (`avg`, `min`, `max`, `p95`), success rates, and OpenMetrics endpoint at `/api/metrics/prometheus`.
+- **Multi-Channel Alerting & Webhooks**: Instant notification dispatch on failure, recovery, or completion to Slack, Discord, or generic webhooks with anti-spam cooldown throttling.
+- **Job Template & Blueprint Engine**: 6 production blueprints (Repository Janitor, Daily Standup, CI Watchdog, Docs Sync, Security Scanner, Health Probe) with 1-click instantiation and ID validation.
+- **Point-in-Time Snapshot & Backup/Restore Engine**: Full backup bundles with SHA-256 cryptographic verification, auto-pruning, and cross-platform path traversal defenses.
+- **Execution Timeout & Watchdog Guard**: Automatic termination of hung ticks (minimum 5,000ms safety floor) across headless OS daemons and in-process plugins.
+- **Run History Retention Policy & Auto-Pruning**: Configurable retention limits by maximum age in days, maximum runs per job, and total history size in MB.
+- **Timezone-Aware Scheduling & Crontab Aliases**: Full IANA timezone support and standard macros (`@hourly`, `@daily`, `@midnight`, `@weekly`, `@monthly`, `@yearly`).
+- **Pre-Flight Guards & Condition Checks**: Pre-tick verification of HTTP endpoint status or local shell command exit codes before executing prompts.
+- **Secret & Credential Redaction Engine**: Automatic sanitization of AI API keys (`sk-*`, `AIzaSy*`), Bearer headers, AWS keys, private keys, and webhook URLs in history, logs, and alerts.
+- **3 New Agent Tools**: Registered `cron_metrics`, `cron_template`, and `cron_backup` (bringing the total to 18 native tools).
+- **GitHub Sponsorship**: Added `.github/FUNDING.yml` and repository sponsor badge.
 
-## Unreleased — opencode v2 migration (breaking)
+### Changed
+- **Web GUI Polish**: Compliant with `/design-taste-frontend-v2-experimental` anti-slop guidelines (zero em-dashes and en-dashes, WCAG AA contrast, decoupled global KPIs from filter subsets).
+- **Modal UX**: Unified `Escape` key and backdrop click dismiss across all 9 modals (`templates`, `backup`, `metrics`, `notifications`, `pipeline`, `queue`, `dlq`, `job`, `confirm`).
+- **Test Suite**: Expanded to 187 automated tests passing across 29 test files with 1,015 assertions.
 
-- Rewritten for the opencode **v2 plugin API** (`@opencode/plugin`, `Plugin.define({ id, setup })`).
-  The v1 function-style entrypoint does not load on opencode v2 (`PluginModule.LoadError`).
-- Tools registered via `ctx.tool.transform` under the `cron` namespace (effective ids unchanged:
-  `cron_add`, `cron_list`, …) with `codemode: true` for Code Mode routing.
-- Compaction memory injection moved to `ctx.session.hook("compaction")`.
-- Overlap guard moved in-process (v2 has no `session.status` API); cross-process stays on atomic lock files.
-- Headless runner no longer passes `--dir` to `opencode run` (flag removed in v2) — spawns with `cwd` instead.
-- Config key is now `plugins` (v2), not `plugin`.
-- Live-verified on opencode v2.0.10: plugin `active`, all 9 tools callable as `tools.cron.*`.
+## [1.0.0] - 2026-10-12
 
-## 0.1.0 — initial public release
+### Added
+- **Mission Control Web GUI**: Sleek dark-mode dashboard on `http://localhost:4488` with live SQLite chat streaming, active job monitors, and instant controls.
+- **Cross-Platform Desktop App & System Tray**: Native installable packages for macOS (.dmg), Windows (.exe), and Linux (.AppImage, .deb) with live system tray status and countdowns.
+- **1-Click "Imposta Cron" Session Modal**: Visual schedule binding on any conversation session with natural language previews and run counters.
+- **Multi-Job Pipeline & DAG Workflows**: Chain tasks with `onSuccess` and `onFailure` triggers, memory propagation, and formal DFS 3-color cycle detection.
+- **Inbound HTTP Webhooks**: On-demand triggers via `/api/webhook/:id` with token auth and GitHub/GitLab HMAC SHA-256 signatures.
+- **Concurrency Manager & Priority Worker Pool**: Parallel worker slots (1 to 10) with priority queue sorting (`high`, `normal`, `low`) and POSIX lock validation.
+- **Dead Letter Queue (DLQ) & Failure Circuit Breaker**: Auto-quarantine after 5 consecutive failures with automated canary probe recovery.
+- **Universal 10-Language i18n Suite**: Localized experience across English, Italian, Spanish, French, German, Portuguese, Chinese, Japanese, Russian, and Arabic (RTL).
+- **Interactive Onboarding Tour**: Spotlight guided walkthrough for first-time dashboard operators.
+- **Execution Timeline (`/runs`)**: Real-time tick diagnostics, exit codes, latencies, and collapsible error traces.
+- **8-Chapter Instruction Guide (`/instructions`)**: Visual documentation and reference.
 
+## [0.1.0] - 2026-10-08
+
+### Added
 - Session-bound cronjobs (`cron_add` with `every` or `cron`).
-- In-process scheduler + headless runner (`opencode-cron-run check/run`).
+- In-process scheduler and headless runner (`opencode-cron-run check/run`).
 - OS persistence: launchd (macOS), systemd + crontab (Linux), schtasks (Windows).
-- Per-job persistent memory with 3-question self-check + compaction hook.
-- 9 tools + 3 slash commands + news/tweet demo template.
-- Guards: 60s minimum, 20 jobs max, skip-if-running, atomic locks, 5-fail auto-pause.
+- Per-job persistent memory with 3-question self-check and compaction hook.
+- 9 initial agent tools and 3 chat slash commands.
+- Safety guards: 60s minimum interval, 20 jobs max, skip-if-running atomic locks, 5-fail auto-pause.

@@ -1,4 +1,4 @@
-# ChatGPT scheduled tasks in opencode — parity notes
+# ChatGPT scheduled tasks in opencode - parity notes
 
 ChatGPT Scheduled Tasks = recurring prompt, executed by the model, with memory of past runs.
 

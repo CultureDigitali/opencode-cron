@@ -14,7 +14,7 @@ export function memoryStatePath(directory: string, jobId: string): string {
 }
 
 export function initialMemoryMd(opts: { title: string; systemPrompt: string; followupPrompt: string }): string {
-  return `# ${opts.title} — cron memory\n\n> Fonte di verità se la chat viene compattata. Il runner la legge prima di ogni tick.\n\n## SystemPrompt originale (frozen)\n${opts.systemPrompt}\n\n## Followup ricorrente\n${opts.followupPrompt}\n\n## Fatti chiave\n- (vuoto — popolato da cron_memory_save)\n\n## Visti / già salvati\n- (vuoto)\n\n## Ultimo run\n- Mai eseguito.\n\n## Domande aperte / ambiguità\n- (vuoto)\n\n## Prossimi passi\n- Eseguire il primo tick e salvare i risultati qui.\n`;
+  return `# ${opts.title} - cron memory\n\n> Fonte di verità se la chat viene compattata. Il runner la legge prima di ogni tick.\n\n## SystemPrompt originale (frozen)\n${opts.systemPrompt}\n\n## Followup ricorrente\n${opts.followupPrompt}\n\n## Fatti chiave\n- (vuoto - popolato da cron_memory_save)\n\n## Visti / già salvati\n- (vuoto)\n\n## Ultimo run\n- Mai eseguito.\n\n## Domande aperte / ambiguità\n- (vuoto)\n\n## Prossimi passi\n- Eseguire il primo tick e salvare i risultati qui.\n`;
 }
 
 export async function readMemory(directory: string, jobId: string): Promise<{ md: string | null; state: MemoryState }> {
@@ -49,17 +49,17 @@ export async function writeMemory(directory: string, jobId: string, md: string, 
 
 export function buildTickPrompt(opts: { systemPrompt: string; followupPrompt: string; memoryMd: string | null }): string {
   const MAX_PROMPT_MEMORY = 16_000;
-  let mem = opts.memoryMd ?? `(memoria vuota — primo run)`;
+  let mem = opts.memoryMd ?? `(memoria vuota - primo run)`;
   if (mem.length > MAX_PROMPT_MEMORY) {
     const head = mem.slice(0, 6_000);
     const tail = mem.slice(-10_000);
     mem = `${head}\n\n... [MEMORIA TRONCATA NEL PROMPT (${mem.length} chars > ${MAX_PROMPT_MEMORY}): usa cron_memory_save per sintetizzare] ...\n\n${tail}`;
   }
   return [
-    `[CRON SYSTEM — frozen, non modificare l'obiettivo]`,
+    `[CRON SYSTEM - frozen, non modificare l'obiettivo]`,
     opts.systemPrompt,
     ``,
-    `[MEMORIA PERSISTENTE — fonte di verità se la chat è stata compattata]`,
+    `[MEMORIA PERSISTENTE - fonte di verità se la chat è stata compattata]`,
     mem,
     ``,
     `[SELF-CHECK obbligatorio prima di agire]`,

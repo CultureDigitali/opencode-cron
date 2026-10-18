@@ -160,7 +160,7 @@ function slugifyTitle(t: string): string {
 }
 
 function extractTitleFromPrompt(text: string): string | null {
-  const m = text.match(/#\s+([^\n]+?)\s+—\s+cron memory/);
+  const m = text.match(/#\s+([^\n]+?)\s+[-—]\s+cron memory/);
   if (m && m[1]) return m[1].trim();
   const f = text.match(/\[FOLLOWUP di questo tick\]\s*\n([^\n]+)/);
   if (f && f[1]) return f[1].trim().slice(0, 50);

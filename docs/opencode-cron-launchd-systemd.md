@@ -1,4 +1,4 @@
-# opencode session cron — background tasks with launchd / systemd
+# opencode session cron - background tasks with launchd / systemd
 
 The OS ticker runs every 60s and executes due jobs. Install once per project:
 

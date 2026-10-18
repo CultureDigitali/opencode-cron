@@ -10,4 +10,4 @@ Use plain cron / systemd timers for pure shell work (backups, `apt update`, log 
 | Dedup | manual | `seenHashes` + locks |
 | Cost control | free | 60s min, jitter, `maxRuns`, 5-fail pause |
 
-Don't use opencode-cron for sub-60s polling or one-shots — `cron_run_now` covers the one-shot case.
+Don't use opencode-cron for sub-60s polling or one-shots - `cron_run_now` covers the one-shot case.

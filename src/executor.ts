@@ -20,7 +20,7 @@ import * as path from "node:path";
 export type PromptFn = {
   promptSession: (sessionID: string, text: string) => Promise<unknown>;
   /** Guard against overlapping ticks of the same job (in-process).
-   * NOTE: opencode v2 has no session.status API — cross-process overlap is
+   * NOTE: opencode v2 has no session.status API - cross-process overlap is
    * handled by the headless runner's atomic lock files instead. */
   inFlight?: Set<string>;
 };

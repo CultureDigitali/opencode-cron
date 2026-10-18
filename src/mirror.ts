@@ -67,7 +67,7 @@ export function mirrorPairs(db: Database, opts: MirrorOpts): MirrorResult {
 
   // Group into turns: a user row followed by all consecutive non-user rows
   // (assistant steps have content:[] on the first row; real text spans
-  // multiple assistant rows — one per step — until the next user row).
+  // multiple assistant rows - one per step - until the next user row).
   const turns: Array<{ user: V2Row; assistants: V2Row[] }> = [];
   for (let i = 0; i < rows.length; i++) {
     if (rows[i].type !== "user") continue;
@@ -96,7 +96,7 @@ export function mirrorPairs(db: Database, opts: MirrorOpts): MirrorResult {
         lastSeq = Math.max(lastSeq, lastAssistant.seq, user.seq);
         continue;
       }
-      // dedup: steered pairs are also written to v1 by the app itself —
+      // dedup: steered pairs are also written to v1 by the app itself -
       // skip when an equivalent user text already exists in v1 near this time.
       const dup = db
         .prepare(

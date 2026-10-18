@@ -67,7 +67,7 @@ describe("runner tick args", () => {
     expect(tickArgs({ sessionID: "s" }, "hello")).not.toContain("--server");
   });
   it("resolves opencode to an absolute executable (launchd-safe)", async () => {
-    // controlled PATH with a fake executable — deterministic on any machine
+    // controlled PATH with a fake executable - deterministic on any machine
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-bin-"));
     const fake = path.join(dir, "opencode");
     await fs.writeFile(fake, "#!/bin/sh\nexit 0\n", "utf-8");

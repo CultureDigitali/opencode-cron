@@ -22,7 +22,7 @@ const optStrProp = (description: string) => ({ type: "string", description }) as
 const idProp = { type: "string", description: "Cron job id", pattern: "^[a-z0-9-]{1,64}$" } as const;
 
 // NOTE: tools live under the "cron" namespace, so their effective ids are
-// cron_add, cron_list, ... — the namespace is required for Code Mode routing.
+// cron_add, cron_list, ... - the namespace is required for Code Mode routing.
 const NS = "cron";
 
 export const CronPlugin = Plugin.define({
@@ -59,7 +59,7 @@ export const CronPlugin = Plugin.define({
     };
 
     // Compact-safety: re-inject per-job memory into the compaction transcript.
-    // Never break compaction — swallow all errors.
+    // Never break compaction - swallow all errors.
     await ctx.session.hook("compaction", async (event: any) => {
       try {
         const sessionID: string | undefined = event?.sessionID;
