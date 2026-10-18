@@ -195,7 +195,7 @@ describe("Feature 1: Smart Adaptive Schedule (Dynamic Cadence & Burst Mode)", ()
 
     try {
       // 1. Create adaptive job via POST /api/jobs
-      const createRes = await fetch(`http://localhost:${port}/api/jobs`, {
+      const createRes = await fetch(`http://127.0.0.1:${port}/api/jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -221,7 +221,7 @@ describe("Feature 1: Smart Adaptive Schedule (Dynamic Cadence & Burst Mode)", ()
       expect(createData.job.adaptive?.idleEveryMs).toBe(1_200_000);
 
       // 2. Trigger burst mode via POST /api/jobs/:id/burst
-      const burstRes = await fetch(`http://localhost:${port}/api/jobs/${encodeURIComponent(jobId)}/burst`, {
+      const burstRes = await fetch(`http://127.0.0.1:${port}/api/jobs/${encodeURIComponent(jobId)}/burst`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ minutes: 30 }),
@@ -233,7 +233,7 @@ describe("Feature 1: Smart Adaptive Schedule (Dynamic Cadence & Burst Mode)", ()
       expect(burstData.activeUntil).toBeDefined();
 
       // 3. Test preview with adaptive parameters
-      const previewRes = await fetch(`http://localhost:${port}/api/schedule/preview?q=5m&lang=it&adaptive=1&burst=1m&idle=20m`);
+      const previewRes = await fetch(`http://127.0.0.1:${port}/api/schedule/preview?q=5m&lang=it&adaptive=1&burst=1m&idle=20m`);
       expect(previewRes.status).toBe(200);
       const previewData: any = await previewRes.json();
       expect(previewData.valid).toBe(true);
@@ -241,7 +241,7 @@ describe("Feature 1: Smart Adaptive Schedule (Dynamic Cadence & Burst Mode)", ()
       expect(previewData.adaptiveInfo).toContain("Cadenza Adattiva");
 
       // 4. Update adaptive parameters via PUT /api/jobs/:id
-      const putRes = await fetch(`http://localhost:${port}/api/jobs/${encodeURIComponent(jobId)}`, {
+      const putRes = await fetch(`http://127.0.0.1:${port}/api/jobs/${encodeURIComponent(jobId)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

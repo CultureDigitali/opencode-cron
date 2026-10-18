@@ -42,13 +42,13 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
+      - name: Build Core Application
+        run: bun run build
+
       - name: Run Test Suite & Typecheck
         run: |
           bun run typecheck
           bun test
-
-      - name: Build Core Application
-        run: bun run build
 
       - name: Build Electron Desktop Packages (${{ matrix.target }})
         env:

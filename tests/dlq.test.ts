@@ -177,7 +177,9 @@ describe("Dead Letter Queue (DLQ) & Circuit Breaker Engine", () => {
       const dlqPath = path.join(tmpDir, ".opencode", "cron", "dlq.json");
       const stat = await fs.stat(dlqPath);
       // Mode 0600 mask:
-      expect((stat.mode & 0o777) === 0o600).toBe(true);
+      if (process.platform !== "win32") {
+        expect((stat.mode & 0o777) === 0o600).toBe(true);
+      }
     });
 
     it("retrying a DLQ job runs canary probe and resolves on success", async () => {

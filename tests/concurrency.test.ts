@@ -505,7 +505,9 @@ describe("Feature 4: Execution Concurrency & Priority Queue", () => {
       const filePath = path.join(tmpDir, ".opencode", "cron", "settings.json");
       const st = await fs.stat(filePath);
       // In POSIX, 0o600 is 384 in decimal
-      expect(st.mode & 0o777).toBe(0o600);
+      if (process.platform !== "win32") {
+        expect(st.mode & 0o777).toBe(0o600);
+      }
     });
   });
 });

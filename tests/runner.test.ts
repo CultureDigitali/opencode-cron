@@ -67,6 +67,7 @@ describe("runner tick args", () => {
     expect(tickArgs({ sessionID: "s" }, "hello")).not.toContain("--server");
   });
   it("resolves opencode to an absolute executable (launchd-safe)", async () => {
+    if (process.platform === "win32") return;
     // controlled PATH with a fake executable - deterministic on any machine
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-bin-"));
     const fake = path.join(dir, "opencode");
@@ -154,7 +155,9 @@ describe("credentials refresh", () => {
     expect(content).toContain("CRON_UN=opencode");
     expect(content).toContain("CRON_PW=secret");
     const st = await fs.stat(target);
-    expect(st.mode & 0o777).toBe(0o600);
+    if (process.platform !== "win32") {
+      expect(st.mode & 0o777).toBe(0o600);
+    }
   });
   it("throws without env credentials", async () => {
     expect(writeCredentialsFile({ HOME: "/tmp" } as NodeJS.ProcessEnv, "/tmp/x-creds-test")).rejects.toThrow("missing OPENCODE_SERVER");

@@ -5,9 +5,16 @@ import * as path from "node:path";
 describe("Desktop Application & System Tray Packaging", () => {
   it("has built dist/desktop/main.js entrypoint", async () => {
     const mainJs = path.join(process.cwd(), "dist", "desktop", "main.js");
-    const stat = await fs.stat(mainJs);
-    expect(stat.isFile()).toBe(true);
-    expect(stat.size).toBeGreaterThan(1000);
+    let exists = false;
+    try {
+      const stat = await fs.stat(mainJs);
+      exists = stat.isFile() && stat.size > 1000;
+    } catch {
+      Bun.spawnSync(["bun", "run", "build:lib"]);
+      const stat = await fs.stat(mainJs);
+      exists = stat.isFile() && stat.size > 1000;
+    }
+    expect(exists).toBe(true);
   });
 
   it("has complete suite of system tray and app icons", async () => {

@@ -32,13 +32,13 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
+      - name: Build Distribution Bundle
+        run: bun run build
+
       - name: Verify Types and Test Suite
         run: |
           bun run typecheck
           bun test
-
-      - name: Build Distribution Bundle
-        run: bun run build
 
       - name: Publish to NPM
         env:
