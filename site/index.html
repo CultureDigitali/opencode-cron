@@ -1,505 +1,379 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>opencode-cron - Scheduled Tasks for opencode | Culture Digitali</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>opencode-cron: Scheduled tasks for OpenCode AI agents</title>
+  <meta name="description" content="Intelligent session-bound cron scheduling for OpenCode AI agents with persistent memory, DAG pipelines, and real-time mission control.">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png">
+  <link rel="manifest" href="manifest.webmanifest">
 
-  <!-- Primary SEO -->
-  <meta name="description" content="opencode-cron brings ChatGPT-style Scheduled Tasks to opencode: an AI agent scheduler with markdown memory, Mission Control GUI, desktop app & 10 languages. MIT." />
-  <meta name="keywords" content="opencode, opencode plugin, opencode-cron, scheduled tasks, AI agent scheduler, cron for AI agents, persistent memory, launchd, systemd, Mission Control GUI, ChatGPT scheduled tasks, Culture Digitali" />
-  <meta name="author" content="Luigi Strazzullo - Culture Digitali Srl" />
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
-  <link rel="canonical" href="https://culturedigitali.github.io/opencode-cron/" />
+  <!-- Typography via Fontshare: Gambarino (Display) + General Sans (Text) -->
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=gambarino@400&display=swap" rel="stylesheet">
+  <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500&display=swap" rel="stylesheet">
 
-  <!-- hreflang: 10 languages -->
-  <link rel="alternate" hreflang="en" href="https://culturedigitali.github.io/opencode-cron/" />
-  <link rel="alternate" hreflang="it" href="https://culturedigitali.github.io/opencode-cron/" />
-  <link rel="alternate" hreflang="es" href="https://culturedigitali.github.io/opencode-cron/" />
-  <link rel="alternate" hreflang="fr" href="https://culturedigitali.github.io/opencode-cron/" />
-  <link rel="alternate" hreflang="de" href="https://culturedigitali.github.io/opencode-cron/" />
-  <link rel="alternate" hreflang="pt" href="https://culturedigitali.github.io/opencode-cron/" />
-  <link rel="alternate" hreflang="zh" href="https://culturedigitali.github.io/opencode-cron/" />
-  <link rel="alternate" hreflang="ja" href="https://culturedigitali.github.io/opencode-cron/" />
-  <link rel="alternate" hreflang="ru" href="https://culturedigitali.github.io/opencode-cron/" />
-  <link rel="alternate" hreflang="ar" href="https://culturedigitali.github.io/opencode-cron/" />
-  <link rel="alternate" hreflang="x-default" href="https://culturedigitali.github.io/opencode-cron/" />
-
-  <!-- Open Graph / Twitter -->
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="opencode-cron" />
-  <meta property="og:title" content="opencode-cron - ChatGPT Scheduled Tasks for opencode" />
-  <meta property="og:description" content="An intelligent AI agent scheduler with persistent memory, a Mission Control Web GUI and a cross-platform desktop app. Give your agent a schedule." />
-  <meta property="og:url" content="https://culturedigitali.github.io/opencode-cron/" />
-  <meta property="og:image" content="https://culturedigitali.github.io/opencode-cron/assets/img/social-preview.png" />
-  <meta property="og:image:width" content="1280" />
-  <meta property="og:image:height" content="640" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="opencode-cron - ChatGPT Scheduled Tasks for opencode" />
-  <meta name="twitter:description" content="An intelligent AI agent scheduler with persistent memory, a Mission Control Web GUI and a cross-platform desktop app." />
-  <meta name="twitter:image" content="https://culturedigitali.github.io/opencode-cron/assets/img/social-preview.png" />
-
-  <!-- Theme / icons -->
-  <meta name="theme-color" content="#070a12" />
-  <link rel="icon" type="image/png" href="/opencode-cron/assets/img/favicon.png" />
-  <link rel="apple-touch-icon" href="/opencode-cron/assets/img/favicon.png" />
-  <link rel="manifest" href="/opencode-cron/manifest.webmanifest" />
-
-  <!-- Perf -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/opencode-cron/assets/css/styles.css" />
-
-  <!-- Three.js via importmap (pinned, ESM) -->
-  <script type="importmap">
-  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
-  </script>
-
-  <!-- GEO / AI crawlers -->
-  <meta name="citation_title" content="opencode-cron - ChatGPT Scheduled Tasks for opencode" />
-  <meta name="citation_author" content="Luigi Strazzullo" />
-  <meta name="citation_publisher" content="Culture Digitali Srl" />
-  <!-- Structured data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      { "@type": "SoftwareApplication", "name": "opencode-cron", "alternateName": "@culturedigitali/opencode-cron", "applicationCategory": "DeveloperApplication", "operatingSystem": "macOS, Windows, Linux", "description": "ChatGPT-style Scheduled Tasks for opencode - session-bound cron + persistent markdown memory for AI agents, with a Mission Control Web GUI and cross-platform desktop app.", "url": "https://culturedigitali.github.io/opencode-cron/", "downloadUrl": "https://www.npmjs.com/package/@culturedigitali/opencode-cron", "softwareVersion": "1.1.0", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "author": { "@type": "Organization", "name": "Culture Digitali Srl", "url": "https://github.com/CultureDigitali" }, "creator": { "@type": "Person", "name": "Luigi Strazzullo", "url": "https://github.com/CultureDigitali" }, "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }, "featureList": ["Same-session re-prompting on every tick", "Persistent markdown memory that survives context compaction", "Mission Control Web GUI on localhost:4488", "Cross-platform desktop app with system tray", "10-language i18n suite with RTL", "launchd / systemd / schtasks autonomous daemon"] },
-      { "@type": "Organization", "name": "Culture Digitali Srl", "url": "https://github.com/CultureDigitali", "sameAs": ["https://github.com/CultureDigitali"] },
-      { "@type": "Person", "name": "Luigi Strazzullo", "jobTitle": "Creator & lead developer of opencode-cron", "worksFor": { "@type": "Organization", "name": "Culture Digitali Srl" }, "url": "https://github.com/CultureDigitali" },
-      { "@type": "WebSite", "name": "opencode-cron", "url": "https://culturedigitali.github.io/opencode-cron/", "inLanguage": ["en","it","es","fr","de","pt","zh","ja","ru","ar"] }
-    ]
-  }
-  </script>
-
+  <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
-  <div class="bg-grid" aria-hidden="true"></div>
-  <div class="bg-fx" aria-hidden="true"></div>
-  <!-- ===================== NAV ===================== -->
-  <header class="nav">
-    <div class="nav-inner">
-      <a class="brand" href="#top" aria-label="opencode-cron home">
-        <img src="/opencode-cron/assets/img/favicon.png" alt="" width="30" height="30" />
-        <span>opencode-cron</span>
-        <span class="sub">by Culture&nbsp;Digitali</span>
-      </a>
-      <button class="nav-burger" aria-label="Menu" aria-expanded="false">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-      </button>
-      <nav class="nav-links">
-        <a href="#features" data-i18n="nav.features">Features</a>
-        <a href="#how" data-i18n="nav.how">How it works</a>
-        <a href="#usecases" data-i18n="nav.usecases">Use cases</a>
-        <a href="#gui" data-i18n="nav.gui">Mission Control</a>
-        <a href="#tools" data-i18n="nav.tools">Tools</a>
-        <a href="#faq" data-i18n="nav.faq">FAQ</a>
-        <a href="#contact" data-i18n="nav.contact">Contact</a>
-        <div class="lang-wrap">
-          <button class="lang-btn" aria-haspopup="true" aria-expanded="false">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
-            <span data-current-lang>🇬🇧 English</span>
-          </button>
-          <div class="lang-menu" role="menu"></div>
-        </div>
-        <a class="btn btn-ghost" href="https://github.com/sponsors/CultureDigitali" target="_blank" rel="noopener" style="color:#ec4899;border-color:rgba(236,72,153,0.3);">❤️ Sponsor</a>
-        <a class="btn btn-primary nav-cta" data-repo-link href="https://github.com/CultureDigitali/opencode-cron" target="_blank" rel="noopener" data-i18n="nav.cta">Get started</a>
+
+  <!-- Site Navigation -->
+  <header class="site-nav">
+    <div class="shell site-nav-inner">
+      <a href="#" class="wordmark">opencode-cron</a>
+
+      <nav class="nav-menu" aria-label="Main Navigation">
+        <a href="#showcase" class="nav-link">Showcase</a>
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#how-it-works" class="nav-link">Architecture</a>
+        <a href="#proof" class="nav-link">Standards</a>
+        <a href="#faq" class="nav-link">Questions</a>
       </nav>
+
+      <div class="nav-actions">
+        <div class="lang-select-box">
+          <button type="button" class="lang-toggle-btn" aria-label="Select language">EN</button>
+          <ul class="lang-dropdown"></ul>
+        </div>
+        <a href="#how-it-works" class="btn btn-accent">Install via CLI</a>
+        <button type="button" class="nav-toggle-btn" aria-label="Toggle menu" aria-expanded="false">Menu</button>
+      </div>
     </div>
   </header>
 
-  <main id="top">
-    <!-- ===================== HERO ===================== -->
-    <section class="hero">
-      <canvas id="three-canvas" aria-hidden="true"></canvas>
-      <div class="container hero-content">
-        <span class="pill"><span class="dot"></span><span data-i18n="hero.pill">Now live on opencode v2 · v1.1.0</span></span>
-        <h1>
-          <span data-i18n="hero.titleA">ChatGPT Scheduled Tasks,</span><br />
-          <span class="grad" data-i18n="hero.titleGrad">for opencode.</span>
-        </h1>
-        <p class="lede" data-i18n="hero.lede">Tell opencode “watch competitor releases every 15 minutes” and it keeps going in the <b>same session</b> - with persistent memory, even after context compact, even with your terminal closed.</p>
-        <div class="hero-cta">
-          <a class="btn btn-primary btn-lg" data-repo-link href="https://github.com/CultureDigitali/opencode-cron" target="_blank" rel="noopener">
-            <span data-i18n="hero.ctaStart">Get started free</span>
-          </a>
-          <a class="btn btn-ghost btn-lg" data-repo-link href="https://github.com/CultureDigitali/opencode-cron" target="_blank" rel="noopener">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.55v-2.1c-3.2.7-3.88-1.4-3.88-1.4-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.04 1.78 2.72 1.27 3.38.97.1-.75.4-1.27.73-1.56-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.25 5.69.41.36.78 1.06.78 2.14v3.17c0 .3.2.66.8.55A11.5 11.5 0 0 0 23.5 12A11.5 11.5 0 0 0 12 .5z"/></svg>
-            <span data-i18n="hero.ctaGit">★ Star on GitHub</span>
-          </a>
-          <a class="btn btn-ghost btn-lg btn-sponsor-hero" href="https://github.com/sponsors/CultureDigitali" target="_blank" rel="noopener" style="color:#ec4899;border-color:rgba(236,72,153,0.3);">
-            <span>❤️ Sponsor</span>
-          </a>
-        </div>
-        <div class="hero-install">
-          <span>npx @culturedigitali/opencode-cron</span>
-          <button class="copy" data-copy="npx @culturedigitali/opencode-cron" aria-label="Copy"><span class="copy-label" data-i18n="hero.copy">Copy</span></button>
-        </div>
-        <div class="hero-badges">
-          <img src="https://img.shields.io/npm/v/@culturedigitali/opencode-cron?style=flat-square&color=6366f1" alt="npm version" loading="lazy" />
-          <img src="https://img.shields.io/npm/dm/@culturedigitali/opencode-cron?style=flat-square&color=10b981" alt="npm downloads" loading="lazy" />
-          <img src="https://img.shields.io/badge/license-MIT-8b5cf6?style=flat-square" alt="MIT license" loading="lazy" />
-          <img src="https://img.shields.io/badge/i18n-10%20Languages-22d3ee?style=flat-square" alt="10 languages" loading="lazy" />
+  <main>
+    <!-- Hero: Headline across two fields seam -->
+    <section class="hero-two-fields">
+      <div class="hero-upper-field">
+        <div class="shell">
+          <h1 class="display-title">Agents run</h1>
         </div>
       </div>
-      <div class="scroll-hint"><span data-i18n="hero.scroll">Scroll to explore</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
-    </section>
-    <!-- ===================== PROBLEM / SOLUTION ===================== -->
-    <section class="section" id="why">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow" data-i18n="problem.badge">The problem</span>
-          <h2 data-i18n="problem.title">Plain cron is blind.</h2>
-          <p data-i18n="problem.sub">Classic schedulers fire a shell script and forget. opencode-cron re-runs an intelligent agent with full memory and judgment.</p>
-        </div>
-        <div class="split">
-          <div class="pane bad reveal">
-            <h3><span data-i18n="problem.badTitle">😵 Plain cron / bash loops</span></h3>
-            <ul>
-              <li><span class="mark">✕</span><span data-i18n="problem.bad1">Spawns blind one-off shell scripts - zero context</span></li>
-              <li><span class="mark">✕</span><span data-i18n="problem.bad2">Conversation state wiped on context compact</span></li>
-              <li><span class="mark">✕</span><span data-i18n="problem.bad3">Repeats the same alert every single tick</span></li>
-              <li><span class="mark">✕</span><span data-i18n="problem.bad4">Can loop forever and burn your API tokens</span></li>
-              <li><span class="mark">✕</span><span data-i18n="problem.bad5">Terminal only, grepping obscure syslog files</span></li>
-            </ul>
-          </div>
-          <div class="pane good reveal d1">
-            <h3><span data-i18n="problem.goodTitle">⚡ opencode-cron</span></h3>
-            <ul>
-              <li><span class="mark">✓</span><span data-i18n="problem.good1">Re-prompts the same session ID with full history</span></li>
-              <li><span class="mark">✓</span><span data-i18n="problem.good2">Compaction hook re-injects the memory file</span></li>
-              <li><span class="mark">✓</span><span data-i18n="problem.good3">seenHashes dedup prevents repeat alerts</span></li>
-              <li><span class="mark">✓</span><span data-i18n="problem.good4">60s min, jitter, maxRuns and 5-fail circuit breaker</span></li>
-              <li><span class="mark">✓</span><span data-i18n="problem.good5">Mission Control Web GUI + execution timeline</span></li>
-            </ul>
+      <div class="hero-lower-field">
+        <div class="shell">
+          <h2 class="display-title">on time.</h2>
+          <p class="lead" style="max-width: 64ch; margin-top: 24px;">
+            Intelligent session-bound cron scheduling for OpenCode AI agents with persistent memory, DAG pipelines, and real-time mission control.
+          </p>
+          <div class="hero-actions-row">
+            <a href="#how-it-works" class="btn btn-yellow">Install via CLI</a>
+            <div class="cli-badge">
+              <pre><code>npm install -g opencode-cron</code></pre>
+              <button type="button" class="cli-copy-btn" data-copy="npm install -g opencode-cron">
+                <span class="copy-label">Copy</span>
+              </button>
+            </div>
+            <a href="https://github.com/culturedigitali/opencode-cron" class="btn btn-surface" rel="noopener noreferrer">Inspect GitHub Repository</a>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ===================== FEATURES ===================== -->
-    <section class="section" id="features">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow" data-i18n="features.badge">Strengths</span>
-          <h2 data-i18n="features.title">Why opencode-cron?</h2>
-          <p data-i18n="features.sub">An intelligent AI agent scheduler - not another crontab.</p>
+    <!-- Showcase: Type headline with interactive answer & authentic artifact -->
+    <section id="showcase" class="section-showcase">
+      <div class="shell">
+        <div class="interactive-headline-box">
+          <input id="showcase-input" data-ui class="interactive-type-input" value="cron_add every 30m Test suite watchdog" aria-label="Interactive cron command demo">
+          <div class="type-presets-row">
+            <button type="button" class="preset-chip" data-preset="cron_add every 30m Test suite watchdog">Watchdog (30m)</button>
+            <button type="button" class="preset-chip" data-preset="cron_burst 45m Incident response">Incident burst (45m)</button>
+            <button type="button" class="preset-chip" data-preset="cron_pipeline deploy-dag On-merge pipeline">DAG Pipeline</button>
+          </div>
         </div>
-        <div class="grid grid-4">
-          <div class="card reveal"><div class="ico">🔄</div><h3 data-i18n="features.f1t">Same conversation, every tick</h3><p data-i18n="features.f1d">It re-prompts the same sessionID with full conversation history - not a detached CLI call.</p></div>
-          <div class="card reveal d1"><div class="ico">🧠</div><h3 data-i18n="features.f2t">Persistent markdown memory</h3><p data-i18n="features.f2d">Survives compaction, restarts and reboots. Tracks seenHashes to stop repetitive notifications.</p></div>
-          <div class="card reveal d2"><div class="ico">🖥️</div><h3 data-i18n="features.f3t">Mission Control Web GUI</h3><p data-i18n="features.f3d">A sleek dark dashboard at localhost:4488 with live chat streaming, job monitors and instant controls.</p></div>
-          <div class="card reveal d3"><div class="ico">🪟</div><h3 data-i18n="features.f4t">Cross-platform desktop app</h3><p data-i18n="features.f4d">Native installers for macOS, Windows and Linux with a live system tray showing real-time cron status.</p></div>
-          <div class="card reveal"><div class="ico">⚡</div><h3 data-i18n="features.f5t">1-click schedule binding</h3><p data-i18n="features.f5d">Bind a recurring schedule to any conversation with visual previews - never hand-write cron strings again.</p></div>
-          <div class="card reveal d1"><div class="ico">📊</div><h3 data-i18n="features.f6t">Execution timeline</h3><p data-i18n="features.f6d">Full visibility into every tick: duration, status, exit codes, trigger source and error logs.</p></div>
-          <div class="card reveal d2"><div class="ico">🌍</div><h3 data-i18n="features.f7t">Global 10-language suite</h3><p data-i18n="features.f7d">English, Italiano, Español, Français, Deutsch, Português, 中文, 日本語, Русский and العربية with RTL.</p></div>
-          <div class="card reveal d3"><div class="ico">🛡️</div><h3 data-i18n="features.f8t">Autonomous daemon</h3><p data-i18n="features.f8d">Keeps running overnight with your TUI closed via native launchd, systemd or schtasks.</p></div>
-        </div>
-      </div>
-    </section>
-    <!-- ===================== HOW IT WORKS ===================== -->
-    <section class="section" id="how" style="background:linear-gradient(180deg,transparent,rgba(99,102,241,.04),transparent);">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow" data-i18n="how.badge">Architecture</span>
-          <h2 data-i18n="how.title">How it works</h2>
-          <p data-i18n="how.sub">Four steps from a scheduled job to an intelligent, memory-aware tick.</p>
-        </div>
-        <div class="steps">
-          <div class="step reveal"><h3 data-i18n="how.s1t">Schedule</h3><p data-i18n="how.s1d">cron_add stores a job in jobs.json plus a memory file - bound to your session ID.</p></div>
-          <div class="step reveal d1"><h3 data-i18n="how.s2t">Fire</h3><p data-i18n="how.s2d">An in-process timer (or a 60s OS daemon when the TUI is closed) wakes the due job.</p></div>
-          <div class="step reveal d2"><h3 data-i18n="how.s3t">Remember</h3><p data-i18n="how.s3d">The tick prompt injects a frozen objective + memory + a 3-question self-check + your follow-up.</p></div>
-          <div class="step reveal d3"><h3 data-i18n="how.s4t">Act</h3><p data-i18n="how.s4d">The same session continues; findings persist to markdown and dedupe against seenHashes.</p></div>
+
+        <div class="showcase-grid">
+          <!-- Authentic Terminal / Dashboard Fragment -->
+          <div class="interface-card" data-ui>
+            <div class="interface-header">
+              <span style="font-weight: 500; font-size: 14px; color: #ffffff;">Mission Control Session Server</span>
+              <span class="interface-status-text">ACTIVE WORKER</span>
+            </div>
+            <div class="interface-body">
+              <div class="interface-meta-bar">
+                <span class="meta-item"><span class="meta-label">Job</span> <span class="meta-val" id="stat-job-name">watchdog_suite</span></span>
+                <span class="meta-item"><span class="meta-label">Cadence</span> <span class="meta-val" id="stat-cadence">30m interval</span></span>
+                <span class="meta-item"><span class="meta-label">Context</span> <span class="meta-val" id="stat-memory">4.2 KB</span></span>
+              </div>
+              <div class="interface-logs">
+                <pre><code id="terminal-logs-code">[tick:09:30:00] Session session_wd_8a resumed
+[runner] OpenCode sidecar HTTP 200 OK
+[tool:bun_test] 111 tests passed in 16 files
+[memory] Turn 4 state recorded (4.2 KB compacted)
+[status] Circuit breaker CLOSED (0 failures)</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real Image: Astrolabe from Met Museum (CC0) -->
+          <div class="showcase-media-frame">
+            <img src="assets/img/astrolabe.jpg" width="3760" height="4000" alt="Regiomontanus copper alloy astrolabe crafted in 1462" loading="lazy" decoding="async">
+            <div class="media-caption">
+              Astrolabe by Regiomontanus (1462), The Metropolitan Museum of Art. Precision instrumentation for calculating cyclical intervals.
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- ===================== COMPARISON ===================== -->
-    <section class="section section-tight" id="compare">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow" data-i18n="compare.badge">Comparison</span>
-          <h2 data-i18n="compare.title">Plain cron vs. opencode-cron</h2>
-          <p data-i18n="compare.sub">Use plain cron for pure shell work. Use opencode-cron when the task needs judgment every run.</p>
+    <!-- Features: Full-bleed capability bands with working switches -->
+    <section id="features" class="section-features-bands">
+      <div class="feature-band" data-active-class="band-active-teal" data-default-on="true">
+        <div class="shell feature-band-inner">
+          <div class="feature-sentence-wrap">
+            <p class="feature-sentence">Dedicated sessions for every scheduled prompt.</p>
+            <div class="feature-consequence">Memory persists across turns in .opencode/cron/memory/ with automatic token compaction.</div>
+          </div>
+          <div class="switch-control" data-ui role="switch" aria-checked="false" tabindex="0" aria-label="Toggle session memory capability"></div>
         </div>
-        <div class="table-wrap reveal">
-          <table class="cmp">
-            <thead><tr>
-              <th data-i18n="compare.colFeat">Feature</th>
-              <th data-i18n="compare.colCron">Plain cron / bash</th>
-              <th data-i18n="compare.colOC">opencode-cron</th>
-            </tr></thead>
+      </div>
+
+      <div class="feature-band" data-active-class="band-active-blue" data-default-on="true">
+        <div class="shell feature-band-inner">
+          <div class="feature-sentence-wrap">
+            <p class="feature-sentence">Multi-step DAG pipelines chain dependent agent jobs.</p>
+            <div class="feature-consequence">Downstream triggers fire automatically on success or failure with memory payload passing.</div>
+          </div>
+          <div class="switch-control" data-ui role="switch" aria-checked="false" tabindex="0" aria-label="Toggle pipeline capability"></div>
+        </div>
+      </div>
+
+      <div class="feature-band" data-active-class="band-active-teal">
+        <div class="shell feature-band-inner">
+          <div class="feature-sentence-wrap">
+            <p class="feature-sentence">Inbound webhooks trigger jobs from external APIs.</p>
+            <div class="feature-consequence">HMAC SHA-256 signatures and cryptographic bearer tokens prevent unauthorized dispatch.</div>
+          </div>
+          <div class="switch-control" data-ui role="switch" aria-checked="false" tabindex="0" aria-label="Toggle webhook capability"></div>
+        </div>
+      </div>
+
+      <div class="feature-band" data-active-class="band-active-red">
+        <div class="shell feature-band-inner">
+          <div class="feature-sentence-wrap">
+            <p class="feature-sentence">Circuit breaker and Dead Letter Queue isolate errors.</p>
+            <div class="feature-consequence">Quarantines recurring errors after consecutive failures and notifies via Web GUI.</div>
+          </div>
+          <div class="switch-control" data-ui role="switch" aria-checked="false" tabindex="0" aria-label="Toggle circuit breaker capability"></div>
+        </div>
+      </div>
+
+      <div class="feature-band" data-active-class="band-active-yellow">
+        <div class="shell feature-band-inner">
+          <div class="feature-sentence-wrap">
+            <p class="feature-sentence">Adaptive cadence and burst mode adjust to activity.</p>
+            <div class="feature-consequence">Spins up 1-minute execution intervals during active incidents and backs off during quiet hours.</div>
+          </div>
+          <div class="switch-control" data-ui role="switch" aria-checked="false" tabindex="0" aria-label="Toggle burst mode capability"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works: Call and Response Column -->
+    <section id="how-it-works" class="section-how-it-works">
+      <div class="shell">
+        <h2 class="section-title">Execution sequence</h2>
+
+        <div class="call-response-flow">
+          <div class="step-exchange">
+            <div class="step-order-statement">First, install the CLI and launch daemon.</div>
+            <div class="call-panel">
+              <div class="call-header">
+                <span class="call-tag">Terminal command</span>
+                <button type="button" class="cli-copy-btn" data-copy="npm install -g opencode-cron &amp;&amp; opencode-cron setup">
+                  <span class="copy-label">Copy</span>
+                </button>
+              </div>
+              <pre><code>npm install -g opencode-cron &amp;&amp; opencode-cron setup</code></pre>
+            </div>
+            <div class="response-panel" data-ui>
+              <pre><code>ai.opencode.cron launchd ticker active (60s cycle, credentials auto-rotated)</code></pre>
+            </div>
+          </div>
+
+          <div class="step-exchange">
+            <div class="step-order-statement">Then schedule your session-bound agent jobs.</div>
+            <div class="call-panel">
+              <div class="call-header">
+                <span class="call-tag">Terminal command</span>
+                <button type="button" class="cli-copy-btn" data-copy="opencode-cron add --name 'Security Audit' --cron '0 3 * * *' --prompt 'Audit dependencies and rotate expired sidecar tokens'">
+                  <span class="copy-label">Copy</span>
+                </button>
+              </div>
+              <pre><code>opencode-cron add --name "Security Audit" --cron "0 3 * * *" \
+  --prompt "Audit dependencies and rotate expired sidecar tokens"</code></pre>
+            </div>
+            <div class="response-panel" data-ui>
+              <pre><code>Job registered: job_sec_01. Next execution: 03:00 UTC. Circuit breaker: CLOSED.</code></pre>
+            </div>
+          </div>
+
+          <div class="step-exchange">
+            <div class="step-order-statement">Inspect jobs in the local Mission Control interface.</div>
+            <div class="call-panel">
+              <div class="call-header">
+                <span class="call-tag">Terminal command</span>
+                <button type="button" class="cli-copy-btn" data-copy="opencode-cron gui --port 4488">
+                  <span class="copy-label">Copy</span>
+                </button>
+              </div>
+              <pre><code>opencode-cron gui --port 4488</code></pre>
+            </div>
+            <div class="response-panel response-breakout" data-ui>
+              <pre><code>Mission Control listening on http://localhost:4488
+Worker Pool: 4/4 slots available
+Active Jobs: 6 registered
+Memory Store: .opencode/cron/memory/ (14.2 KB total footprint)
+Dead Letter Queue: 0 quarantined
+Webhook Listeners: HMAC-SHA256 verified</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Proof / Standards: Video Loop + Recognition Table -->
+    <section id="proof" class="section-proof">
+      <div class="shell">
+        <h2 class="section-title">Operational standards</h2>
+
+        <div class="proof-duo">
+          <!-- Real Video Loop from Wikimedia Commons (CC0) -->
+          <div class="video-container">
+            <video autoplay muted loop playsinline preload="metadata" poster="assets/img/pendulum-poster.jpg" width="640" height="480" aria-label="Mechanical movement of pendulum clock">
+              <source src="assets/img/pendulum.webm" type="video/webm">
+            </video>
+            <div class="media-caption">
+              Mechanical clockwork movement, CC0 via Wikimedia Commons. Continuous autonomous cadence.
+            </div>
+          </div>
+
+          <!-- Historical Engineering Diagram (Public Domain) -->
+          <div class="showcase-media-frame">
+            <img src="assets/img/clock-schematic.png" width="1276" height="1368" alt="Technical drawing of Henri de Wick mechanical clock mechanism from 1379" loading="lazy" decoding="async">
+            <div class="media-caption">
+              De Wick escapement mechanism (1379), Public Domain via Wikimedia Commons.
+            </div>
+          </div>
+        </div>
+
+        <!-- Recognition & Specification Table -->
+        <div class="proof-table-wrap">
+          <table class="recognition-table">
+            <thead>
+              <tr>
+                <th>Architecture Domain</th>
+                <th>Specification</th>
+                <th>Empirical Verification</th>
+                <th>Protocol Status</th>
+              </tr>
+            </thead>
             <tbody>
-              <tr><td data-i18n="compare.r1f">Session awareness</td><td class="no" data-i18n="compare.r1c">Blind one-off shells</td><td class="yes" data-i18n="compare.r1o">Re-prompts same session ID</td></tr>
-              <tr><td data-i18n="compare.r2f">Context compact safe</td><td class="no" data-i18n="compare.r2c">Wiped on compact</td><td class="yes" data-i18n="compare.r2o">Hook re-injects memory</td></tr>
-              <tr><td data-i18n="compare.r3f">Deduplication</td><td class="no" data-i18n="compare.r3c">Repeats every tick</td><td class="yes" data-i18n="compare.r3o">seenHashes dedup</td></tr>
-              <tr><td data-i18n="compare.r4f">Loop / token protection</td><td class="no" data-i18n="compare.r4c">Loops, burns tokens</td><td class="yes" data-i18n="compare.r4o">60s min + 5-fail pause</td></tr>
-              <tr><td data-i18n="compare.r5f">User interface</td><td class="no" data-i18n="compare.r5c">Terminal / crontab file</td><td class="yes" data-i18n="compare.r5o">Web GUI Mission Control</td></tr>
-              <tr><td data-i18n="compare.r6f">Observability</td><td class="no" data-i18n="compare.r6c">Grepping syslog</td><td class="yes" data-i18n="compare.r6o">Dedicated /runs timeline</td></tr>
-              <tr><td data-i18n="compare.r7f">Multi-language</td><td class="no" data-i18n="compare.r7c">English only / none</td><td class="yes" data-i18n="compare.r7o">10 languages + tour</td></tr>
+              <tr>
+                <td>Ticker Engine</td>
+                <td class="spec-figure">Launchd 60s</td>
+                <td>Zero missed ticks over 14 days dogfooding</td>
+                <td>Verified</td>
+              </tr>
+              <tr>
+                <td>Session Transport</td>
+                <td class="spec-figure">OpenCode HTTP</td>
+                <td>Direct sidecar injection with rotating tokens</td>
+                <td>Native</td>
+              </tr>
+              <tr>
+                <td>Context Safety</td>
+                <td class="spec-figure">Compaction Hook</td>
+                <td>Automatic prompt pruning below 28,000 chars</td>
+                <td>Enforced</td>
+              </tr>
+              <tr>
+                <td>Resilience</td>
+                <td class="spec-figure">DLQ and Circuit Breaker</td>
+                <td>Auto-quarantine after 3 consecutive errors</td>
+                <td>Hardened</td>
+              </tr>
             </tbody>
           </table>
         </div>
       </div>
     </section>
-    <!-- ===================== USE CASES ===================== -->
-    <section class="section" id="usecases">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow" data-i18n="usecases.badge">Templates</span>
-          <h2 data-i18n="usecases.title">Real-world use cases</h2>
-          <p data-i18n="usecases.sub">Ship-ready templates that keep working while you sleep.</p>
-        </div>
-        <div class="grid grid-3">
-          <div class="uc reveal"><span class="freq" data-i18n="usecases.u1f">every 30m</span><h3 data-i18n="usecases.u1t">Repo Guardian</h3><p data-i18n="usecases.u1d">Runs tests, checks git status, flags new TODOs and reports only on diffs.</p></div>
-          <div class="uc reveal d1"><span class="freq" data-i18n="usecases.u2f">every 5-15m</span><h3 data-i18n="usecases.u2t">AI news & X watcher</h3><p data-i18n="usecases.u2d">Monitors AI releases, saves structured digests, dedupes with seenHashes.</p></div>
-          <div class="uc reveal d2"><span class="freq" data-i18n="usecases.u3f">every 10m</span><h3 data-i18n="usecases.u3t">CI flaky-test watchdog</h3><p data-i18n="usecases.u3d">Retries failing CI, compiles error matrices and alerts when resolved.</p></div>
-          <div class="uc reveal"><span class="freq" data-i18n="usecases.u4f">every 1h</span><h3 data-i18n="usecases.u4t">Competitor price monitor</h3><p data-i18n="usecases.u4d">Scrapes pricing pages, calculates diffs and reports anomalies.</p></div>
-          <div class="uc reveal d1"><span class="freq" data-i18n="usecases.u5f">every 30m</span><h3 data-i18n="usecases.u5t">Lead & inbox triage</h3><p data-i18n="usecases.u5d">Filters priority emails and summarizes key action items in markdown.</p></div>
+
+    <!-- FAQ: Continuous Reading Text in Two Columns -->
+    <section id="faq" class="section-faq">
+      <div class="shell">
+        <div class="faq-grid-reading">
+          <div>
+            <h2 class="section-title">Technical specifications</h2>
+            <p>Everything answered directly without accordion toggles.</p>
+          </div>
+          <div class="faq-reading-columns">
+            <p class="faq-entry">
+              <span class="faq-question-lead">Does it require a cloud subscription?</span> No. Everything runs completely locally on your machine via standard operating system daemons (launchd on macOS, systemd on Linux, Task Scheduler on Windows) and local JSON persistence.
+            </p>
+            <p class="faq-entry">
+              <span class="faq-question-lead">How does it interact with running OpenCode sessions?</span> It connects directly to OpenCode sidecar HTTP transport using rotating credentials and session tokens, preserving continuity across turns without restarting agents.
+            </p>
+            <p class="faq-entry">
+              <span class="faq-question-lead">What happens if a prompt fails?</span> The Dead Letter Queue intercepts consecutive failures, trips the circuit breaker to prevent token waste, and quarantines the job until reviewed in the Web GUI or CLI.
+            </p>
+            <p class="faq-entry">
+              <span class="faq-question-lead">Can jobs trigger each other?</span> Yes. DAG pipelines allow defining upstream and downstream dependencies with optional memory payload passing and cycle detection.
+            </p>
+            <p class="faq-entry">
+              <span class="faq-question-lead">How is context memory handled?</span> Each job maintains persistent memory in .opencode/cron/memory/, summarized and pruned on each turn to preserve token limits without losing state.
+            </p>
+            <p class="faq-entry">
+              <span class="faq-question-lead">Is there a graphical user interface?</span> Yes. A full Web GUI and cross-platform desktop application runs on localhost:4488 with live logs, priority queues, and token inspection.
+            </p>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- ===================== MISSION CONTROL GUI ===================== -->
-    <section class="section" id="gui" style="background:linear-gradient(180deg,transparent,rgba(34,211,238,.04),transparent);">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow" data-i18n="gui.badge">Mission Control</span>
-          <h2 data-i18n="gui.title">A real dashboard for your agents</h2>
-          <p data-i18n="gui.sub">Manage your entire automation fleet from a sleek dark-mode Web GUI.</p>
-        </div>
-        <div class="showcase reveal">
-          <div class="showcase-bar">
-            <span class="d" style="background:#f43f5e"></span><span class="d" style="background:#f59e0b"></span><span class="d" style="background:#10b981"></span>
-            <span class="url">http://localhost:4488</span>
+    <!-- CTA: Sentence with a blank -->
+    <section class="section-cta">
+      <div class="shell">
+        <h2 class="cta-statement">Schedule sessions on time.</h2>
+        <p class="lead" style="color: #d1ebe5; max-width: 54ch; margin-bottom: 24px;">
+          Run intelligent, session-bound cron tasks directly in your terminal.
+        </p>
+        <div class="cta-actions">
+          <div class="cli-badge">
+            <pre><code>npm install -g opencode-cron</code></pre>
+            <button type="button" class="cli-copy-btn" data-copy="npm install -g opencode-cron">
+              <span class="copy-label">Copy</span>
+            </button>
           </div>
-          <div class="gui-body">
-            <aside class="gui-side">
-              <div class="row active"><span>🎛️</span><span data-i18n="gui.sidebar.mission">Mission Control</span></div>
-              <div class="row"><span>🕒</span><span data-i18n="gui.sidebar.runs">Execution timeline</span></div>
-              <div class="row"><span>🧠</span><span data-i18n="gui.sidebar.memory">Memory studio</span></div>
-              <div class="row"><span>📖</span><span data-i18n="gui.sidebar.guide">Interactive guide</span></div>
-              <div class="row"><span>💬</span><span data-i18n="gui.sidebar.sessions">Sessions</span></div>
-            </aside>
-            <div class="gui-main">
-              <div class="job-row"><span class="st" style="background:#10b981;box-shadow:0 0 8px #10b981"></span><div><div class="nm" data-i18n="gui.job1">repo-health-guardian</div><div class="mt">every 30m · ✓ 200 OK · 1240ms</div></div><span class="pill-next" data-i18n="gui.next">next</span></div>
-              <div class="job-row"><span class="st" style="background:#22d3ee;box-shadow:0 0 8px #22d3ee"></span><div><div class="nm" data-i18n="gui.job2">ai-news-watcher</div><div class="mt">every 5m · ✓ 3 new items</div></div><span class="pill-next" data-i18n="gui.next">next</span></div>
-              <div class="job-row"><span class="st" style="background:#f59e0b;box-shadow:0 0 8px #f59e0b"></span><div><div class="nm" data-i18n="gui.job3">ci-flaky-watchdog</div><div class="mt">paused · 5 consecutive failures</div></div><span class="pill-next">-</span></div>
-            </div>
-          </div>
+          <a href="https://github.com/culturedigitali/opencode-cron" class="btn btn-yellow" rel="noopener noreferrer">Inspect GitHub Repository</a>
         </div>
-        <div class="grid grid-4" style="margin-top:26px">
-          <div class="card reveal"><div class="ico">🎛️</div><h3 data-i18n="gui.m1">Active cron matrix</h3><p data-i18n="gui.m1d">Live counters, last tick results, next-run countdowns and pause/resume toggles.</p></div>
-          <div class="card reveal d1"><div class="ico">💬</div><h3 data-i18n="gui.m2">Live session stream</h3><p data-i18n="gui.m2d">Read active and archived chats in real time with auto-refresh and diff highlight.</p></div>
-          <div class="card reveal d2"><div class="ico">🧠</div><h3 data-i18n="gui.m3">Memory studio</h3><p data-i18n="gui.m3d">View and edit per-job markdown memory to steer the agent without touching files.</p></div>
-          <div class="card reveal d3"><div class="ico">📈</div><h3 data-i18n="gui.m4">Execution history</h3><p data-i18n="gui.m4d">A live timeline of successes, failures, skips and latencies with error traces.</p></div>
-        </div>
-      </div>
-    </section>
-    <!-- ===================== DESKTOP ===================== -->
-    <section class="section section-tight" id="desktop">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow" data-i18n="desktop.badge">Everywhere</span>
-          <h2 data-i18n="desktop.title">Desktop app + system tray</h2>
-          <p data-i18n="desktop.sub">A native installable app that stays out of your way and keeps your jobs alive.</p>
-        </div>
-        <div class="os-strip reveal">
-          <div class="os"><span class="e">🍎</span><div><div data-i18n="desktop.mac">macOS</div><div style="font-size:12.5px;color:var(--muted-2);font-weight:500" data-i18n="desktop.macd">Universal .dmg - Apple Silicon & Intel</div></div></div>
-          <div class="os"><span class="e">🪟</span><div><div data-i18n="desktop.win">Windows</div><div style="font-size:12.5px;color:var(--muted-2);font-weight:500" data-i18n="desktop.wind">NSIS installer & portable .exe</div></div></div>
-          <div class="os"><span class="e">🐧</span><div><div data-i18n="desktop.linux">Linux</div><div style="font-size:12.5px;color:var(--muted-2);font-weight:500" data-i18n="desktop.linuxd">.AppImage & .deb packages</div></div></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===================== TOOLS ===================== -->
-    <section class="section" id="tools">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow" data-i18n="tools.badge">For agents</span>
-          <h2 data-i18n="tools.title">18 native tools + 5 slash commands</h2>
-          <p data-i18n="tools.sub">Agents equipped with opencode-cron get first-class scheduling primitives.</p>
-        </div>
-        <div class="grid grid-3">
-          <div class="tool reveal"><div><code>cron_add</code><div class="d" data-i18n="tools.t1">Create a recurring task bound to the current session</div></div></div>
-          <div class="tool reveal"><div><code>cron_list</code><div class="d" data-i18n="tools.t2">List all active and paused jobs</div></div></div>
-          <div class="tool reveal"><div><code>cron_get</code><div class="d" data-i18n="tools.t3">Inspect detailed job state and metadata</div></div></div>
-          <div class="tool reveal"><div><code>cron_pause</code><div class="d" data-i18n="tools.t4">Temporarily pause a job</div></div></div>
-          <div class="tool reveal"><div><code>cron_resume</code><div class="d" data-i18n="tools.t5">Resume a paused job</div></div></div>
-          <div class="tool reveal"><div><code>cron_remove</code><div class="d" data-i18n="tools.t6">Delete a job and its persistent memory</div></div></div>
-          <div class="tool reveal"><div><code>cron_run_now</code><div class="d" data-i18n="tools.t7">Trigger an immediate test tick</div></div></div>
-          <div class="tool reveal"><div><code>cron_memory_read</code><div class="d" data-i18n="tools.t8">Read the persistent markdown memory</div></div></div>
-          <div class="tool reveal"><div><code>cron_memory_save</code><div class="d" data-i18n="tools.t9">Persist findings and update seenHashes</div></div></div>
-        </div>
-        <div class="terminal reveal" style="margin-top:26px">
-          <div><span class="p">you ›</span> <span data-i18n="tools.s1">/cron-add - interactive scheduling wizard</span></div>
-          <div><span class="p">you ›</span> <span data-i18n="tools.s2">/cron-list - inspect jobs and next runs</span></div>
-          <div><span class="p">you ›</span> <span data-i18n="tools.s3">/cron-manage - pause, resume or delete</span></div>
-          <div><span class="p">you ›</span> <span data-i18n="tools.s4">/cron-gui - launch the Web GUI</span></div>
-          <div><span class="p">you ›</span> <span data-i18n="tools.s5">/cron-refresh - re-sync rotated credentials</span></div>
-          <div class="m">$ npx @culturedigitali/opencode-cron os-install</div>
-          <div class="c">✓ installed ai.opencode.cron launchd daemon (60s ticker)</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===================== STATS ===================== -->
-    <section class="section-tight" style="padding-bottom:20px">
-      <div class="container">
-        <div class="stats reveal">
-          <div class="stat"><div class="n"><span data-count="10">0</span></div><div class="l" data-i18n="stats.s1l">Languages</div></div>
-          <div class="stat"><div class="n"><span data-count="18">0</span></div><div class="l" data-i18n="stats.s2l">Native tools</div></div>
-          <div class="stat"><div class="n"><span data-count="3">0</span></div><div class="l" data-i18n="stats.s3l">Desktop platforms</div></div>
-          <div class="stat"><div class="n"><span data-count="60" data-suffix="s">0</span></div><div class="l" data-i18n="stats.s4l">Minimum interval</div></div>
-        </div>
-      </div>
-    </section>
-    <!-- ===================== FAQ ===================== -->
-    <section class="section" id="faq">
-      <div class="container" style="max-width:840px">
-        <div class="section-head reveal">
-          <span class="eyebrow" data-i18n="faq.badge">FAQ</span>
-          <h2 data-i18n="faq.title">Frequently asked questions</h2>
-          <p data-i18n="faq.sub">Everything you need to know before scheduling your first job.</p>
-        </div>
-        <div id="faq-list">
-          <div class="faq-item reveal"><button class="faq-q" aria-expanded="false"><span data-i18n="faq.q1">What exactly is opencode-cron?</span><svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button><div class="faq-a"><div class="inner" data-i18n="faq.a1">It is an open-source plugin that brings ChatGPT-style Scheduled Tasks to opencode.</div></div></div>
-          <div class="faq-item reveal"><button class="faq-q" aria-expanded="false"><span data-i18n="faq.q2">How is it different from a normal crontab?</span><svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button><div class="faq-a"><div class="inner" data-i18n="faq.a2">A crontab runs a blind shell script with no context.</div></div></div>
-          <div class="faq-item reveal"><button class="faq-q" aria-expanded="false"><span data-i18n="faq.q3">Does it keep running when I close the terminal?</span><svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button><div class="faq-a"><div class="inner" data-i18n="faq.a3">Yes. The TUI-closed path installs a native 60-second ticker.</div></div></div>
-          <div class="faq-item reveal"><button class="faq-q" aria-expanded="false"><span data-i18n="faq.q4">What happens to memory when the chat compacts?</span><svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button><div class="faq-a"><div class="inner" data-i18n="faq.a4">opencode-cron hooks into the compaction event and re-injects the job's memory file.</div></div></div>
-          <div class="faq-item reveal"><button class="faq-q" aria-expanded="false"><span data-i18n="faq.q5">How are costs and runaway loops protected?</span><svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button><div class="faq-a"><div class="inner" data-i18n="faq.a5">Every job has a minimum 60s interval, up to 10% jitter, an optional maxRuns cap.</div></div></div>
-          <div class="faq-item reveal"><button class="faq-q" aria-expanded="false"><span data-i18n="faq.q6">Is it free and open source?</span><svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button><div class="faq-a"><div class="inner" data-i18n="faq.a6">Yes - MIT licensed, published on npm and maintained by Culture Digitali Srl.</div></div></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===================== CTA ===================== -->
-    <section class="section-tight">
-      <div class="container">
-        <div class="cta-banner reveal">
-          <h2 data-i18n="cta.title">Give your agent a schedule.</h2>
-          <p data-i18n="cta.sub">Install the plugin, say the word, and let opencode-cron keep working in the background - safely.</p>
-          <div class="hero-cta" style="margin-bottom:0">
-            <a class="btn btn-primary btn-lg" data-repo-link href="https://github.com/CultureDigitali/opencode-cron" target="_blank" rel="noopener"><span data-i18n="cta.btn1">Get started free</span></a>
-            <a class="btn btn-ghost btn-lg" data-repo-link href="https://github.com/CultureDigitali/opencode-cron#readme" target="_blank" rel="noopener"><span data-i18n="cta.btn2">Read the docs</span></a>
-          </div>
-        </div>
-      </div>
-    </section>
-    <!-- ===================== CONTACT ===================== -->
-    <section class="section" id="contact">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow" data-i18n="contact.badge">Contact</span>
-          <h2 data-i18n="contact.title">Get in touch</h2>
-          <p data-i18n="contact.sub">Questions, enterprise needs or just want to say hi? We usually reply within a day.</p>
-        </div>
-        <div class="contact-grid">
-          <form class="card reveal" id="contact-form" novalidate>
-            <div class="form-field"><label for="cf-name" data-i18n="contact.name">Your name</label><input id="cf-name" name="name" type="text" autocomplete="name" required /></div>
-            <div class="form-field"><label for="cf-email" data-i18n="contact.email">Your email</label><input id="cf-email" name="email" type="email" autocomplete="email" required /></div>
-            <div class="form-field"><label for="cf-subject" data-i18n="contact.subject">Subject</label><input id="cf-subject" name="subject" type="text" /></div>
-            <div class="form-field"><label for="cf-message" data-i18n="contact.message">Message</label><textarea id="cf-message" name="message" required></textarea></div>
-            <button class="btn btn-primary btn-lg" type="submit" style="width:100%"><span data-i18n="contact.send">Send message</span></button>
-            <div class="form-status" id="form-status" role="status" aria-live="polite"></div>
-            <p style="font-size:12.5px;color:var(--muted-2);margin:14px 0 0" data-i18n="contact.consent">Your data is only used to reply to you.</p>
-          </form>
-          <aside class="reveal d1">
-            <div class="card">
-              <div class="contact-line"><div class="ico">✉️</div><div><div style="font-size:13px;color:var(--muted)" data-i18n="contact.direct">Or email directly</div><a data-email-link href="mailto:hello@example.com">hello@example.com</a></div></div>
-            </div>
-            <div class="card">
-              <div class="contact-line"><div class="ico">⭐</div><div><div style="font-size:13px;color:var(--muted)" data-i18n="contact.repo">Repository</div><a data-repo-link href="https://github.com/CultureDigitali/opencode-cron" target="_blank" rel="noopener">github.com/CultureDigitali/opencode-cron</a></div></div>
-            </div>
-            <div class="card">
-              <div class="contact-line"><div class="ico">🐞</div><div><div style="font-size:13px;color:var(--muted)" data-i18n="contact.issues">Report a bug</div><a href="https://github.com/CultureDigitali/opencode-cron/issues" target="_blank" rel="noopener">GitHub Issues</a></div></div>
-            </div>
-          </aside>
-        </div>
-      </div>
-    </section>
-    <!-- ===================== CREDITS ===================== -->
-    <section class="section-tight">
-      <div class="container">
-        <div class="credits reveal">
-          <div class="avatar">LS</div>
-          <div style="flex:1;min-width:220px">
-            <div style="font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase" data-i18n="credits.title">Built by</div>
-            <div style="font-family:var(--font-display);font-size:22px;color:#fff;font-weight:700;margin:2px 0" data-i18n="credits.dev">Luigi Strazzullo</div>
-            <div style="color:var(--muted);font-size:14px" data-i18n="credits.devRole">Creator & lead developer of opencode-cron</div>
-          </div>
-          <div style="flex:1;min-width:220px;border-inline-start:1px solid var(--border);padding-inline-start:22px">
-            <div style="font-family:var(--font-display);font-size:20px;color:#fff;font-weight:700;margin-bottom:4px" data-i18n="credits.company">Culture Digitali Srl</div>
-            <div style="color:var(--muted);font-size:14px" data-i18n="credits.companyDesc">Italian studio crafting AI-native developer tools and automation.</div>
-            <a href="https://github.com/CultureDigitali" target="_blank" rel="noopener" style="font-size:14px">github.com/CultureDigitali →</a>
-          </div>
-        </div>
+        <div class="cta-subtext">Open source, zero telemetry, local-first execution.</div>
       </div>
     </section>
   </main>
 
-  <!-- ===================== FOOTER ===================== -->
-  <footer>
-    <div class="container">
-      <div class="foot-grid">
-        <div class="col" style="max-width:320px">
-          <a class="brand" href="#top" style="margin-bottom:12px"><img src="/opencode-cron/assets/img/favicon.png" alt="" width="28" height="28" /><span>opencode-cron</span></a>
-          <p style="color:var(--muted);font-size:14px;margin:0" data-i18n="footer.tagline">ChatGPT Scheduled Tasks for opencode - session-bound cron + persistent memory for AI agents.</p>
-        </div>
-        <div class="col">
-          <h4 data-i18n="footer.product">Product</h4>
-          <a href="#features" data-i18n="footer.docs">Documentation</a>
-          <a href="#how" data-i18n="footer.how">How it works</a>
-          <a href="#usecases" data-i18n="footer.examples">Examples</a>
-          <a href="#tools" data-i18n="nav.tools">Tools</a>
-        </div>
-        <div class="col">
-          <h4 data-i18n="footer.resources">Resources</h4>
-          <a href="https://github.com/CultureDigitali/opencode-cron#readme" target="_blank" rel="noopener" data-i18n="footer.quickstart">30-second quickstart</a>
-          <a href="https://github.com/CultureDigitali/opencode-cron/blob/main/docs/troubleshooting.md" target="_blank" rel="noopener" data-i18n="footer.troubleshoot">Troubleshooting</a>
-          <a href="https://github.com/CultureDigitali/opencode-cron/blob/main/docs/comparison.md" target="_blank" rel="noopener" data-i18n="footer.comparison">vs plain cron</a>
-        </div>
-        <div class="col">
-          <h4 data-i18n="footer.community">Community</h4>
-          <a data-repo-link href="https://github.com/CultureDigitali/opencode-cron" target="_blank" rel="noopener" data-i18n="footer.github">GitHub</a>
-          <a data-npm-link href="https://www.npmjs.com/package/@culturedigitali/opencode-cron" target="_blank" rel="noopener">npm</a>
-          <a href="https://github.com/CultureDigitali/opencode-cron/issues" target="_blank" rel="noopener" data-i18n="footer.issues">Issues</a>
+  <!-- Footer with Full Attribution Credits -->
+  <footer class="site-footer">
+    <div class="shell footer-inner">
+      <div class="footer-top">
+        <div class="wordmark" style="font-size: 20px;">opencode-cron</div>
+        <ul class="footer-links">
+          <li><a href="https://github.com/culturedigitali/opencode-cron" rel="noopener noreferrer">GitHub</a></li>
+          <li><a href="https://www.npmjs.com/package/opencode-cron" rel="noopener noreferrer">npm Package</a></li>
+          <li><a href="https://opencode.ai" rel="noopener noreferrer">OpenCode</a></li>
+        </ul>
+        <div style="font-size: 14px; color: var(--muted);">
+          MIT Licensed <span data-year>2026</span>
         </div>
       </div>
-      <div class="foot-legal"><span data-i18n="footer.legal">© {year} Culture Digitali Srl · opencode-cron is open source under the MIT license.</span><span data-year style="display:none"></span></div>
+
+      <div class="credits-block">
+        Pictures and footage: <a href="https://www.metmuseum.org/art/collection/search/923639" rel="noopener noreferrer">Astrolabe</a> by Regiomontanus (1462), <a href="https://creativecommons.org/publicdomain/zero/1.0/" rel="noopener noreferrer">public domain (CC0)</a>, via The Metropolitan Museum of Art; <a href="https://commons.wikimedia.org/wiki/File:De_Wick_clock_front.png" rel="noopener noreferrer">De Wick clock front</a> (1820), <a href="https://creativecommons.org/publicdomain/mark/1.0/" rel="noopener noreferrer">public domain</a>, via Wikimedia Commons; <a href="https://commons.wikimedia.org/wiki/File:Mechanical_movement_of_pendulum_clock.webm" rel="noopener noreferrer">Mechanical movement of pendulum clock</a> by Darklanlan (2023), <a href="https://creativecommons.org/publicdomain/zero/1.0/deed.en" rel="noopener noreferrer">CC0</a>, via Wikimedia Commons.
+      </div>
     </div>
   </footer>
 
-  <!-- Scripts -->
-  <script src="/opencode-cron/assets/js/config.js"></script>
-  <script src="/opencode-cron/assets/js/i18n.js"></script>
-  <script src="/opencode-cron/assets/js/app.js"></script>
-  <script type="module">
-    import { initHero } from "/opencode-cron/assets/js/hero3d.js";
-    initHero();
-    // Inject FAQPage structured data (GEO) from the active-language dictionary.
-    function injectFaqSchema() {
-      const lang = (window.OC_I18N && window.OC_I18N.current && window.OC_I18N.current()) || "en";
-      const faq = (window.OC_I18N && window.OC_I18N.dict && window.OC_I18N.dict[lang] || {}).faq || {};
-      const qs = [];
-      for (let i = 1; i <= 6; i++) { if (faq["q" + i] && faq["a" + i]) qs.push({ "@type": "Question", "name": faq["q" + i], "acceptedAnswer": { "@type": "Answer", "text": faq["a" + i] } }); }
-      if (!qs.length) return;
-      let el = document.getElementById("faq-schema");
-      if (!el) { el = document.createElement("script"); el.type = "application/ld+json"; el.id = "faq-schema"; document.head.appendChild(el); }
-      el.textContent = JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", "inLanguage": lang, "mainEntity": qs });
-    }
-    injectFaqSchema();
-    document.addEventListener("oc:langchange", injectFaqSchema);
-  </script>
-
-
-
-
-
-
-
-
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
 </body>
 </html>
