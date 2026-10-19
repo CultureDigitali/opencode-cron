@@ -838,7 +838,7 @@ a:hover {
 }
 
 .faq-answer {
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.55;
   color: #e0e0e0;
   margin: 0;
@@ -1105,9 +1105,10 @@ a:hover {
     width: 100%;
   }
   .recognition-table tr {
-    margin-bottom: 24px;
-    background: transparent !important;
-    padding: 0;
+    margin-bottom: 16px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px;
   }
   .recognition-table td {
     padding: 4px 0;

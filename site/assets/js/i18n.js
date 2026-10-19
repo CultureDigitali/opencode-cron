@@ -63,7 +63,8 @@
         title: "Execution sequence",
         step1: "First, install the CLI and launch daemon.",
         step2: "Then schedule your session-bound agent jobs.",
-        step3: "Inspect jobs in the local Mission Control interface."
+        step3: "Inspect jobs in the local Mission Control interface.",
+        videoCaption: "Autonomous execution walkthrough: launchd setup, session binding, DAG chain, and live Mission Control feed."
       },
       proof: {
         title: "Operational standards",
@@ -141,7 +142,8 @@
         title: "Sequenza di esecuzione",
         step1: "Prima, installa la CLI e il demone di avvio.",
         step2: "Poi programma i job degli agenti vincolati a sessione.",
-        step3: "Ispeziona i job nell'interfaccia Mission Control locale."
+        step3: "Ispeziona i job nell'interfaccia Mission Control locale.",
+        videoCaption: "Dimostrazione dell'esecuzione autonoma: setup launchd, session binding, DAG e feed live Mission Control."
       },
       proof: {
         title: "Standard operativi",
@@ -219,7 +221,8 @@
         title: "Secuencia de ejecucion",
         step1: "Primero, instala la CLI y el demonio de inicio.",
         step2: "Luego programa las tareas de agentes vinculadas a sesion.",
-        step3: "Inspecciona los trabajos en la interfaz local Mission Control."
+        step3: "Inspecciona los trabajos en la interfaz local Mission Control.",
+        videoCaption: "Recorrido de ejecucion autonoma: configuracion launchd, vinculacion de sesion, DAG y panel en vivo."
       },
       proof: {
         title: "Estandares operativos",
@@ -297,7 +300,8 @@
         title: "Sequence d'execution",
         step1: "D'abord, installez la CLI et le daemon systeme.",
         step2: "Puis programmez vos taches liees a une session.",
-        step3: "Inspectez vos taches dans la console locale Mission Control."
+        step3: "Inspectez vos taches dans la console locale Mission Control.",
+        videoCaption: "Demonstration de l'execution autonome: configuration launchd, liaison de session, DAG et console en direct."
       },
       proof: {
         title: "Normes operationnelles",
@@ -375,7 +379,8 @@
         title: "Ausfuhrungssequenz",
         step1: "Zuerst CLI und Systemdienst installieren.",
         step2: "Danach sitzungsgebundene Agenten-Jobs planen.",
-        step3: "Jobs in der lokalen Mission Control Konsole uberprufen."
+        step3: "Jobs in der lokalen Mission Control Konsole uberprufen.",
+        videoCaption: "Autonomer Ausfuhrungsablauf: launchd-Setup, Sitzungsbindung, DAG-Kette und Live-Konsole."
       },
       proof: {
         title: "Betriebliche Standards",
@@ -453,7 +458,8 @@
         title: "Sequencia de execucao",
         step1: "Primeiro, instale a CLI e o daemon do sistema.",
         step2: "Em seguida, agende seus trabalhos vinculados a sessao.",
-        step3: "Inspecione os trabalhos na interface Mission Control local."
+        step3: "Inspecione os trabalhos na interface Mission Control local.",
+        videoCaption: "Demonstracao de execucao autonoma: configuracao launchd, vinculo de sessao, DAG e console ao vivo."
       },
       proof: {
         title: "Padroes operacionais",
@@ -531,7 +537,8 @@
         title: "执行架构流程",
         step1: "首先，安装 CLI 命令行工具与系统守护进程。",
         step2: "接着，配置绑定会话的智能体定时任务。",
-        step3: "最后，在本地 Mission Control 控制台进行可视化监控。"
+        step3: "最后，在本地 Mission Control 控制台进行可视化监控。",
+        videoCaption: "端到端自动化演示：launchd 守护进程初始化、会话绑定、DAG 级联与控制台实时日志。"
       },
       proof: {
         title: "工程技术标准",
@@ -609,7 +616,8 @@
         title: "実行シーケンス",
         step1: "まず、CLI とデーモンをセットアップします。",
         step2: "次に、セッション連動型のエージェントジョブを登録します。",
-        step3: "ローカルの Mission Control 画面でジョブを確認します。"
+        step3: "ローカルの Mission Control 画面でジョブを確認します。",
+        videoCaption: "自律実行デモ：launchd デーモン起動、セッション連動、DAG パイプライン、リアルタイム画面。"
       },
       proof: {
         title: "運用基準と信頼性",
@@ -687,7 +695,8 @@
         title: "Последовательность выполнения",
         step1: "Сначала установите CLI и системную службу.",
         step2: "Затем настройте задачи агентов с привязкой к сессии.",
-        step3: "Контролируйте задачи в локальной веб-панели Mission Control."
+        step3: "Контролируйте задачи в локальной веб-панели Mission Control.",
+        videoCaption: "Демонстрация автономного запуска: настройка launchd, привязка сессий, цепочка DAG и Mission Control."
       },
       proof: {
         title: "Эксплуатационные стандарты",
@@ -765,7 +774,8 @@
         title: "تسلسل التنفيذ",
         step1: "اولا، قم بتثبيت واجهة الاوامر وخادم النظام.",
         step2: "ثم قم بجدولة مهام الوكلاء المرتبطة بالجلسات.",
-        step3: "افحص المهام من خلال لوحة تحكم Mission Control المحلية."
+        step3: "افحص المهام من خلال لوحة تحكم Mission Control المحلية.",
+        videoCaption: "عرض توضيحي للتنفيذ الذاتي: اعداد launchd، ربط الجلسات، خط انابيب DAG ولوحة التحكم الحية."
       },
       proof: {
         title: "المعايير التشغيلية",

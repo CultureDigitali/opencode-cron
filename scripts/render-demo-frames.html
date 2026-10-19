@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>opencode-cron Demo Frame Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 1280px;
+      height: 720px;
+      overflow: hidden;
+      background: #111111;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f0f0f0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #stage {
+      position: relative;
+      width: 1280px;
+      height: 720px;
+      padding: 36px 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at 50% 20%, #1c2623 0%, #111111 70%);
+    }
+
+    .window-card {
+      width: 1184px;
+      height: 648px;
+      background: #181818;
+      border: 1px solid #2d2d2d;
+      border-radius: 10px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .window-header {
+      height: 44px;
+      background: #202020;
+      border-bottom: 1px solid #2b2b2b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+    }
+
+    .traffic-lights {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .light {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .light-red { background: #ff5f56; }
+    .light-yellow { background: #ffbd2e; }
+    .light-green { background: #27c93f; }
+
+    .window-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #999999;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .window-title strong {
+      color: #ffffff;
+    }
+
+    .header-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #083c34;
+      color: #10b981;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+    }
+
+    .status-strip {
+      height: 38px;
+      background: #151515;
+      border-bottom: 1px solid #252525;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      font-size: 12px;
+      color: #888888;
+    }
+
+    .status-strip span strong {
+      color: #ffffff;
+      font-weight: 500;
+    }
+
+    .status-strip .accent {
+      color: #10b981;
+    }
+
+    .terminal-body {
+      flex: 1;
+      padding: 20px 24px;
+      background: #121212;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #e4e4e4;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .term-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      word-break: break-all;
+    }
+
+    .prompt-sym {
+      color: #10b981;
+      font-weight: 700;
+      user-select: none;
+    }
+
+    .cmd-text {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 16px;
+      background: #10b981;
+      vertical-align: middle;
+      margin-left: 2px;
+    }
+
+    .term-output {
+      padding-left: 18px;
+      color: #aaaaaa;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .out-success { color: #10b981; }
+    .out-warn { color: #ffe927; }
+    .out-info { color: #38bdf8; }
+    .out-purple { color: #c084fc; }
+
+    .split-panel {
+      margin-top: 8px;
+      padding: 12px 16px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .split-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #282828;
+      padding-bottom: 6px;
+      font-size: 12px;
+      color: #777777;
+    }
+
+    .split-logs {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #b0b0b0;
+    }
+
+    /* Outro overlay */
+    .outro-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(17, 17, 17, 0.94);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .outro-overlay.show {
+      opacity: 1;
+    }
+
+    .outro-title {
+      font-size: 48px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+    }
+
+    .outro-tagline {
+      font-size: 22px;
+      color: #10b981;
+      font-weight: 400;
+    }
+
+    .outro-badge {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 15px;
+      background: #084c40;
+      color: #ffffff;
+      padding: 8px 18px;
+      border-radius: 4px;
+      border: 1px solid #0f8f7a;
+    }
+
+    .outro-features {
+      display: flex;
+      gap: 20px;
+      font-size: 14px;
+      color: #999999;
+      margin-top: 10px;
+    }
+
+    .outro-url {
+      font-size: 14px;
+      color: #38bdf8;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <div class="window-card">
+      <div class="window-header">
+        <div class="traffic-lights">
+          <div class="light light-red"></div>
+          <div class="light light-yellow"></div>
+          <div class="light light-green"></div>
+        </div>
+        <div class="window-title">
+          <span><strong>opencode-cron</strong></span>
+          <span>mission-control</span>
+          <span>zsh</span>
+        </div>
+        <div class="header-badge">
+          <div class="pulse-dot"></div>
+          <span>AUTONOMOUS</span>
+        </div>
+      </div>
+
+      <div class="status-strip">
+        <span>TICKER: <strong class="accent">ACTIVE (launchd 60s)</strong></span>
+        <span>WORKERS: <strong>4/4 SLOTS READY</strong></span>
+        <span>MEMORY: <strong>.opencode/cron/memory/</strong></span>
+        <span>CIRCUIT: <strong class="accent">CLOSED (0 FAILS)</strong></span>
+      </div>
+
+      <div class="terminal-body" id="term-content">
+        <!-- Rendered frame by frame via JavaScript -->
+      </div>
+
+      <div class="outro-overlay" id="outro">
+        <h1 class="outro-title">opencode-cron</h1>
+        <p class="outro-tagline">Agents run on time.</p>
+        <div class="outro-badge">npm install -g @culturedigitali/opencode-cron</div>
+        <div class="outro-features">
+          <span>Persistent Memory</span> &bull;
+          <span>DAG Pipelines</span> &bull;
+          <span>Inbound Webhooks</span> &bull;
+          <span>Mission Control GUI</span>
+        </div>
+        <div class="outro-url">https://culturedigitali.github.io/opencode-cron/</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const term = document.getElementById("term-content");
+    const outro = document.getElementById("outro");
+
+    // Script timeline (total duration 22 seconds, 330 frames at 15 fps)
+    window.renderFrameAtTime = function(t) {
+      // Clear
+      term.innerHTML = "";
+      outro.classList.toggle("show", t >= 18.0);
+
+      const html = [];
+
+      // Line 1: Setup
+      if (t >= 0.4) {
+        const cmd1 = "npm install -g @culturedigitali/opencode-cron && opencode-cron setup";
+        const progress1 = Math.min(1, Math.max(0, (t - 0.4) / 1.6));
+        const chars1 = Math.floor(progress1 * cmd1.length);
+        const isTyping1 = progress1 < 1;
+        html.push(`
+          <div class="term-line">
+            <span class="prompt-sym">&gt;</span>
+            <span class="cmd-text">${cmd1.slice(0, chars1)}</span>
+            ${isTyping1 ? '<span class="cursor"></span>' : ''}
+          </div>
+        `);
+      }
+
+      if (t >= 2.2) {
+        html.push(`
+          <div class="term-output">
+            <span class="out-success">&#10004; @culturedigitali/opencode-cron v2.4.0 registered</span>
+            <span class="out-info">&#10004; macOS launchd ticker: ~/Library/LaunchAgents/ai.opencode.cron.plist (60s cycle)</span>
+            <span>&#10004; Rotating credentials verified: ~/.config/opencode-cron/credentials (mode 0600)</span>
+            <span>&#10004; Memory root: .opencode/cron/memory/ (isolated per sessionID)</span>
+          </div>
+        `);
+      }
+
+      // Line 2: Add Job & Session binding
+      if (t >= 4.2) {
+        const cmd2 = 'opencode-cron add --name "Security Sentinel" --cron "*/15 * * * *"';
+        const progress2 = Math.min(1, Math.max(0, (t - 4.2) / 1.5));
+        const chars2 = Math.floor(progress2 * cmd2.length);
+        const isTyping2 = progress2 < 1 && t < 7.5;
+        html.push(`
+          <div class="term-line" style="margin-top: 8px;">
+            <span class="prompt-sym">&gt;</span>
+            <span class="cmd-text">${cmd2.slice(0, chars2)}</span>
+            ${isTyping2 ? '<span class="cursor"></span>' : ''}
+          </div>
+        `);
+      }
+
+      if (t >= 6.0) {
+        html.push(`
+          <div class="term-output">
+            <span class="out-success">&#10004; Job registered: <strong>job_sec_sentinel</strong></span>
+            <span>&bull; Schedule: <strong style="color:#ffffff;">*/15 * * * *</strong> (Every 15 minutes)</span>
+            <span>&bull; Bound Session: <strong class="out-purple">ses_sentinel_8a</strong> (continuity across ticks)</span>
+            <span>&bull; Memory: <strong>.opencode/cron/memory/job_sec_sentinel.md</strong> (persistent Markdown)</span>
+          </div>
+        `);
+      }
+
+      // Line 3: DAG Pipeline & Burst
+      if (t >= 8.2) {
+        const cmd3 = 'opencode-cron burst job_sec_sentinel 45m && opencode-cron pipeline job_sec_sentinel --downstream deploy_stage';
+        const progress3 = Math.min(1, Math.max(0, (t - 8.2) / 1.8));
+        const chars3 = Math.floor(progress3 * cmd3.length);
+        const isTyping3 = progress3 < 1 && t < 12.0;
+        html.push(`
+          <div class="term-line" style="margin-top: 8px;">
+            <span class="prompt-sym">&gt;</span>
+            <span class="cmd-text">${cmd3.slice(0, chars3)}</span>
+            ${isTyping3 ? '<span class="cursor"></span>' : ''}
+          </div>
+        `);
+      }
+
+      if (t >= 10.3) {
+        html.push(`
+          <div class="term-output">
+            <span class="out-warn">&#9889; Burst mode: Cadence clamped to 60s for 45 minutes</span>
+            <span class="out-success">&#10004; DAG edge created: job_sec_sentinel ──&gt; deploy_stage (0 cycles detected)</span>
+          </div>
+        `);
+      }
+
+      // Line 4: Live Mission Control Feed & Webhook
+      if (t >= 12.2) {
+        html.push(`
+          <div class="split-panel">
+            <div class="split-header">
+              <span>MISSION CONTROL SESSION SERVER &bull; http://localhost:4488</span>
+              <span class="out-success" style="font-weight: 600;">ACTIVE TICK IN PROGRESS</span>
+            </div>
+            <div class="split-logs">
+              <div>[12:30:00] <span class="out-info">[WEBHOOK]</span> Inbound HMAC SHA-256 verified from GitHub alert</div>
+              <div>[12:30:01] <span class="out-purple">[SESSION]</span> ses_sentinel_8a resumed via OpenCode HTTP sidecar (200 OK)</div>
+              <div>[12:30:02] <span class="out-success">[EXECUTOR]</span> Automated dependency audit complete: 0 vulnerabilities</div>
+              <div>[12:30:03] <span class="out-warn">[COMPACTION]</span> Turn 14 context compacted to 4.2 KB (&lt;28k safety ceiling)</div>
+              <div>[12:30:04] <span class="out-success">[PIPELINE]</span> Downstream trigger fired: deploy_stage queued (Priority 3)</div>
+              <div>[12:30:05] <span class="out-info">[CIRCUIT]</span> Circuit breaker CLOSED (0 failures) &bull; Next tick: 12:31:00</div>
+            </div>
+          </div>
+        `);
+      }
+
+      term.innerHTML = html.join("");
+    };
+
+    // Initialize frame 0
+    window.renderFrameAtTime(0);
+  </script>
+</body>
+</html>
+

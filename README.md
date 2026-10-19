@@ -22,6 +22,18 @@ Tell OpenCode **“watch competitor releases every 15 minutes”** or **“re-ch
 
 ---
 
+<p align="center">
+  <a href="https://culturedigitali.github.io/opencode-cron/">
+    <img src="assets/demo.gif" alt="opencode-cron live autonomous execution demo" width="100%" style="max-width: 860px; border-radius: 8px; border: 1px solid #333333;" />
+  </a>
+</p>
+<p align="center">
+  <em>Live 21-second walkthrough: daemon setup, session binding, DAG chain, and live Mission Control feed.</em><br>
+  ▶️ <a href="assets/demo.mp4"><strong>Watch Full HD Demo (MP4)</strong></a> &bull; 🌐 <a href="https://culturedigitali.github.io/opencode-cron/"><strong>Visit Launch Site</strong></a>
+</p>
+
+---
+
 ### ⭐ If this saves you open tabs, background scripts, and burned tokens, consider starring the repo and sponsoring the project! It helps AI engineers discover true agent scheduling.
 
 ---
