@@ -1,6 +1,12 @@
 <p align="center">
   <a href="https://culturedigitali.github.io/opencode-cron/">
-    <img src="assets/icon.png" alt="opencode-cron logo" width="128" height="128" style="border-radius: 28px;" />
+    <img src="assets/social-preview.png" alt="opencode-cron: Intelligent AI Agent Scheduler for OpenCode" width="100%" style="border-radius: 12px; max-width: 860px; border: 1px solid #2a2a2a;" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://culturedigitali.github.io/opencode-cron/">
+    <img src="assets/icon.png" alt="opencode-cron logo" width="96" height="96" style="border-radius: 22px;" />
   </a>
 </p>
 
@@ -321,6 +327,48 @@ The OpenCode desktop app rotates internal sidecar credentials on every restart. 
    ```
    *(Or trigger `/cron-refresh` in chat).*
 3. **Zero Secrets in Git:** Job definitions and persistent memories live in `.opencode/cron/`, which is gitignored by default. Never commit sensitive API tokens to prompt text. See [`SECURITY.md`](SECURITY.md).
+
+---
+
+## 🎨 Brand Identity & Design System
+
+The visual identity of **opencode-cron** was crafted with Gemini Pro & Nano Banana, reflecting precision timekeeping and autonomous agentic engineering.
+
+<p align="center">
+  <a href="assets/brand-identity.png">
+    <img src="assets/brand-identity.png" alt="opencode-cron Brand Identity Board and Guidelines" width="100%" style="border-radius: 10px; max-width: 860px; border: 1px solid #2a2a2a;" />
+  </a>
+</p>
+
+### 🌌 Visual Philosophy & Symbolism
+* **The Precision Astrolabe & Chronometer Outer Ring:** Honors mechanical timepieces and astronomical astrolabes (inspired by Regiomontanus' 1462 astrolabe in The Met collection) — celebrating cyclical, deterministic cadence.
+* **The Neural Agent Nucleus:** The glowing hexagonal core represents autonomous OpenCode agents executing reliably at each scheduled interval.
+* **Tagline:** *"Agents run on time."*
+
+### 🎨 Color Palette Tokens
+| Token Name | Hex Code | RGB | Role / Usage |
+|---|---|---|---|
+| **Obsidian Carbon** | `#191919` | `rgb(25, 25, 25)` | Primary canvas, terminal background, dark-mode surfaces |
+| **Deep Astrolabe Teal** | `#0c7866` | `rgb(12, 120, 102)` | Primary brand accent, borders, badges, deep status indicators |
+| **Electric Cyan Core** | `#14b8a6` | `rgb(20, 184, 166)` | Active tick pulses, glowing agent nucleus, focus states |
+| **Bone White** | `#f4f4f0` | `rgb(244, 244, 240)` | High-contrast typography, astrolabe gears, foreground text |
+| **Warning Amber** | `#f59e0b` | `rgb(245, 158, 11)` | Cooldowns, canary warnings, burst mode triggers |
+| **Quarantine Red** | `#ef4444` | `rgb(239, 68, 68)` | Circuit breaker open, DLQ alerts |
+
+### 🔤 Typography & Brand Guidelines
+* **Display / Editorial:** Gambarino (Warm serif with geometric precision) & Inter Display
+* **Body / Interface:** General Sans & Inter
+* **Code / Terminal:** JetBrains Mono
+* **Iconography:** Utilitarian, thin-line geometric vector strokes with 2px borders and 8px/12px corner radii.
+
+### 📦 Asset Directory
+* **Master Logo (1024x1024 PNG):** [`assets/logo.png`](assets/logo.png)
+* **Transparent Original:** [`assets/logo-transparent.png`](assets/logo-transparent.png)
+* **Dark Mode Two-Tone:** [`assets/logo-dark.png`](assets/logo-dark.png)
+* **Vector Master (SVG):** [`assets/logo.svg`](assets/logo.svg)
+* **App Icon (512x512 PNG):** [`assets/icon.png`](assets/icon.png)
+* **Brand Guidelines Board:** [`assets/brand-identity.png`](assets/brand-identity.png)
+* **GitHub Social Preview (1024x572):** [`assets/social-preview.png`](assets/social-preview.png)
 
 ---
 

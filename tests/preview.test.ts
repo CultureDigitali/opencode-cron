@@ -76,3 +76,4 @@ describe("Schedule Preview & Heatmap Engine", () => {
     expect(res.humanDescription).toBe("Ogni 5 minuti");
   });
 });
+
