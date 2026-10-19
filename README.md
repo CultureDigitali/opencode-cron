@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="assets/hero.png" alt="opencode-cron: ChatGPT Scheduled Tasks for opencode" width="100%" />
+  <a href="https://culturedigitali.github.io/opencode-cron/">
+    <img src="assets/icon.png" alt="opencode-cron logo" width="128" height="128" style="border-radius: 28px;" />
+  </a>
 </p>
 
-# ⏰ opencode-cron: ChatGPT Scheduled Tasks for OpenCode + Mission Control Web GUI
+# ⏰ opencode-cron: Intelligent AI Agent Scheduler for OpenCode + Mission Control Web GUI
 
 > **ChatGPT introduced Scheduled Tasks. OpenCode was missing them. opencode-cron brings them to life: supercharged with persistent markdown memory, session binding, and a real-time Mission Control Web GUI.**
 
@@ -82,6 +84,22 @@ Traditional cron is **blind**: it runs an isolated shell script, forgets previou
 | **Pipelines & DAG** | ❌ Fragile custom shell piping | ✅ **Native `onSuccess` / `onFailure` DAG with cycle checks** |
 | **External Triggers** | ❌ Custom listening scripts required | ✅ **Authenticated Webhooks (`/api/webhook/:id`)** |
 | **Multi-Language** | ❌ English only / none | ✅ **10 languages with interactive onboarding tour** |
+
+---
+
+## 🎨 Brand Identity & Design System
+
+<p align="center">
+  <a href="https://culturedigitali.github.io/opencode-cron/">
+    <img src="assets/brand-identity.png" alt="opencode-cron Brand Identity and Design Guidelines Spec Board" width="100%" style="max-width: 960px; border-radius: 8px; border: 1px solid #333333;" />
+  </a>
+</p>
+
+The `opencode-cron` visual system unites **astronomical chronometry** (precision dials, concentric orbits) with **autonomous agent intelligence** (hexagonal neural core).
+* **Obsidian Carbon (`#191919`):** Deep terminal foundation and high-contrast surfaces.
+* **Deep Teal (`#0c7866`):** Primary brand accent, symbolizing deliberate execution and reliability.
+* **Electric Cyan (`#14b8a6`):** Active telemetry, burst triggers, and live status indicators.
+* **Warm Bone White (`#f4f4f0`):** High-readability editorial typography and vector linework.
 
 ---
 

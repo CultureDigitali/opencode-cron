@@ -134,7 +134,16 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
     <div class="max-w-6xl mx-auto px-4 sm:px-6 pt-3 pb-2.5 flex flex-col gap-2.5">
       <div class="flex items-center justify-between gap-3 min-w-0">
         <div class="flex items-center gap-2.5 min-w-0">
-          <div class="oc-brand-mark" aria-hidden="true"><i class="fa-solid fa-tower-broadcast text-sm"></i></div>
+          <div class="oc-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 512 512" class="w-5 h-5" fill="none">
+              <circle cx="256" cy="256" r="230" stroke="#0c7866" stroke-width="32"/>
+              <circle cx="256" cy="256" r="170" stroke="#14b8a6" stroke-width="16" stroke-dasharray="24 16"/>
+              <polygon points="256,170 330,213 330,299 256,342 182,299 182,213" fill="#14b8a6"/>
+              <polygon points="256,190 314,223 314,289 256,322 198,289 198,223" fill="#101828"/>
+              <line x1="256" y1="256" x2="330" y2="182" stroke="#f4f4f0" stroke-width="24" stroke-linecap="round"/>
+              <circle cx="256" cy="256" r="28" fill="#101828" stroke="#14b8a6" stroke-width="12"/>
+            </svg>
+          </div>
           <div class="min-w-0">
             <p class="text-[15px] font-semibold tracking-tight text-slate-900 leading-tight">OpenCode Cron</p>
             <p class="text-[11px] text-slate-500 font-mono truncate max-w-[52vw] sm:max-w-[340px]" id="current-dir" data-tooltip="tt.workspaceDir">Loading directory...</p>
