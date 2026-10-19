@@ -431,6 +431,30 @@ a:hover {
   background: var(--surface-2);
 }
 
+.hero-proof-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.proof-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  border: none;
+}
+
+.proof-val {
+  color: var(--field-yellow);
+  font-weight: 700;
+}
+
 /* Showcase Section: Type Headline with Terminal Answer */
 .section-showcase {
   background: var(--bg);
