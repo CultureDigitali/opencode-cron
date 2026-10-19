@@ -209,3 +209,206 @@ export function explainSchedule(input: string, fromDate: Date = new Date(), lang
   }
 }
 
+export interface HeatmapCell {
+  day: number;
+  hour: number;
+  count: number;
+}
+
+export interface NextRunItem {
+  iso: string;
+  local: string;
+  relativeMs: number;
+}
+
+export interface SchedulePreview {
+  ok: boolean;
+  valid: boolean;
+  error?: string;
+  expression: string;
+  resolvedExpression: string;
+  kind?: "interval" | "cron";
+  humanDescription: string;
+  nextRuns: NextRunItem[];
+  heatmap: HeatmapCell[];
+  totalIn7Days: number;
+}
+
+function formatLocalTimestamp(d: Date, timezone?: string): string {
+  try {
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      ...(timezone ? { timeZone: timezone } : {}),
+    };
+    return new Intl.DateTimeFormat("en-US", options).format(d);
+  } catch {
+    return d.toISOString();
+  }
+}
+
+function getHourForDate(d: Date, timezone?: string): number {
+  if (!timezone) return d.getHours();
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      hour: "numeric",
+      hour12: false,
+    }).formatToParts(d);
+    const h = parts.find((p) => p.type === "hour")?.value;
+    const num = h ? parseInt(h, 10) : d.getHours();
+    return num === 24 ? 0 : num;
+  } catch {
+    return d.getHours();
+  }
+}
+
+export function previewSchedule(
+  input: string,
+  opts: { n?: number; timezone?: string; from?: Date; lang?: string } = {}
+): SchedulePreview {
+  const from = opts.from ?? new Date();
+  const lang = opts.lang ?? "en";
+  const rawN = opts.n ?? 10;
+  const n = Math.min(Math.max(1, Number.isFinite(rawN) ? rawN : 10), 50);
+  const trimmed = (input || "").trim();
+
+  const emptyBase: SchedulePreview = {
+    ok: false,
+    valid: false,
+    expression: trimmed,
+    resolvedExpression: trimmed,
+    humanDescription: "",
+    nextRuns: [],
+    heatmap: [],
+    totalIn7Days: 0,
+  };
+
+  if (!trimmed) {
+    const err = lang === "it" ? "Specifica un intervallo o cron" : "Specify an interval or cron";
+    return { ...emptyBase, error: err, humanDescription: err };
+  }
+
+  if (opts.timezone && !isValidTimezone(opts.timezone)) {
+    const err = `Invalid IANA timezone: "${opts.timezone}"`;
+    return { ...emptyBase, error: err, humanDescription: err };
+  }
+
+  const explained = explainSchedule(trimmed, from, lang);
+  if (!explained.ok || !explained.valid) {
+    return {
+      ...emptyBase,
+      error: explained.error,
+      humanDescription: explained.humanDescription || explained.error || "Invalid schedule",
+    };
+  }
+
+  const kind = explained.kind ?? "interval";
+  const resolved = resolveCronAlias(trimmed);
+  const nextRuns: NextRunItem[] = [];
+  const heatmapCounts = new Map<string, number>();
+  const sevenDaysMs = 7 * 24 * 3600 * 1000;
+  const cutoff = from.getTime() + sevenDaysMs;
+  let totalIn7Days = 0;
+
+  if (kind === "interval") {
+    try {
+      const ms = parseEveryToMs(trimmed);
+      let t = from.getTime() + ms;
+      let count = 0;
+      while (count < n) {
+        const d = new Date(t);
+        nextRuns.push({
+          iso: d.toISOString(),
+          local: formatLocalTimestamp(d, opts.timezone),
+          relativeMs: d.getTime() - from.getTime(),
+        });
+        count++;
+        t += ms;
+      }
+
+      // Heatmap calculation for interval
+      let heatT = from.getTime() + ms;
+      let safety = 0;
+      while (heatT <= cutoff && safety < 10000) {
+        totalIn7Days++;
+        const d = new Date(heatT);
+        const dayIdx = Math.min(6, Math.max(0, Math.floor((heatT - from.getTime()) / (24 * 3600 * 1000))));
+        const hour = getHourForDate(d, opts.timezone);
+        const key = `${dayIdx}:${hour}`;
+        heatmapCounts.set(key, (heatmapCounts.get(key) || 0) + 1);
+        heatT += ms;
+        safety++;
+      }
+    } catch (e: any) {
+      return { ...emptyBase, error: e.message, humanDescription: e.message };
+    }
+  } else {
+    try {
+      const it = parseExpression(resolved, {
+        currentDate: from,
+        tz: opts.timezone,
+      });
+
+      // Collect first N runs
+      for (let i = 0; i < n; i++) {
+        if (!it.hasNext()) break;
+        const d = it.next().toDate() as Date;
+        nextRuns.push({
+          iso: d.toISOString(),
+          local: formatLocalTimestamp(d, opts.timezone),
+          relativeMs: d.getTime() - from.getTime(),
+        });
+      }
+
+      // Re-run for full 7-day heatmap
+      const heatIt = parseExpression(resolved, {
+        currentDate: from,
+        tz: opts.timezone,
+      });
+
+      let safety = 0;
+      while (heatIt.hasNext() && safety < 10000) {
+        const d = heatIt.next().toDate() as Date;
+        const t = d.getTime();
+        if (t > cutoff) break;
+        totalIn7Days++;
+        const dayIdx = Math.min(6, Math.max(0, Math.floor((t - from.getTime()) / (24 * 3600 * 1000))));
+        const hour = getHourForDate(d, opts.timezone);
+        const key = `${dayIdx}:${hour}`;
+        heatmapCounts.set(key, (heatmapCounts.get(key) || 0) + 1);
+        safety++;
+      }
+    } catch (e: any) {
+      return { ...emptyBase, error: e.message, humanDescription: e.message };
+    }
+  }
+
+  // Build heatmap cells for 7 days x 24 hours
+  const heatmap: HeatmapCell[] = [];
+  for (let day = 0; day < 7; day++) {
+    for (let hour = 0; hour < 24; hour++) {
+      const count = heatmapCounts.get(`${day}:${hour}`) || 0;
+      heatmap.push({ day, hour, count });
+    }
+  }
+
+  return {
+    ok: true,
+    valid: true,
+    expression: trimmed,
+    resolvedExpression: resolved,
+    kind,
+    humanDescription: explained.humanDescription,
+    nextRuns,
+    heatmap,
+    totalIn7Days,
+  };
+}
+
+

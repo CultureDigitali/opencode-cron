@@ -413,14 +413,39 @@ async function main(): Promise<void> {
       const cfg = await loadNotificationConfig(dir);
       console.log(JSON.stringify(cfg, null, 2));
     }
+  } else if (cmd === "preview") {
+    const { previewSchedule } = await import("../src/schedule.ts");
+    const expr = process.argv[3];
+    if (!expr) {
+      console.error("Usage: opencode-cron preview <expression> [--n N] [--tz timezone]");
+      process.exit(1);
+    }
+    const nArg = arg("--n");
+    const tzArg = arg("--tz");
+    const res = previewSchedule(expr, {
+      n: nArg ? parseInt(nArg, 10) : 10,
+      timezone: tzArg,
+    });
+    if (!res.ok) {
+      console.error(`Preview error: ${res.error}`);
+      process.exit(1);
+    }
+    console.log(`Expression: ${res.expression} (${res.kind})`);
+    console.log(`Description: ${res.humanDescription}`);
+    console.log(`Total runs in next 7 days: ${res.totalIn7Days}`);
+    console.log(`\nUpcoming ${res.nextRuns.length} runs:`);
+    for (let i = 0; i < res.nextRuns.length; i++) {
+      const r = res.nextRuns[i];
+      console.log(`  [${i + 1}] ${r.iso} | Local: ${r.local}`);
+    }
   } else {
-    console.error(`Commands: check [--concurrency N] | run <id> | os-install | refresh-creds | list | gui | desktop | tray | webhook-token <id> | concurrency [N] | priority <id> [level] | queue | dlq [retry|clear|resolve] | circuit <id> [reset|trip|half-open] | template [list|apply] | backup [list|create|restore] | history [prune] | metrics [--prom] | notify [test] [--dir ...]`);
+    console.error(`Commands: check [--concurrency N] | run <id> | os-install | refresh-creds | list | gui | desktop | tray | preview <expr> [--n N] [--tz TZ] | webhook-token <id> | concurrency [N] | priority <id> [level] | queue | dlq [retry|clear|resolve] | circuit <id> [reset|trip|half-open] | template [list|apply] | backup [list|create|restore] | history [prune] | metrics [--prom] | notify [test] [--dir ...]`);
     process.exit(2);
   }
 }
 
 if (has("--help") || has("-h")) {
-  console.log("opencode-cron check [--concurrency N] | run <id> | os-install | refresh-creds | list | gui | desktop | tray | webhook-token <id> | concurrency [N] | priority <id> [level] | queue | dlq [retry|clear|resolve] | circuit <id> [reset|trip|half-open] | template [list|apply] | backup [list|create|restore] | history [prune] | metrics [--prom] | notify [test] [--dir ...]");
+  console.log("opencode-cron check [--concurrency N] | run <id> | os-install | refresh-creds | list | gui | desktop | tray | preview <expr> [--n N] [--tz TZ] | webhook-token <id> | concurrency [N] | priority <id> [level] | queue | dlq [retry|clear|resolve] | circuit <id> [reset|trip|half-open] | template [list|apply] | backup [list|create|restore] | history [prune] | metrics [--prom] | notify [test] [--dir ...]");
   process.exit(0);
 }
 await main();

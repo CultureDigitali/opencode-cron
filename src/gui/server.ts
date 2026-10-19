@@ -8,7 +8,7 @@ import { getHtml } from "./html.ts";
 import { getRunsHtml } from "./runs-html.ts";
 import { getInstructionsHtml } from "./instructions-html.ts";
 import { loadJobs, saveJobs, upsertJob, removeJob, ensureCronDir, computeNextRun, assertJobId, filterJobs } from "../store.ts";
-import { normalizeSchedule, explainSchedule, explainAdaptive, parseEveryToMs } from "../schedule.ts";
+import { normalizeSchedule, explainSchedule, explainAdaptive, parseEveryToMs, previewSchedule } from "../schedule.ts";
 import { readMemory, writeMemory, initialMemoryMd } from "../memory.ts";
 import { runJobHeadless, checkDue } from "../runner.ts";
 import { getUnifiedRuns, pruneRunHistory } from "../history.ts";
@@ -1491,11 +1491,20 @@ export function startGuiServer(opts: ServerOpts = {}) {
         }
       }
 
-      // 16. GET /api/schedule/preview (Explain schedule & compute next runs)
-      if (pathname === "/api/schedule/preview" && method === "GET") {
-        const q = (url.searchParams.get("q") ?? "").slice(0, 100);
+      // 16. GET /api/preview & GET /api/schedule/preview (Explain schedule, compute next runs & 7-day heatmap)
+      if ((pathname === "/api/preview" || pathname === "/api/schedule/preview") && method === "GET") {
+        const q = (url.searchParams.get("expr") ?? url.searchParams.get("q") ?? "").slice(0, 100);
         const lang = (url.searchParams.get("lang") ?? "it").slice(0, 5);
-        const res = explainSchedule(q, new Date(), lang);
+        const tz = (url.searchParams.get("tz") ?? url.searchParams.get("timezone") ?? undefined)?.slice(0, 64);
+        const nParam = url.searchParams.get("n");
+        const defaultN = (pathname === "/api/schedule/preview" && !nParam) ? 3 : 10;
+        const n = nParam ? Math.min(50, Math.max(1, parseInt(nParam, 10) || defaultN)) : defaultN;
+
+        const prev = previewSchedule(q, { n, timezone: tz, lang });
+        const res: any = {
+          ...prev,
+          description: prev.humanDescription,
+        };
 
         const adaptiveParam = url.searchParams.get("adaptive");
         if (adaptiveParam === "true" || adaptiveParam === "1") {

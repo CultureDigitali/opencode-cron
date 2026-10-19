@@ -1,7 +1,7 @@
 import { Plugin } from "@opencode/plugin";
 import { CronJobSchema, JobPrioritySchema } from "./types.ts";
 import { loadJobs, saveJobs, upsertJob, removeJob, ensureCronDir, computeNextRun, assertJobId, filterJobs } from "./store.ts";
-import { normalizeSchedule, parseEveryToMs } from "./schedule.ts";
+import { normalizeSchedule, parseEveryToMs, previewSchedule } from "./schedule.ts";
 import { initialMemoryMd, readMemory, writeMemory } from "./memory.ts";
 import { CronScheduler } from "./scheduler.ts";
 import { executeTick } from "./executor.ts";
@@ -729,6 +729,34 @@ export const CronPlugin = Plugin.define({
           }
           const sys = getSystemMetrics(jobs);
           return { content: JSON.stringify(sys, null, 2) };
+        },
+      });
+
+      add({
+        name: "preview",
+        description: "Preview upcoming execution dates, cadence decomposition, and 7-day run heatmap for any schedule or cron expression",
+        input: {
+          type: "object",
+          properties: {
+            expression: { type: "string", description: "Interval (e.g. 5m, 1h) or 5-field cron (e.g. */15 * * * *, @daily)" },
+            n: { type: "number", description: "Number of upcoming executions to preview (1-50, default 10)" },
+            timezone: { type: "string", description: "Optional IANA timezone (e.g. UTC, Europe/Rome, America/New_York)" },
+          },
+          required: ["expression"],
+          additionalProperties: false,
+        },
+        execute: async (input: any) => {
+          const res = previewSchedule(String(input.expression), {
+            n: input.n !== undefined ? Number(input.n) : 10,
+            timezone: input.timezone ? String(input.timezone) : undefined,
+          });
+          if (!res.ok) {
+            return { content: `Error: ${res.error}` };
+          }
+          const runsStr = res.nextRuns.map((r, i) => `${i + 1}. ${r.iso} (${r.local})`).join("\n");
+          return {
+            content: `Schedule Preview: ${res.expression}\nKind: ${res.kind}\nDescription: ${res.humanDescription}\nTotal runs in next 7 days: ${res.totalIn7Days}\n\nUpcoming Runs:\n${runsStr}`,
+          };
         },
       });
     });
