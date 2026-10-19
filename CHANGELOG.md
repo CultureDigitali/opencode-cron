@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-10-19
+
+### Added
+- **Schedule Preview & Heatmap Engine**: New `cron_preview` tool (#19), CLI subcommand `opencode-cron preview <expr>`, and `/api/preview` endpoint returning upcoming runs, local timezone calculation, and 7-day execution density heatmap.
+- **Mission Control Dual-Video Demonstration**: Dual-tab video switcher on the landing page highlighting both the Real-Time Mission Control Web GUI and the Autonomous Terminal Daemon walkthrough.
+- **Brand Identity Overhaul**: Integration of the official OpenCode Cron brand system with custom SVG vector logo, favicons, and social assets.
+- **Anti-Slop Redesign**: Full audit and verification via design-taste-frontend v2, strictly eliminating artificial AI styling, em-dashes, and emojis across all 10 language translations.
+
+### Changed
+- **Tool Suite Expansion**: Now registering 19 native Code Mode agent tools.
+- **Test Suite**: Expanded to 194 automated tests across 30 files with zero failures.
+
 ## [1.1.0] - 2026-10-18
 
 ### Added
