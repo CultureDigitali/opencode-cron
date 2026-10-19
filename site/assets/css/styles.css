@@ -754,6 +754,61 @@ a:hover {
   max-width: 820px;
 }
 
+/* Demo Video Tabs and Dual Panels */
+.demo-video-wrap {
+  max-width: 820px;
+  margin: 64px auto 0;
+}
+
+.demo-video-tabs {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.demo-tab-btn {
+  appearance: none;
+  background: var(--surface);
+  border: none;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 22px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.demo-tab-btn:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.demo-tab-btn.active,
+.demo-tab-btn[aria-selected="true"] {
+  background: var(--field-teal);
+  color: #ffffff;
+}
+
+.demo-video-panel {
+  display: none;
+}
+
+.demo-video-panel.active {
+  display: block;
+}
+
+.demo-video-panel[hidden] {
+  display: none !important;
+}
+
 /* Proof Section: Video Loop + Recognition Table */
 .section-proof {
   background: var(--bg);

@@ -24,14 +24,28 @@ Tell OpenCode **“watch competitor releases every 15 minutes”** or **“re-ch
 
 ---
 
+### 🖥️ Real-Time Mission Control Web GUI
+
 <p align="center">
   <a href="https://culturedigitali.github.io/opencode-cron/">
-    <img src="assets/demo.gif" alt="opencode-cron live autonomous execution demo" width="100%" style="max-width: 860px; border-radius: 8px; border: 1px solid #333333;" />
+    <img src="assets/gui-demo.gif" alt="opencode-cron Mission Control Web GUI demo" width="100%" style="max-width: 860px; border-radius: 8px; border: 1px solid #333333;" />
   </a>
 </p>
 <p align="center">
-  <em>Live 21-second walkthrough: daemon setup, session binding, DAG chain, and live Mission Control feed.</em><br>
-  ▶️ <a href="assets/demo.mp4"><strong>Watch Full HD Demo (MP4)</strong></a> &bull; 🌐 <a href="https://culturedigitali.github.io/opencode-cron/"><strong>Visit Launch Site</strong></a>
+  <em>Mission Control Web GUI: live worker pool monitoring, 1-click burst mode, interactive DAG pipeline modal, and real-time execution streaming.</em><br>
+  ▶️ <a href="assets/gui-demo.mp4"><strong>Watch Web GUI HD Demo (MP4)</strong></a> &bull; 🌐 <a href="https://culturedigitali.github.io/opencode-cron/"><strong>Visit Launch Site</strong></a>
+</p>
+
+### ⚡ Autonomous Terminal Daemon Walkthrough
+
+<p align="center">
+  <a href="https://culturedigitali.github.io/opencode-cron/">
+    <img src="assets/demo.gif" alt="opencode-cron live autonomous terminal execution demo" width="100%" style="max-width: 860px; border-radius: 8px; border: 1px solid #333333;" />
+  </a>
+</p>
+<p align="center">
+  <em>Autonomous CLI daemon walkthrough: launchd setup, session binding, DAG chain, and live daemon execution.</em><br>
+  ▶️ <a href="assets/demo.mp4"><strong>Watch Terminal Daemon HD Demo (MP4)</strong></a> &bull; 🌐 <a href="https://culturedigitali.github.io/opencode-cron/"><strong>Visit Launch Site</strong></a>
 </p>
 
 ---

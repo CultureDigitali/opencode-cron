@@ -262,9 +262,43 @@
     el.textContent = yr;
   });
 
-  /* --- Video Autoplay Ensure --- */
+  /* --- Demo Video Tabs Switcher --- */
+  const demoTabs = document.querySelectorAll(".demo-tab-btn");
+  const demoPanels = document.querySelectorAll(".demo-video-panel");
+  if (demoTabs.length > 0 && demoPanels.length > 0) {
+    demoTabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        const target = tab.getAttribute("data-video-target");
+        if (!target) return;
+
+        demoTabs.forEach(function (t) {
+          const isCurrent = t === tab;
+          t.classList.toggle("active", isCurrent);
+          t.setAttribute("aria-selected", String(isCurrent));
+        });
+
+        demoPanels.forEach(function (panel) {
+          const isTarget = panel.id === "video-pane-" + target;
+          panel.classList.toggle("active", isTarget);
+          if (isTarget) {
+            panel.removeAttribute("hidden");
+            const v = panel.querySelector("video");
+            if (v) v.play().catch(function () {});
+          } else {
+            panel.setAttribute("hidden", "");
+            const v = panel.querySelector("video");
+            if (v) v.pause();
+          }
+        });
+      });
+    });
+  }
+
+  /* --- Video Autoplay Ensure (Active visible videos only) --- */
   document.querySelectorAll("video").forEach(function (v) {
-    v.play().catch(function () {});
+    if (!v.closest("[hidden]")) {
+      v.play().catch(function () {});
+    }
   });
 
 })();

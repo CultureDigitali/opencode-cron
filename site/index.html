@@ -54,7 +54,7 @@
           <ul class="lang-dropdown"></ul>
         </div>
         <a href="#how-it-works" class="btn btn-accent" data-i18n="nav.install">Install via CLI</a>
-        <button type="button" class="nav-toggle-btn" aria-label="Toggle menu" aria-expanded="false">Menu</button>
+        <button type="button" class="nav-toggle-btn" aria-label="Toggle menu" aria-expanded="false" data-i18n="nav.menu">Menu</button>
       </div>
     </div>
   </header>
@@ -251,15 +251,38 @@ Webhook Listeners: HMAC-SHA256 verified</code></pre>
           </div>
         </div>
 
-        <!-- Video Demonstration -->
+        <!-- Video Demonstrations (Web GUI + CLI Daemon) -->
         <div class="demo-video-wrap">
-          <div class="video-container" style="max-width: 820px; margin: 56px auto 0;">
-            <video autoplay muted loop playsinline preload="metadata" poster="assets/img/demo-poster.jpg" width="1280" height="720" aria-label="End-to-end execution recording of opencode-cron">
-              <source src="assets/img/demo.webm" type="video/webm">
-              <source src="assets/img/demo.mp4" type="video/mp4">
-            </video>
-            <div class="media-caption" data-i18n="how.videoCaption">
-              Autonomous execution walkthrough: launchd setup, session binding, DAG chain, and live Mission Control feed.
+          <div class="demo-video-tabs" role="tablist" aria-label="Demonstration videos">
+            <button type="button" class="demo-tab-btn active" role="tab" id="tab-video-gui" aria-selected="true" aria-controls="video-pane-gui" data-video-target="gui">
+              <span data-i18n="how.tabGui">Mission Control Web GUI</span>
+            </button>
+            <button type="button" class="demo-tab-btn" role="tab" id="tab-video-cli" aria-selected="false" aria-controls="video-pane-cli" data-video-target="cli">
+              <span data-i18n="how.tabCli">Terminal Daemon CLI</span>
+            </button>
+          </div>
+
+          <div id="video-pane-gui" class="demo-video-panel active" role="tabpanel" aria-labelledby="tab-video-gui">
+            <div class="video-container" style="max-width: 820px; margin: 0 auto;">
+              <video id="video-gui" autoplay muted loop playsinline preload="metadata" poster="assets/img/gui-demo-poster.jpg" width="1280" height="720" aria-label="Web GUI Mission Control demonstration">
+                <source src="assets/img/gui-demo.webm" type="video/webm">
+                <source src="assets/img/gui-demo.mp4" type="video/mp4">
+              </video>
+              <div class="media-caption" data-i18n="how.guiVideoCaption">
+                Mission Control interface: active job metrics, one-click burst mode, interactive DAG pipeline modal, and live log stream.
+              </div>
+            </div>
+          </div>
+
+          <div id="video-pane-cli" class="demo-video-panel" role="tabpanel" aria-labelledby="tab-video-cli" hidden>
+            <div class="video-container" style="max-width: 820px; margin: 0 auto;">
+              <video id="video-cli" muted loop playsinline preload="metadata" poster="assets/img/demo-poster.jpg" width="1280" height="720" aria-label="Terminal CLI daemon demonstration">
+                <source src="assets/img/demo.webm" type="video/webm">
+                <source src="assets/img/demo.mp4" type="video/mp4">
+              </video>
+              <div class="media-caption" data-i18n="how.cliVideoCaption">
+                Autonomous terminal walkthrough: launchd setup, session binding, DAG chain, and live daemon execution.
+              </div>
             </div>
           </div>
         </div>
@@ -329,16 +352,6 @@ Webhook Listeners: HMAC-SHA256 verified</code></pre>
               </tr>
             </tbody>
           </table>
-        </div>
-
-        <!-- Brand Identity Spec Board -->
-        <div class="brand-spec-wrap" style="margin-top: 56px;">
-          <div class="showcase-media-frame" style="max-width: 960px; margin: 0 auto;">
-            <img src="assets/img/brand-identity.png" width="1024" height="572" alt="opencode-cron Brand Identity and Design Guidelines Spec Board" loading="lazy" decoding="async">
-            <div class="media-caption" data-i18n="proof.captionBrand">
-              Brand Identity and Design Guidelines Spec Board. Precision astronomical geometry, neural agent core, and system tokens.
-            </div>
-          </div>
         </div>
       </div>
     </section>

@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>opencode-cron GUI Demo Frame Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 1280px;
+      height: 720px;
+      overflow: hidden;
+      background: #0f1211;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      color: #e2e8f0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #stage {
+      position: relative;
+      width: 1280px;
+      height: 720px;
+      padding: 24px 36px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at 50% 15%, #132b26 0%, #0c1815 50%, #090e0d 100%);
+    }
+
+    /* Window Frame */
+    .gui-window {
+      width: 1208px;
+      height: 672px;
+      background: #141716;
+      border: 1px solid #243530;
+      border-radius: 12px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(20, 184, 166, 0.15);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Top Chrome Header */
+    .window-header {
+      height: 48px;
+      background: #191f1d;
+      border-bottom: 1px solid #23312c;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      flex-shrink: 0;
+    }
+
+    .traffic-lights {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .light { width: 12px; height: 12px; border-radius: 50%; }
+    .light-red { background: #ff5f56; }
+    .light-yellow { background: #ffbd2e; }
+    .light-green { background: #27c93f; }
+
+    .header-branding {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-emblem {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .header-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f1f5f9;
+      letter-spacing: -0.01em;
+    }
+    .header-subtitle {
+      font-size: 11px;
+      color: #64748b;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .header-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #34d399;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-header {
+      background: #202b27;
+      border: 1px solid #2f423c;
+      color: #cbd5e1;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Main Dashboard Layout */
+    .dashboard-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 20px;
+      gap: 14px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* KPI Summary Strip */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .kpi-card {
+      background: #19221f;
+      border: 1px solid #273832;
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .kpi-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #8da49c;
+    }
+    .kpi-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      font-family: ui-monospace, Menlo, monospace;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .kpi-sub {
+      font-size: 10px;
+      color: #14b8a6;
+    }
+
+    /* Main Content: Jobs Column + Live Chat Column */
+    .content-columns {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 14px;
+      min-height: 0;
+    }
+
+    /* Jobs Panel */
+    .jobs-column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+    .section-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sec-heading {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #94a3b8;
+    }
+
+    .job-card {
+      background: #171f1c;
+      border: 1px solid #253630;
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .job-card.active-target {
+      border-color: #14b8a6;
+      box-shadow: 0 0 16px rgba(20, 184, 166, 0.25);
+    }
+
+    .job-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .job-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .job-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #ffffff;
+    }
+    .job-id {
+      font-size: 10px;
+      color: #64748b;
+      font-family: ui-monospace, Menlo, monospace;
+    }
+
+    .badge-strip {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .badge {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-family: ui-monospace, monospace;
+    }
+    .badge-cron {
+      background: rgba(20, 184, 166, 0.15);
+      border: 1px solid rgba(20, 184, 166, 0.4);
+      color: #2dd4bf;
+    }
+    .badge-burst {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid rgba(245, 158, 11, 0.6);
+      color: #fbbf24;
+      animation: pulse 1s infinite alternate;
+    }
+    .badge-priority {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: #a5b4fc;
+    }
+    .badge-circuit {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+
+    .job-card-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 6px;
+      border-top: 1px solid #1f2c27;
+    }
+    .job-tags {
+      display: flex;
+      gap: 4px;
+    }
+    .tag-pill {
+      font-size: 9px;
+      background: #111816;
+      border: 1px solid #1f2e28;
+      color: #8da49c;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    .job-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .btn-action {
+      background: #202d28;
+      border: 1px solid #2c3f38;
+      color: #cbd5e1;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-action.btn-burst {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+    }
+    .btn-action.btn-burst.burst-active {
+      background: #f59e0b;
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    /* Live Session Stream Column */
+    .stream-column {
+      background: #111614;
+      border: 1px solid #1f2c27;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .stream-header {
+      background: #17201c;
+      border-bottom: 1px solid #1f2c27;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+    .stream-body {
+      flex: 1;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      line-height: 1.5;
+      overflow-y: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: #94a3b8;
+    }
+
+    .stream-log { display: flex; gap: 8px; }
+    .log-ts { color: #64748b; flex-shrink: 0; }
+    .log-tag-info { color: #38bdf8; font-weight: 600; }
+    .log-tag-mem { color: #2dd4bf; font-weight: 600; }
+    .log-tag-succ { color: #34d399; font-weight: 600; }
+    .log-tag-burst { color: #fbbf24; font-weight: 600; }
+
+    /* Modal Layer */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 15, 13, 0.85);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 50;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-content {
+      width: 680px;
+      background: #16201c;
+      border: 1px solid #2c423a;
+      border-radius: 10px;
+      padding: 20px 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .modal-title-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* DAG Pipeline Visualizer */
+    .dag-graph-view {
+      background: #0f1513;
+      border: 1px solid #20312b;
+      border-radius: 8px;
+      padding: 24px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+    .dag-node {
+      background: #1a2722;
+      border: 1px solid #2d443c;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-family: ui-monospace, Menlo, monospace;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .dag-node.node-active {
+      border-color: #14b8a6;
+      box-shadow: 0 0 12px rgba(20, 184, 166, 0.35);
+    }
+    .dag-node-role { font-size: 9px; color: #8da49c; }
+    .dag-edge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #14b8a6;
+      font-size: 10px;
+      font-weight: 600;
+      font-family: ui-monospace, monospace;
+    }
+    .dag-arrow {
+      width: 40px;
+      height: 2px;
+      background: #14b8a6;
+      position: relative;
+    }
+    .dag-arrow::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: -3px;
+      width: 0;
+      height: 0;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      border-left: 6px solid #14b8a6;
+    }
+
+    /* Toast Notification */
+    .toast-box {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      background: #1e2925;
+      border: 1px solid #2e443c;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      border-radius: 8px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #f1f5f9;
+      transform: translateY(60px);
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+    }
+    .toast-box.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Closing Card */
+    .closing-card {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 14, 13, 0.94);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+      z-index: 200;
+      text-align: center;
+    }
+    .closing-card.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .closing-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+    .closing-subtitle {
+      font-size: 15px;
+      color: #2dd4bf;
+      max-width: 520px;
+      line-height: 1.5;
+    }
+
+    /* Cursor */
+    #cursor {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      pointer-events: none;
+      z-index: 999;
+      transform: translate(-2px, -2px);
+      transition: transform 0.05s linear;
+    }
+    #cursor svg {
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+    }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <div class="gui-window">
+      <!-- Window Chrome Header -->
+      <div class="window-header">
+        <div class="traffic-lights">
+          <div class="light light-red"></div>
+          <div class="light light-yellow"></div>
+          <div class="light light-green"></div>
+        </div>
+
+        <div class="header-branding">
+          <div class="logo-emblem">
+            <svg viewBox="0 0 512 512" width="22" height="22" fill="none">
+              <circle cx="256" cy="256" r="230" stroke="#0c7866" stroke-width="32"/>
+              <circle cx="256" cy="256" r="170" stroke="#14b8a6" stroke-width="16" stroke-dasharray="24 16"/>
+              <polygon points="256,170 330,213 330,299 256,342 182,299 182,213" fill="#14b8a6"/>
+              <polygon points="256,190 314,223 314,289 256,322 198,289 198,223" fill="#141716"/>
+              <line x1="256" y1="256" x2="330" y2="182" stroke="#f4f4f0" stroke-width="24" stroke-linecap="round"/>
+              <circle cx="256" cy="256" r="28" fill="#141716" stroke="#14b8a6" stroke-width="12"/>
+            </svg>
+          </div>
+          <div>
+            <span class="header-title">OpenCode Cron — Mission Control</span>
+            <span class="header-subtitle" style="margin-left: 8px;">localhost:4488</span>
+          </div>
+          <div class="header-status-pill">
+            <span class="status-dot"></span>
+            <span>WEB GUI LIVE</span>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button class="btn-header" id="btn-hdr-pipeline">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v12M18 9v12M6 9h12"/></svg>
+            <span>Pipeline DAG</span>
+          </button>
+          <button class="btn-header" id="btn-hdr-webhook">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <span>Webhooks</span>
+          </button>
+          <button class="btn-header" id="btn-hdr-queue">
+            <span>Pool: 4/4</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Dashboard Body -->
+      <div class="dashboard-body">
+        <!-- KPI Strip -->
+        <div class="kpi-strip">
+          <div class="kpi-card">
+            <span class="kpi-label">Active Jobs</span>
+            <div class="kpi-value">4 <span class="kpi-sub">RUNNING</span></div>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Worker Slots</span>
+            <div class="kpi-value" id="kpi-slots">4/4 <span class="kpi-sub">AVAILABLE</span></div>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Memory Footprint</span>
+            <div class="kpi-value">14.2 <span style="font-size: 13px; font-weight: 500; color: #94a3b8;">KB</span> <span class="kpi-sub">COMPACTED</span></div>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Circuit Breaker</span>
+            <div class="kpi-value" style="color: #34d399;">CLOSED <span class="kpi-sub">HEALTHY</span></div>
+          </div>
+        </div>
+
+        <!-- Content Split: Jobs & Live Feed -->
+        <div class="content-columns">
+          <!-- Left: Jobs List -->
+          <div class="jobs-column">
+            <div class="section-bar">
+              <span class="sec-heading">Active Agent Tasks</span>
+              <span style="font-size: 11px; color: #64748b; font-family: ui-monospace, monospace;">Sorted by Priority Weight</span>
+            </div>
+
+            <!-- Job 1: Watchdog (Burst target) -->
+            <div class="job-card active-target" id="card-watchdog">
+              <div class="job-card-top">
+                <div class="job-title-group">
+                  <span class="job-name">Test Suite Flaky Watchdog</span>
+                  <span class="job-id">job_watchdog_suite &bull; session=ses_wd_8a</span>
+                </div>
+                <div class="badge-strip">
+                  <span class="badge badge-cron" id="badge-watchdog-cadence">30m cron</span>
+                  <span class="badge badge-priority">HIGH</span>
+                  <span class="badge badge-circuit">CLOSED</span>
+                </div>
+              </div>
+              <div class="job-card-bottom">
+                <div class="job-tags">
+                  <span class="tag-pill">#testing</span>
+                  <span class="tag-pill">#ci-watchdog</span>
+                  <span class="tag-pill">#bun</span>
+                </div>
+                <div class="job-actions">
+                  <button class="btn-action" id="btn-run-wd">Run Now</button>
+                  <button class="btn-action btn-burst" id="btn-burst-wd">Burst (15m)</button>
+                  <button class="btn-action">Memory</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Job 2: Security Sentinel -->
+            <div class="job-card">
+              <div class="job-card-top">
+                <div class="job-title-group">
+                  <span class="job-name">Security Sentinel & Token Rotator</span>
+                  <span class="job-id">job_sec_sentinel &bull; session=ses_sec_01</span>
+                </div>
+                <div class="badge-strip">
+                  <span class="badge badge-cron">0 3 * * *</span>
+                  <span class="badge badge-priority">NORMAL</span>
+                  <span class="badge badge-circuit">CLOSED</span>
+                </div>
+              </div>
+              <div class="job-card-bottom">
+                <div class="job-tags">
+                  <span class="tag-pill">#security</span>
+                  <span class="tag-pill">#credentials</span>
+                </div>
+                <div class="job-actions">
+                  <button class="btn-action">Run Now</button>
+                  <button class="btn-action">Memory</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Job 3: DAG Root -->
+            <div class="job-card">
+              <div class="job-card-top">
+                <div class="job-title-group">
+                  <span class="job-name">Knowledge Indexer (DAG Pipeline Root)</span>
+                  <span class="job-id">job_indexer &bull; session=ses_idx_03</span>
+                </div>
+                <div class="badge-strip">
+                  <span class="badge badge-cron">0 */4 * * *</span>
+                  <span class="badge badge-priority" style="color: #f472b6; border-color: rgba(244,114,182,0.4); background: rgba(244,114,182,0.15);">DAG CASCADE</span>
+                </div>
+              </div>
+              <div class="job-card-bottom">
+                <div class="job-tags">
+                  <span class="tag-pill">#dag-pipeline</span>
+                  <span class="tag-pill">#indexer</span>
+                </div>
+                <div class="job-actions">
+                  <button class="btn-action">Inspect DAG</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Live Execution Feed -->
+          <div class="stream-column">
+            <div class="stream-header">
+              <span>Live Session Console & Memory</span>
+              <span style="font-size: 10px; color: #10b981; font-family: ui-monospace, monospace;">STREAMING OK</span>
+            </div>
+            <div class="stream-body" id="stream-logs">
+              <div class="stream-log">
+                <span class="log-ts">13:45:00</span>
+                <span><span class="log-tag-info">[runner]</span> OpenCode session <code style="color: #e2e8f0;">ses_wd_8a</code> resumed</span>
+              </div>
+              <div class="stream-log">
+                <span class="log-ts">13:45:01</span>
+                <span><span class="log-tag-mem">[memory]</span> Read state from <code style="color: #2dd4bf;">.opencode/cron/memory/</code></span>
+              </div>
+              <div class="stream-log">
+                <span class="log-ts">13:45:02</span>
+                <span><span class="log-tag-info">[sidecar]</span> HTTP prompt injection &bull; 187 tests verified</span>
+              </div>
+              <div class="stream-log">
+                <span class="log-ts">13:45:03</span>
+                <span><span class="log-tag-succ">[compact]</span> Automatic compaction: 4.2 KB context preserved</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DAG Pipeline Modal -->
+      <div class="modal-overlay" id="dag-modal">
+        <div class="modal-content">
+          <div class="modal-title-bar">
+            <div class="modal-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="2"><path d="M6 3v12M18 9v12M6 9h12"/></svg>
+              <span>Multi-Job Pipeline & DAG Workflow Topology</span>
+            </div>
+            <span style="font-size: 11px; color: #10b981; background: rgba(16,185,129,0.15); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(16,185,129,0.3);">DAG VALIDATED (0 CYCLES)</span>
+          </div>
+
+          <div class="dag-graph-view">
+            <div class="dag-node node-active">
+              <strong>job_indexer</strong>
+              <span class="dag-node-role">Parent Task (Root)</span>
+            </div>
+            <div class="dag-edge">
+              <div class="dag-arrow"></div>
+              <span>onSuccess</span>
+            </div>
+            <div class="dag-node">
+              <strong>job_summarizer</strong>
+              <span class="dag-node-role">Downstream Task</span>
+            </div>
+            <div class="dag-edge">
+              <div class="dag-arrow"></div>
+              <span>onSuccess</span>
+            </div>
+            <div class="dag-node">
+              <strong>job_notifier</strong>
+              <span class="dag-node-role">Alert Dispatcher</span>
+            </div>
+          </div>
+
+          <p style="font-size: 11px; color: #94a3b8; line-height: 1.5;">
+            Downstream jobs inherit upstream execution memories through safe payload bounds (&lt;28,000 chars). Topological DFS cycle detection ensures deadlock-free execution.
+          </p>
+        </div>
+      </div>
+
+      <!-- Toast Feedback -->
+      <div class="toast-box" id="toast">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span id="toast-msg">Burst Mode attivato! Cadenza accelerata a 60s per 15 minuti.</span>
+      </div>
+
+      <!-- Closing Card -->
+      <div class="closing-card" id="closing-card">
+        <div style="width: 64px; height: 64px;">
+          <svg viewBox="0 0 512 512" width="64" height="64" fill="none">
+            <circle cx="256" cy="256" r="230" stroke="#0c7866" stroke-width="32"/>
+            <circle cx="256" cy="256" r="170" stroke="#14b8a6" stroke-width="16" stroke-dasharray="24 16"/>
+            <polygon points="256,170 330,213 330,299 256,342 182,299 182,213" fill="#14b8a6"/>
+            <polygon points="256,190 314,223 314,289 256,322 198,289 198,223" fill="#141716"/>
+            <line x1="256" y1="256" x2="330" y2="182" stroke="#f4f4f0" stroke-width="24" stroke-linecap="round"/>
+            <circle cx="256" cy="256" r="28" fill="#141716" stroke="#14b8a6" stroke-width="12"/>
+          </svg>
+        </div>
+        <div class="closing-title">OpenCode Cron &mdash; Mission Control</div>
+        <div class="closing-subtitle">Real-time visibility. Autonomous execution. Zero burned tokens.</div>
+        <div style="margin-top: 8px; font-family: ui-monospace, monospace; font-size: 13px; color: #94a3b8; background: #19221f; border: 1px solid #273832; padding: 6px 14px; border-radius: 6px;">
+          localhost:4488 &bull; npm install -g @culturedigitali/opencode-cron
+        </div>
+      </div>
+
+      <!-- Virtual Mouse Cursor -->
+      <div id="cursor">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M3 3l7 18 3-7 7-3L3 3z" fill="#ffffff" stroke="#000000" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Frame-based deterministic animation driver
+    window.renderFrame = function(sec) {
+      const cursor = document.getElementById('cursor');
+      const toast = document.getElementById('toast');
+      const dagModal = document.getElementById('dag-modal');
+      const badgeWd = document.getElementById('badge-watchdog-cadence');
+      const btnBurst = document.getElementById('btn-burst-wd');
+      const cardWd = document.getElementById('card-watchdog');
+      const streamLogs = document.getElementById('stream-logs');
+      const closingCard = document.getElementById('closing-card');
+
+      // Total duration: 20 seconds
+      // 0.0 - 3.5s: Dashboard overview & cursor movement towards Burst button
+      if (sec < 3.5) {
+        const p = Math.min(1, Math.max(0, (sec - 0.5) / 3.0));
+        const ease = p * p * (3 - 2 * p);
+        const startX = 260, startY = 180;
+        const targetX = 575, targetY = 250;
+        cursor.style.left = (startX + (targetX - startX) * ease) + 'px';
+        cursor.style.top = (startY + (targetY - startY) * ease) + 'px';
+        cardWd.classList.remove('active-target');
+        badgeWd.className = 'badge badge-cron';
+        badgeWd.textContent = '30m cron';
+        btnBurst.classList.remove('burst-active');
+        toast.classList.remove('show');
+        dagModal.classList.remove('open');
+        closingCard.classList.remove('show');
+      }
+      // 3.5s - 8.0s: Click Burst button, trigger toast, switch cadence to BURST MODE (60s)
+      else if (sec < 8.0) {
+        cursor.style.left = '575px';
+        cursor.style.top = '250px';
+        cardWd.classList.add('active-target');
+        btnBurst.classList.add('burst-active');
+        badgeWd.className = 'badge badge-burst';
+        badgeWd.textContent = 'BURST (60s)';
+        toast.classList.add('show');
+        dagModal.classList.remove('open');
+        closingCard.classList.remove('show');
+
+        // Move cursor towards Pipeline DAG button at sec 6.0
+        if (sec > 5.8) {
+          const p = (sec - 5.8) / 2.0;
+          const ease = p * p * (3 - 2 * p);
+          cursor.style.left = (575 + (970 - 575) * ease) + 'px';
+          cursor.style.top = (250 + (24 - 250) * ease) + 'px';
+        }
+      }
+      // 8.0s - 13.5s: Open DAG Pipeline modal, inspect visual graph
+      else if (sec < 13.5) {
+        cursor.style.left = '970px';
+        cursor.style.top = '24px';
+        toast.classList.remove('show');
+        dagModal.classList.add('open');
+        closingCard.classList.remove('show');
+
+        // Append burst log entry to stream
+        if (!document.getElementById('burst-log')) {
+          const l = document.createElement('div');
+          l.id = 'burst-log';
+          l.className = 'stream-log';
+          l.innerHTML = '<span class=\"log-ts\">13:45:05</span><span><span class=\"log-tag-burst\">[burst]</span> Cadence accelerated to 60s window (15m expiration)</span>';
+          streamLogs.appendChild(l);
+        }
+      }
+      // 13.5s - 17.5s: Close modal, live execution ticker streaming
+      else if (sec < 17.5) {
+        dagModal.classList.remove('open');
+        cursor.style.left = '920px';
+        cursor.style.top = '280px';
+        closingCard.classList.remove('show');
+
+        if (!document.getElementById('exec-log')) {
+          const l2 = document.createElement('div');
+          l2.id = 'exec-log';
+          l2.className = 'stream-log';
+          l2.innerHTML = '<span class=\"log-ts\">13:45:10</span><span><span class=\"log-tag-succ\">[done]</span> Turn 5 saved with 0 failures &bull; DLQ clean</span>';
+          streamLogs.appendChild(l2);
+        }
+      }
+      // 17.5s - 20.0s: Reveal sleek closing card
+      else {
+        closingCard.classList.add('show');
+        cursor.style.opacity = '0';
+      }
+    };
+  </script>
+</body>
+</html>
+
