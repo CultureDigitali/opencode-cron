@@ -1,34 +1,55 @@
 /* =============================================================================
  * app.js - UI behaviour for the opencode-cron launch site.
- * Design Taste Frontend v2 compliant.
- * Zero emojis, zero banned patterns.
+ * Design Taste Frontend v2 & WCAG AA compliant.
+ * Zero emojis, robust clipboard, free-form live typing, focus management.
  * ========================================================================== */
 (function () {
   "use strict";
 
-  /* --- Navigation menu mobile toggle --- */
+  /* --- Navigation menu mobile toggle & Esc handling --- */
   const navToggleBtn = document.querySelector(".nav-toggle-btn");
   const navMenu = document.querySelector(".nav-menu");
   if (navToggleBtn && navMenu) {
+    function setNavOpen(open) {
+      navMenu.classList.toggle("open", open);
+      navToggleBtn.setAttribute("aria-expanded", String(open));
+    }
+
     navToggleBtn.addEventListener("click", function () {
       const isOpen = navMenu.classList.contains("open");
-      navMenu.classList.toggle("open", !isOpen);
-      navToggleBtn.setAttribute("aria-expanded", String(!isOpen));
+      setNavOpen(!isOpen);
     });
+
     navMenu.querySelectorAll("a").forEach(function (link) {
       link.addEventListener("click", function () {
-        navMenu.classList.remove("open");
-        navToggleBtn.setAttribute("aria-expanded", "false");
+        setNavOpen(false);
       });
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && navMenu.classList.contains("open")) {
+        setNavOpen(false);
+        navToggleBtn.focus();
+      }
+    });
+
+    document.addEventListener("click", function (e) {
+      if (navMenu.classList.contains("open") && !navMenu.contains(e.target) && e.target !== navToggleBtn) {
+        setNavOpen(false);
+      }
     });
   }
 
-  /* --- Language dropdown --- */
+  /* --- Language dropdown listbox --- */
   const langToggleBtn = document.querySelector(".lang-toggle-btn");
   const langDropdown = document.querySelector(".lang-dropdown");
   if (langToggleBtn && langDropdown) {
     langDropdown.innerHTML = "";
-    const languages = [
+    langDropdown.setAttribute("role", "listbox");
+    langToggleBtn.setAttribute("aria-haspopup", "listbox");
+    langToggleBtn.setAttribute("aria-expanded", "false");
+
+    const languages = (window.OC_LANGS || [
       { code: "en", name: "English" },
       { code: "it", name: "Italiano" },
       { code: "es", name: "Español" },
@@ -39,13 +60,20 @@
       { code: "ja", name: "日本語" },
       { code: "ru", name: "Русский" },
       { code: "ar", name: "العربية" }
-    ];
+    ]);
+
+    function setDropdownOpen(open) {
+      langDropdown.classList.toggle("open", open);
+      langToggleBtn.setAttribute("aria-expanded", String(open));
+    }
 
     languages.forEach(function (lang) {
       const item = document.createElement("li");
+      item.setAttribute("role", "none");
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "lang-option";
+      btn.setAttribute("role", "option");
       btn.setAttribute("data-lang-code", lang.code);
       btn.textContent = lang.code.toUpperCase() + " " + lang.name;
       btn.addEventListener("click", function () {
@@ -53,7 +81,8 @@
           window.OC_I18N.setLang(lang.code);
         }
         langToggleBtn.textContent = lang.code.toUpperCase();
-        langDropdown.classList.remove("open");
+        setDropdownOpen(false);
+        langToggleBtn.focus();
       });
       item.appendChild(btn);
       langDropdown.appendChild(item);
@@ -61,53 +90,74 @@
 
     langToggleBtn.addEventListener("click", function (e) {
       e.stopPropagation();
-      langDropdown.classList.toggle("open");
+      const isOpen = langDropdown.classList.contains("open");
+      setDropdownOpen(!isOpen);
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && langDropdown.classList.contains("open")) {
+        setDropdownOpen(false);
+        langToggleBtn.focus();
+      }
     });
 
     document.addEventListener("click", function (e) {
       if (!langDropdown.contains(e.target) && e.target !== langToggleBtn) {
-        langDropdown.classList.remove("open");
+        setDropdownOpen(false);
       }
     });
 
-    document.addEventListener("oc:langchange", function () {
-      const cur = window.OC_I18N && window.OC_I18N.current && window.OC_I18N.current();
-      if (cur) {
-        langToggleBtn.textContent = cur.toUpperCase();
-        langDropdown.querySelectorAll("[data-lang-code]").forEach(function (btn) {
-          btn.classList.toggle("active", btn.getAttribute("data-lang-code") === cur);
-        });
-      }
+    document.addEventListener("oc:langchange", function (e) {
+      const cur = (e.detail && e.detail.lang) || (window.OC_I18N && window.OC_I18N.current && window.OC_I18N.current()) || "en";
+      langToggleBtn.textContent = cur.toUpperCase();
+      langDropdown.querySelectorAll("[data-lang-code]").forEach(function (btn) {
+        const isSelected = btn.getAttribute("data-lang-code") === cur;
+        btn.classList.toggle("active", isSelected);
+        btn.setAttribute("aria-selected", String(isSelected));
+      });
     });
   }
 
-  /* --- Copy command buttons --- */
+  /* --- Robust Copy buttons with race-condition guard --- */
   document.querySelectorAll("[data-copy]").forEach(function (btn) {
+    let timer = null;
+    const label = btn.querySelector(".copy-label") || btn;
+    const originalText = label.textContent.trim();
+
     btn.addEventListener("click", async function () {
       const text = btn.getAttribute("data-copy");
       if (!text) return;
-      try {
-        await navigator.clipboard.writeText(text);
-      } catch (err) {
+
+      let ok = false;
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+        try {
+          await navigator.clipboard.writeText(text);
+          ok = true;
+        } catch (_) {}
+      }
+
+      if (!ok) {
         const ta = document.createElement("textarea");
         ta.value = text;
         ta.style.position = "fixed";
         ta.style.opacity = "0";
         document.body.appendChild(ta);
         ta.select();
-        try { document.execCommand("copy"); } catch (_) {}
+        try {
+          ok = document.execCommand("copy");
+        } catch (_) {}
         ta.remove();
       }
-      const label = btn.querySelector(".copy-label") || btn;
-      const prev = label.textContent;
-      label.textContent = "Copied";
-      setTimeout(function () {
-        label.textContent = prev;
+
+      label.textContent = ok ? "Copied" : "Select to copy";
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        label.textContent = originalText;
       }, 1800);
     });
   });
 
-  /* --- Interactive Showcase: Type input & Presets --- */
+  /* --- Interactive Showcase: Live free-form typing & Presets --- */
   const showcaseInput = document.getElementById("showcase-input");
   const terminalLogs = document.getElementById("terminal-logs-code");
   const statJobName = document.getElementById("stat-job-name");
@@ -135,14 +185,13 @@
     }
   };
 
-  function updateShowcase(query) {
-    if (!showcaseInput) return;
-    showcaseInput.value = query;
-    const match = showcaseScenarios[query] || {
-      name: query.slice(0, 16).replace(/\s+/g, "_"),
+  function renderScenario(query) {
+    const cleanQuery = (query || "").trim();
+    const match = showcaseScenarios[cleanQuery] || {
+      name: cleanQuery ? cleanQuery.slice(0, 18).replace(/[^a-zA-Z0-9_]/g, "_") : "active_job",
       cadence: "custom schedule",
       memory: "5.0 KB",
-      logs: "[tick] Session session_custom resumed\n[runner] OpenCode sidecar connection active\n[prompt] Executing scheduled instruction\n[memory] Context compaction verified (<28k chars)\n[status] Ready for next tick"
+      logs: "[tick] Session session_" + Math.random().toString(36).slice(2, 8) + " resumed\n[runner] OpenCode sidecar HTTP connection active\n[prompt] Executing: " + (cleanQuery.slice(0, 48) || "scheduled instruction") + "\n[memory] Turn state recorded (<28k chars safety ceiling)\n[status] Ready for next tick"
     };
 
     if (statJobName) statJobName.textContent = match.name;
@@ -151,23 +200,26 @@
     if (terminalLogs) terminalLogs.textContent = match.logs;
   }
 
+  function setPreset(query) {
+    if (!showcaseInput) return;
+    showcaseInput.value = query || "";
+    renderScenario(query);
+  }
+
   document.querySelectorAll("[data-preset]").forEach(function (chip) {
     chip.addEventListener("click", function () {
       const preset = chip.getAttribute("data-preset");
-      if (preset) updateShowcase(preset);
+      if (preset) setPreset(preset);
     });
   });
 
   if (showcaseInput) {
     showcaseInput.addEventListener("input", function () {
-      const val = showcaseInput.value.trim();
-      if (showcaseScenarios[val]) {
-        updateShowcase(val);
-      }
+      renderScenario(showcaseInput.value);
     });
   }
 
-  /* --- Features: Working Switches --- */
+  /* --- Features: Working Accessible Switches --- */
   const featureBands = document.querySelectorAll(".feature-band");
   featureBands.forEach(function (band) {
     const toggle = band.querySelector(".switch-control");
@@ -192,7 +244,7 @@
     });
   });
 
-  /* Initialize two feature bands to ON by default as required by blueprint */
+  /* Initialize default active bands */
   const initialOnBands = document.querySelectorAll(".feature-band[data-default-on='true']");
   initialOnBands.forEach(function (band) {
     const toggle = band.querySelector(".switch-control");

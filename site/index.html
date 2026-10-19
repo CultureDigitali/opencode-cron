@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>opencode-cron: Scheduled tasks for OpenCode AI agents</title>
   <meta name="description" content="Intelligent session-bound cron scheduling for OpenCode AI agents with persistent memory, DAG pipelines, and real-time mission control.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://api.fontshare.com https://cdn.fontshare.com; font-src https://cdn.fontshare.com data:; img-src 'self' data: https:; media-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self';">
   <link rel="icon" type="image/png" href="assets/img/favicon.png">
   <link rel="manifest" href="manifest.webmanifest">
 
@@ -15,6 +16,12 @@
   <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="assets/css/styles.css">
+  <noscript>
+    <style>
+      .feature-consequence { display: block !important; }
+      .switch-control { display: none !important; }
+    </style>
+  </noscript>
 </head>
 <body>
 
@@ -24,11 +31,11 @@
       <a href="#" class="wordmark">opencode-cron</a>
 
       <nav class="nav-menu" aria-label="Main Navigation">
-        <a href="#showcase" class="nav-link">Showcase</a>
-        <a href="#features" class="nav-link">Features</a>
-        <a href="#how-it-works" class="nav-link">Architecture</a>
-        <a href="#proof" class="nav-link">Standards</a>
-        <a href="#faq" class="nav-link">Questions</a>
+        <a href="#showcase" class="nav-link" data-i18n="nav.showcase">Showcase</a>
+        <a href="#features" class="nav-link" data-i18n="nav.features">Features</a>
+        <a href="#how-it-works" class="nav-link" data-i18n="nav.architecture">Architecture</a>
+        <a href="#proof" class="nav-link" data-i18n="nav.standards">Standards</a>
+        <a href="#faq" class="nav-link" data-i18n="nav.questions">Questions</a>
       </nav>
 
       <div class="nav-actions">
@@ -36,7 +43,7 @@
           <button type="button" class="lang-toggle-btn" aria-label="Select language">EN</button>
           <ul class="lang-dropdown"></ul>
         </div>
-        <a href="#how-it-works" class="btn btn-accent">Install via CLI</a>
+        <a href="#how-it-works" class="btn btn-accent" data-i18n="nav.install">Install via CLI</a>
         <button type="button" class="nav-toggle-btn" aria-label="Toggle menu" aria-expanded="false">Menu</button>
       </div>
     </div>
@@ -47,24 +54,28 @@
     <section class="hero-two-fields">
       <div class="hero-upper-field">
         <div class="shell">
-          <h1 class="display-title">Agents run</h1>
+          <h1 class="display-title">
+            <span class="title-line-1" data-i18n="hero.title1">Agents run</span>
+            <span class="sr-only"> </span>
+            <span class="sr-only" data-i18n="hero.title2">on time.</span>
+          </h1>
         </div>
       </div>
       <div class="hero-lower-field">
         <div class="shell">
-          <h2 class="display-title">on time.</h2>
-          <p class="lead" style="max-width: 64ch; margin-top: 24px;">
+          <div class="display-title" aria-hidden="true" data-i18n="hero.title2">on time.</div>
+          <p class="lead" data-i18n="hero.lead" style="max-width: 64ch; margin-top: 24px;">
             Intelligent session-bound cron scheduling for OpenCode AI agents with persistent memory, DAG pipelines, and real-time mission control.
           </p>
           <div class="hero-actions-row">
-            <a href="#how-it-works" class="btn btn-yellow">Install via CLI</a>
+            <a href="#how-it-works" class="btn btn-yellow" data-i18n="hero.install">Install via CLI</a>
             <div class="cli-badge">
-              <pre><code>npm install -g opencode-cron</code></pre>
-              <button type="button" class="cli-copy-btn" data-copy="npm install -g opencode-cron">
+              <pre><code>npm install -g @culturedigitali/opencode-cron</code></pre>
+              <button type="button" class="cli-copy-btn" data-copy="npm install -g @culturedigitali/opencode-cron" aria-label="Copy CLI install command">
                 <span class="copy-label">Copy</span>
               </button>
             </div>
-            <a href="https://github.com/culturedigitali/opencode-cron" class="btn btn-surface" rel="noopener noreferrer">Inspect GitHub Repository</a>
+            <a href="https://github.com/culturedigitali/opencode-cron" class="btn btn-surface" rel="noopener noreferrer" data-i18n="hero.inspectGithub">Inspect GitHub Repository</a>
           </div>
         </div>
       </div>
@@ -76,9 +87,9 @@
         <div class="interactive-headline-box">
           <input id="showcase-input" data-ui class="interactive-type-input" value="cron_add every 30m Test suite watchdog" aria-label="Interactive cron command demo">
           <div class="type-presets-row">
-            <button type="button" class="preset-chip" data-preset="cron_add every 30m Test suite watchdog">Watchdog (30m)</button>
-            <button type="button" class="preset-chip" data-preset="cron_burst 45m Incident response">Incident burst (45m)</button>
-            <button type="button" class="preset-chip" data-preset="cron_pipeline deploy-dag On-merge pipeline">DAG Pipeline</button>
+            <button type="button" class="preset-chip" data-preset="cron_add every 30m Test suite watchdog" data-i18n="showcase.chipWatchdog">Watchdog (30m)</button>
+            <button type="button" class="preset-chip" data-preset="cron_burst 45m Incident response" data-i18n="showcase.chipBurst">Incident burst (45m)</button>
+            <button type="button" class="preset-chip" data-preset="cron_pipeline deploy-dag On-merge pipeline" data-i18n="showcase.chipDag">DAG Pipeline</button>
           </div>
         </div>
 
@@ -86,14 +97,14 @@
           <!-- Authentic Terminal / Dashboard Fragment -->
           <div class="interface-card" data-ui>
             <div class="interface-header">
-              <span style="font-weight: 500; font-size: 14px; color: #ffffff;">Mission Control Session Server</span>
-              <span class="interface-status-text">ACTIVE WORKER</span>
+              <span style="font-weight: 500; font-size: 14px; color: #ffffff;" data-i18n="showcase.title">Mission Control Session Server</span>
+              <span class="interface-status-text" data-i18n="showcase.status">ACTIVE WORKER</span>
             </div>
             <div class="interface-body">
               <div class="interface-meta-bar">
-                <span class="meta-item"><span class="meta-label">Job</span> <span class="meta-val" id="stat-job-name">watchdog_suite</span></span>
-                <span class="meta-item"><span class="meta-label">Cadence</span> <span class="meta-val" id="stat-cadence">30m interval</span></span>
-                <span class="meta-item"><span class="meta-label">Context</span> <span class="meta-val" id="stat-memory">4.2 KB</span></span>
+                <span class="meta-item"><span class="meta-label" data-i18n="showcase.statJob">Job</span> <span class="meta-val" id="stat-job-name">watchdog_suite</span></span>
+                <span class="meta-item"><span class="meta-label" data-i18n="showcase.statCadence">Cadence</span> <span class="meta-val" id="stat-cadence">30m interval</span></span>
+                <span class="meta-item"><span class="meta-label" data-i18n="showcase.statMemory">Context</span> <span class="meta-val" id="stat-memory">4.2 KB</span></span>
               </div>
               <div class="interface-logs">
                 <pre><code id="terminal-logs-code">[tick:09:30:00] Session session_wd_8a resumed
@@ -108,7 +119,7 @@
           <!-- Real Image: Astrolabe from Met Museum (CC0) -->
           <div class="showcase-media-frame">
             <img src="assets/img/astrolabe.jpg" width="3760" height="4000" alt="Regiomontanus copper alloy astrolabe crafted in 1462" loading="lazy" decoding="async">
-            <div class="media-caption">
+            <div class="media-caption" data-i18n="showcase.caption">
               Astrolabe by Regiomontanus (1462), The Metropolitan Museum of Art. Precision instrumentation for calculating cyclical intervals.
             </div>
           </div>
@@ -121,8 +132,8 @@
       <div class="feature-band" data-active-class="band-active-teal" data-default-on="true">
         <div class="shell feature-band-inner">
           <div class="feature-sentence-wrap">
-            <p class="feature-sentence">Dedicated sessions for every scheduled prompt.</p>
-            <div class="feature-consequence">Memory persists across turns in .opencode/cron/memory/ with automatic token compaction.</div>
+            <p class="feature-sentence" data-i18n="features.f1Title">Dedicated sessions for every scheduled prompt.</p>
+            <div class="feature-consequence" data-i18n="features.f1Desc">Memory persists across turns in .opencode/cron/memory/ with automatic token compaction.</div>
           </div>
           <div class="switch-control" data-ui role="switch" aria-checked="false" tabindex="0" aria-label="Toggle session memory capability"></div>
         </div>
@@ -131,8 +142,8 @@
       <div class="feature-band" data-active-class="band-active-blue" data-default-on="true">
         <div class="shell feature-band-inner">
           <div class="feature-sentence-wrap">
-            <p class="feature-sentence">Multi-step DAG pipelines chain dependent agent jobs.</p>
-            <div class="feature-consequence">Downstream triggers fire automatically on success or failure with memory payload passing.</div>
+            <p class="feature-sentence" data-i18n="features.f2Title">Multi-step DAG pipelines chain dependent agent jobs.</p>
+            <div class="feature-consequence" data-i18n="features.f2Desc">Downstream triggers fire automatically on success or failure with memory payload passing.</div>
           </div>
           <div class="switch-control" data-ui role="switch" aria-checked="false" tabindex="0" aria-label="Toggle pipeline capability"></div>
         </div>
@@ -141,8 +152,8 @@
       <div class="feature-band" data-active-class="band-active-teal">
         <div class="shell feature-band-inner">
           <div class="feature-sentence-wrap">
-            <p class="feature-sentence">Inbound webhooks trigger jobs from external APIs.</p>
-            <div class="feature-consequence">HMAC SHA-256 signatures and cryptographic bearer tokens prevent unauthorized dispatch.</div>
+            <p class="feature-sentence" data-i18n="features.f3Title">Inbound webhooks trigger jobs from external APIs.</p>
+            <div class="feature-consequence" data-i18n="features.f3Desc">HMAC SHA-256 signatures and cryptographic bearer tokens prevent unauthorized dispatch.</div>
           </div>
           <div class="switch-control" data-ui role="switch" aria-checked="false" tabindex="0" aria-label="Toggle webhook capability"></div>
         </div>
@@ -151,8 +162,8 @@
       <div class="feature-band" data-active-class="band-active-red">
         <div class="shell feature-band-inner">
           <div class="feature-sentence-wrap">
-            <p class="feature-sentence">Circuit breaker and Dead Letter Queue isolate errors.</p>
-            <div class="feature-consequence">Quarantines recurring errors after consecutive failures and notifies via Web GUI.</div>
+            <p class="feature-sentence" data-i18n="features.f4Title">Circuit breaker and Dead Letter Queue isolate errors.</p>
+            <div class="feature-consequence" data-i18n="features.f4Desc">Quarantines recurring errors after consecutive failures and notifies via Web GUI.</div>
           </div>
           <div class="switch-control" data-ui role="switch" aria-checked="false" tabindex="0" aria-label="Toggle circuit breaker capability"></div>
         </div>
@@ -161,8 +172,8 @@
       <div class="feature-band" data-active-class="band-active-yellow">
         <div class="shell feature-band-inner">
           <div class="feature-sentence-wrap">
-            <p class="feature-sentence">Adaptive cadence and burst mode adjust to activity.</p>
-            <div class="feature-consequence">Spins up 1-minute execution intervals during active incidents and backs off during quiet hours.</div>
+            <p class="feature-sentence" data-i18n="features.f5Title">Adaptive cadence and burst mode adjust to activity.</p>
+            <div class="feature-consequence" data-i18n="features.f5Desc">Spins up 1-minute execution intervals during active incidents and backs off during quiet hours.</div>
           </div>
           <div class="switch-control" data-ui role="switch" aria-checked="false" tabindex="0" aria-label="Toggle burst mode capability"></div>
         </div>
@@ -172,19 +183,19 @@
     <!-- How It Works: Call and Response Column -->
     <section id="how-it-works" class="section-how-it-works">
       <div class="shell">
-        <h2 class="section-title">Execution sequence</h2>
+        <h2 class="section-title" data-i18n="how.title">Execution sequence</h2>
 
         <div class="call-response-flow">
           <div class="step-exchange">
-            <div class="step-order-statement">First, install the CLI and launch daemon.</div>
+            <div class="step-order-statement" data-i18n="how.step1">First, install the CLI and launch daemon.</div>
             <div class="call-panel">
               <div class="call-header">
                 <span class="call-tag">Terminal command</span>
-                <button type="button" class="cli-copy-btn" data-copy="npm install -g opencode-cron &amp;&amp; opencode-cron setup">
+                <button type="button" class="cli-copy-btn" data-copy="npm install -g @culturedigitali/opencode-cron &amp;&amp; opencode-cron setup" aria-label="Copy setup command">
                   <span class="copy-label">Copy</span>
                 </button>
               </div>
-              <pre><code>npm install -g opencode-cron &amp;&amp; opencode-cron setup</code></pre>
+              <pre><code>npm install -g @culturedigitali/opencode-cron &amp;&amp; opencode-cron setup</code></pre>
             </div>
             <div class="response-panel" data-ui>
               <pre><code>ai.opencode.cron launchd ticker active (60s cycle, credentials auto-rotated)</code></pre>
@@ -192,11 +203,11 @@
           </div>
 
           <div class="step-exchange">
-            <div class="step-order-statement">Then schedule your session-bound agent jobs.</div>
+            <div class="step-order-statement" data-i18n="how.step2">Then schedule your session-bound agent jobs.</div>
             <div class="call-panel">
               <div class="call-header">
                 <span class="call-tag">Terminal command</span>
-                <button type="button" class="cli-copy-btn" data-copy="opencode-cron add --name 'Security Audit' --cron '0 3 * * *' --prompt 'Audit dependencies and rotate expired sidecar tokens'">
+                <button type="button" class="cli-copy-btn" data-copy="opencode-cron add --name 'Security Audit' --cron '0 3 * * *' --prompt 'Audit dependencies and rotate expired sidecar tokens'" aria-label="Copy add job command">
                   <span class="copy-label">Copy</span>
                 </button>
               </div>
@@ -209,11 +220,11 @@
           </div>
 
           <div class="step-exchange">
-            <div class="step-order-statement">Inspect jobs in the local Mission Control interface.</div>
+            <div class="step-order-statement" data-i18n="how.step3">Inspect jobs in the local Mission Control interface.</div>
             <div class="call-panel">
               <div class="call-header">
                 <span class="call-tag">Terminal command</span>
-                <button type="button" class="cli-copy-btn" data-copy="opencode-cron gui --port 4488">
+                <button type="button" class="cli-copy-btn" data-copy="opencode-cron gui --port 4488" aria-label="Copy gui command">
                   <span class="copy-label">Copy</span>
                 </button>
               </div>
@@ -235,7 +246,7 @@ Webhook Listeners: HMAC-SHA256 verified</code></pre>
     <!-- Proof / Standards: Video Loop + Recognition Table -->
     <section id="proof" class="section-proof">
       <div class="shell">
-        <h2 class="section-title">Operational standards</h2>
+        <h2 class="section-title" data-i18n="proof.title">Operational standards</h2>
 
         <div class="proof-duo">
           <!-- Real Video Loop from Wikimedia Commons (CC0) -->
@@ -243,7 +254,7 @@ Webhook Listeners: HMAC-SHA256 verified</code></pre>
             <video autoplay muted loop playsinline preload="metadata" poster="assets/img/pendulum-poster.jpg" width="640" height="480" aria-label="Mechanical movement of pendulum clock">
               <source src="assets/img/pendulum.webm" type="video/webm">
             </video>
-            <div class="media-caption">
+            <div class="media-caption" data-i18n="proof.captionVideo">
               Mechanical clockwork movement, CC0 via Wikimedia Commons. Continuous autonomous cadence.
             </div>
           </div>
@@ -251,7 +262,7 @@ Webhook Listeners: HMAC-SHA256 verified</code></pre>
           <!-- Historical Engineering Diagram (Public Domain) -->
           <div class="showcase-media-frame">
             <img src="assets/img/clock-schematic.png" width="1276" height="1368" alt="Technical drawing of Henri de Wick mechanical clock mechanism from 1379" loading="lazy" decoding="async">
-            <div class="media-caption">
+            <div class="media-caption" data-i18n="proof.captionSchematic">
               De Wick escapement mechanism (1379), Public Domain via Wikimedia Commons.
             </div>
           </div>
@@ -262,10 +273,10 @@ Webhook Listeners: HMAC-SHA256 verified</code></pre>
           <table class="recognition-table">
             <thead>
               <tr>
-                <th>Architecture Domain</th>
-                <th>Specification</th>
-                <th>Empirical Verification</th>
-                <th>Protocol Status</th>
+                <th data-i18n="proof.thDomain">Architecture Domain</th>
+                <th data-i18n="proof.thSpec">Specification</th>
+                <th data-i18n="proof.thVerif">Empirical Verification</th>
+                <th data-i18n="proof.thStatus">Protocol Status</th>
               </tr>
             </thead>
             <tbody>
@@ -304,28 +315,34 @@ Webhook Listeners: HMAC-SHA256 verified</code></pre>
       <div class="shell">
         <div class="faq-grid-reading">
           <div>
-            <h2 class="section-title">Technical specifications</h2>
-            <p>Everything answered directly without accordion toggles.</p>
+            <h2 class="section-title" data-i18n="faq.title">Technical specifications</h2>
+            <p data-i18n="faq.subtitle">Everything answered directly without accordion toggles.</p>
           </div>
           <div class="faq-reading-columns">
-            <p class="faq-entry">
-              <span class="faq-question-lead">Does it require a cloud subscription?</span> No. Everything runs completely locally on your machine via standard operating system daemons (launchd on macOS, systemd on Linux, Task Scheduler on Windows) and local JSON persistence.
-            </p>
-            <p class="faq-entry">
-              <span class="faq-question-lead">How does it interact with running OpenCode sessions?</span> It connects directly to OpenCode sidecar HTTP transport using rotating credentials and session tokens, preserving continuity across turns without restarting agents.
-            </p>
-            <p class="faq-entry">
-              <span class="faq-question-lead">What happens if a prompt fails?</span> The Dead Letter Queue intercepts consecutive failures, trips the circuit breaker to prevent token waste, and quarantines the job until reviewed in the Web GUI or CLI.
-            </p>
-            <p class="faq-entry">
-              <span class="faq-question-lead">Can jobs trigger each other?</span> Yes. DAG pipelines allow defining upstream and downstream dependencies with optional memory payload passing and cycle detection.
-            </p>
-            <p class="faq-entry">
-              <span class="faq-question-lead">How is context memory handled?</span> Each job maintains persistent memory in .opencode/cron/memory/, summarized and pruned on each turn to preserve token limits without losing state.
-            </p>
-            <p class="faq-entry">
-              <span class="faq-question-lead">Is there a graphical user interface?</span> Yes. A full Web GUI and cross-platform desktop application runs on localhost:4488 with live logs, priority queues, and token inspection.
-            </p>
+            <div class="faq-entry">
+              <h3 class="faq-question-lead" data-i18n="faq.q1">Does it require a cloud subscription?</h3>
+              <p class="faq-answer" data-i18n="faq.a1">No. Everything runs completely locally on your machine via standard operating system daemons (launchd on macOS, systemd on Linux, Task Scheduler on Windows) and local JSON persistence.</p>
+            </div>
+            <div class="faq-entry">
+              <h3 class="faq-question-lead" data-i18n="faq.q2">How does it interact with running OpenCode sessions?</h3>
+              <p class="faq-answer" data-i18n="faq.a2">It connects directly to OpenCode sidecar HTTP transport using rotating credentials and session tokens, preserving continuity across turns without restarting agents.</p>
+            </div>
+            <div class="faq-entry">
+              <h3 class="faq-question-lead" data-i18n="faq.q3">What happens if a prompt fails?</h3>
+              <p class="faq-answer" data-i18n="faq.a3">The Dead Letter Queue intercepts consecutive failures, trips the circuit breaker to prevent token waste, and quarantines the job until reviewed in the Web GUI or CLI.</p>
+            </div>
+            <div class="faq-entry">
+              <h3 class="faq-question-lead" data-i18n="faq.q4">Can jobs trigger each other?</h3>
+              <p class="faq-answer" data-i18n="faq.a4">Yes. DAG pipelines allow defining upstream and downstream dependencies with optional memory payload passing and cycle detection.</p>
+            </div>
+            <div class="faq-entry">
+              <h3 class="faq-question-lead" data-i18n="faq.q5">How is context memory handled?</h3>
+              <p class="faq-answer" data-i18n="faq.a5">Each job maintains persistent memory in .opencode/cron/memory/, summarized and pruned on each turn to preserve token limits without losing state.</p>
+            </div>
+            <div class="faq-entry">
+              <h3 class="faq-question-lead" data-i18n="faq.q6">Is there a graphical user interface?</h3>
+              <p class="faq-answer" data-i18n="faq.a6">Yes. A full Web GUI and cross-platform desktop application runs on localhost:4488 with live logs, priority queues, and token inspection.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -334,20 +351,20 @@ Webhook Listeners: HMAC-SHA256 verified</code></pre>
     <!-- CTA: Sentence with a blank -->
     <section class="section-cta">
       <div class="shell">
-        <h2 class="cta-statement">Schedule sessions on time.</h2>
-        <p class="lead" style="color: #d1ebe5; max-width: 54ch; margin-bottom: 24px;">
+        <h2 class="cta-statement" data-i18n="cta.title">Schedule sessions on time.</h2>
+        <p class="lead" data-i18n="cta.lead" style="color: #d1ebe5; max-width: 54ch; margin-bottom: 24px;">
           Run intelligent, session-bound cron tasks directly in your terminal.
         </p>
         <div class="cta-actions">
           <div class="cli-badge">
-            <pre><code>npm install -g opencode-cron</code></pre>
-            <button type="button" class="cli-copy-btn" data-copy="npm install -g opencode-cron">
+            <pre><code>npm install -g @culturedigitali/opencode-cron</code></pre>
+            <button type="button" class="cli-copy-btn" data-copy="npm install -g @culturedigitali/opencode-cron" aria-label="Copy CLI install command">
               <span class="copy-label">Copy</span>
             </button>
           </div>
-          <a href="https://github.com/culturedigitali/opencode-cron" class="btn btn-yellow" rel="noopener noreferrer">Inspect GitHub Repository</a>
+          <a href="https://github.com/culturedigitali/opencode-cron" class="btn btn-yellow" rel="noopener noreferrer" data-i18n="cta.inspectGithub">Inspect GitHub Repository</a>
         </div>
-        <div class="cta-subtext">Open source, zero telemetry, local-first execution.</div>
+        <div class="cta-subtext" data-i18n="cta.subtext">Open source, zero telemetry, local-first execution.</div>
       </div>
     </section>
   </main>
@@ -359,7 +376,7 @@ Webhook Listeners: HMAC-SHA256 verified</code></pre>
         <div class="wordmark" style="font-size: 20px;">opencode-cron</div>
         <ul class="footer-links">
           <li><a href="https://github.com/culturedigitali/opencode-cron" rel="noopener noreferrer">GitHub</a></li>
-          <li><a href="https://www.npmjs.com/package/opencode-cron" rel="noopener noreferrer">npm Package</a></li>
+          <li><a href="https://www.npmjs.com/package/@culturedigitali/opencode-cron" rel="noopener noreferrer">npm Package</a></li>
           <li><a href="https://opencode.ai" rel="noopener noreferrer">OpenCode</a></li>
         </ul>
         <div style="font-size: 14px; color: var(--muted);">
