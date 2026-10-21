@@ -896,20 +896,6 @@ a:hover {
   color: #10b981;
 }
 
-/* Brand Identity & Media Kit Section */
-.section-brand {
-  background: var(--bg);
-  padding: 88px 0;
-  border-top: 1px solid var(--border-color);
-}
-
-@media (max-width: 860px) {
-  .brand-grid {
-    grid-template-columns: 1fr !important;
-    gap: 24px !important;
-  }
-}
-
 /* FAQ: Open Two-Column Reading */
 .section-faq {
   background: var(--surface);
