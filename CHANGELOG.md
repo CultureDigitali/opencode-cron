@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2026-10-22
+
+### Fixed
+- **Linux .deb artifact path**: with a scoped package name the default deb artifact name resolved to `release/@culturedigitali/opencode-cron_<version>_<arch>.deb`, and fpm aborted because the scoped parent directory is never created. `electron-builder.yml` now pins a flat `deb.artifactName`.
+
 ## [1.2.2] - 2026-10-22
 
 ### Fixed

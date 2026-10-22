@@ -62,6 +62,12 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: OpenCode Cron
 
+deb:
+  # The default deb artifact name is "${name}_${version}_${arch}.deb"; with a
+  # scoped package name that becomes "release/@scope/pkg_...deb" and fpm aborts
+  # because the scoped parent directory is never created. Flat artifact name.
+  artifactName: OpenCode-Cron-${version}-${arch}.deb
+
 linux:
   target:
     - target: AppImage
