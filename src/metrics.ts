@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import { cronDir } from "./store.ts";
 import type { CronJob, JobMetrics, SystemMetrics } from "./types.ts";
+import { replaceFile } from "./atomic.ts";
 
 interface MetricHistoryEntry {
   durationMs: number;
@@ -56,7 +57,7 @@ export async function saveMetrics(directory: string): Promise<void> {
   try {
     await fs.mkdir(path.dirname(file), { recursive: true });
     await fs.writeFile(tmp, JSON.stringify(memoryMetrics, null, 2), "utf-8");
-    await fs.rename(tmp, file);
+    await replaceFile(tmp, file);
   } catch {
     await fs.unlink(tmp).catch(() => {});
   }

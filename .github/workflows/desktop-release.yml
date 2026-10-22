@@ -51,15 +51,13 @@ jobs:
           bun test
 
       - name: Build Electron Desktop Packages (${{ matrix.target }})
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "${{ matrix.target }}" = "mac" ]; then
-            npx electron-builder --mac
+            npx electron-builder --mac --publish never
           elif [ "${{ matrix.target }}" = "win" ]; then
-            npx electron-builder --win
+            npx electron-builder --win --publish never
           else
-            npx electron-builder --linux
+            npx electron-builder --linux --publish never
           fi
         shell: bash
 
@@ -70,11 +68,29 @@ jobs:
           path: release/*.*
           if-no-files-found: warn
 
-      - name: Publish Release Assets to GitHub
-        if: startsWith(github.ref, 'refs/tags/v')
+  # Single publisher: the three matrix jobs run in parallel and used to publish
+  # to the same GitHub release concurrently, which raced (404 on release assets
+  # and duplicate uploads). One job now collects every artifact and publishes once.
+  publish-release:
+    name: Publish Release Assets to GitHub
+    needs: build-desktop
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download All Desktop Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: opencode-cron-*
+          path: release
+          merge-multiple: true
+
+      - name: Publish Release Assets
         uses: softprops/action-gh-release@v2
         with:
           files: release/*.*
+          overwrite_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

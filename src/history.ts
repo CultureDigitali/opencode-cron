@@ -2,6 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { loadJobs } from "./store.ts";
 import { redactSensitiveData } from "./redact.ts";
+import { replaceFile } from "./atomic.ts";
 
 export interface RunEntry {
   id: string;
@@ -92,7 +93,7 @@ export async function recordRunEntry(
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   const tmpPath = `${filePath}.${Date.now()}.${Math.random().toString(36).slice(2, 7)}.tmp`;
   await fs.writeFile(tmpPath, JSON.stringify(updated, null, 2), "utf-8");
-  await fs.rename(tmpPath, filePath);
+  await replaceFile(tmpPath, filePath);
   return full;
 }
 
@@ -145,7 +146,7 @@ export async function pruneRunHistory(
     const filePath = historyFilePath(directory);
     const tmpPath = `${filePath}.${Date.now()}.${Math.random().toString(36).slice(2, 7)}.tmp`;
     await fs.writeFile(tmpPath, JSON.stringify(filtered, null, 2), "utf-8");
-    await fs.rename(tmpPath, filePath);
+    await replaceFile(tmpPath, filePath);
   }
 
   return { beforeCount, afterCount, prunedCount };

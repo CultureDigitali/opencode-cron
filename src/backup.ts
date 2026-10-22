@@ -4,6 +4,7 @@ import path from "path";
 import crypto from "crypto";
 import { cronDir, loadJobs, saveJobs } from "./store.ts";
 import type { BackupMetadata } from "./types.ts";
+import { replaceFile } from "./atomic.ts";
 
 interface SnapshotBundle {
   metadata: BackupMetadata;
@@ -106,7 +107,7 @@ export async function createBackup(
   const targetPath = backupFilePath(directory, backupId);
   const tmp = `${targetPath}.${process.pid}.${Date.now()}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(bundle, null, 2), "utf-8");
-  await fs.rename(tmp, targetPath);
+  await replaceFile(tmp, targetPath);
 
   // Auto-prune old backups (keep last 10 by default)
   await pruneBackups(directory, 10).catch(() => {});

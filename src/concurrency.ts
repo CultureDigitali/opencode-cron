@@ -10,6 +10,7 @@ import {
   type QueueSource,
 } from "./types.ts";
 import { cronDir, ensureCronDir, assertJobId } from "./store.ts";
+import { replaceFile } from "./atomic.ts";
 
 export const PRIORITY_WEIGHT: Record<JobPriority, number> = {
   high: 3,
@@ -94,7 +95,7 @@ export async function saveCronSettings(
   try {
     await fs.writeFile(tmp, JSON.stringify(merged, null, 2), { encoding: "utf-8", mode: 0o600 });
     await fs.chmod(tmp, 0o600).catch(() => {});
-    await fs.rename(tmp, file);
+    await replaceFile(tmp, file);
     await fs.chmod(file, 0o600).catch(() => {});
   } catch (err) {
     await fs.unlink(tmp).catch(() => {});

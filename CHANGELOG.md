@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - 2026-10-22
+
+### Fixed
+- **Windows atomic writes**: the tmp-file + `rename()` pattern used by every persistence layer failed on Windows, where `rename()` over an existing file raises EPERM/EEXIST (the concurrent `saveJobs` test failed there and no Windows artifact could be built). A shared `src/atomic.ts` helper now removes the destination and retries the rename on Windows, and is covered by tests.
+- **Release publishing race**: the three parallel desktop jobs published to the same GitHub release at the same time, producing 404s on release assets and duplicated uploads. Publishing now happens once, in a dedicated job, with `overwrite_files`.
+
 ## [1.2.4] - 2026-10-22
 
 ### Fixed

@@ -7,6 +7,7 @@ import {
   type CircuitState,
 } from "./types.ts";
 import { cronDir, ensureCronDir, assertJobId, loadJobs, saveJobs } from "./store.ts";
+import { replaceFile } from "./atomic.ts";
 
 export const MAX_DLQ_ENTRIES = 100;
 
@@ -40,7 +41,7 @@ export async function saveDLQ(directory: string, entries: DLQEntry[]): Promise<v
   try {
     await fs.writeFile(tmp, JSON.stringify(capped, null, 2), { encoding: "utf-8", mode: 0o600 });
     await fs.chmod(tmp, 0o600).catch(() => {});
-    await fs.rename(tmp, file);
+    await replaceFile(tmp, file);
     await fs.chmod(file, 0o600).catch(() => {});
   } catch (err) {
     await fs.unlink(tmp).catch(() => {});

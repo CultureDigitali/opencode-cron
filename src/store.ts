@@ -2,6 +2,7 @@ import { CronJobSchema, type CronJob } from "./types.ts";
 import { parseEveryToMs, nextCronOccurrence } from "./schedule.ts";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { replaceFile } from "./atomic.ts";
 
 export const JOB_ID_RE = /^[a-z0-9-]{1,64}$/;
 
@@ -57,7 +58,7 @@ export async function saveJobs(directory: string, jobs: CronJob[]): Promise<void
   const tmp = `${jobsFile(directory)}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
   try {
     await fs.writeFile(tmp, JSON.stringify(jobs, null, 2), "utf-8");
-    await fs.rename(tmp, jobsFile(directory));
+    await replaceFile(tmp, jobsFile(directory));
   } catch (err) {
     await fs.unlink(tmp).catch(() => {});
     throw err;

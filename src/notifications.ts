@@ -10,6 +10,7 @@ import {
   type NotificationEvent,
   NotificationConfigSchema,
 } from "./types.ts";
+import { replaceFile } from "./atomic.ts";
 
 function notificationsFile(directory: string): string {
   return path.join(cronDir(directory), "notifications.json");
@@ -37,7 +38,7 @@ export async function saveNotificationConfig(
   const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
   await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.writeFile(tmp, JSON.stringify(config, null, 2), "utf-8");
-  await fs.rename(tmp, file);
+  await replaceFile(tmp, file);
 }
 
 export async function sendTestNotification(
