@@ -34,9 +34,9 @@ describe("GUI Server API", () => {
     );
     db.close();
 
-    // Pick ephemeral port
-    const testPort = 4499 + Math.floor(Math.random() * 1000);
-    server = startGuiServer({ port: testPort, dir: tmpDir, dbPath });
+    // OS-assigned port: fixed high ports collide with the Windows ephemeral
+    // port range (49152-65535) and make the server fail to bind.
+    server = startGuiServer({ port: 0, dir: tmpDir, dbPath });
     baseUrl = `http://localhost:${server.port}`;
   });
 

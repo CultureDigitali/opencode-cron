@@ -190,8 +190,10 @@ describe("Feature 1: Smart Adaptive Schedule (Dynamic Cadence & Burst Mode)", ()
 
   it("handles GUI API POST /api/jobs/:id/burst and preview with adaptive parameters", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-adaptive-gui-"));
-    const port = 49100 + Math.floor(Math.random() * 800);
-    const server = startGuiServer({ dir, port });
+    const server = startGuiServer({ dir, port: 0 });
+    // OS-assigned port: fixed high ports collide with the Windows ephemeral
+    // port range (49152-65535) and make the server fail to bind.
+    const port = server.port;
 
     try {
       // 1. Create adaptive job via POST /api/jobs

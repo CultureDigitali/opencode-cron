@@ -326,8 +326,10 @@ describe("Feature 3: Webhook & Inbound HTTP Trigger Endpoints", () => {
 
   it("handles GUI API GET and POST /api/jobs/:id/webhook and POST /api/webhook/:id end-to-end", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-wh-gui-"));
-    const port = 49200 + Math.floor(Math.random() * 700);
-    const server = startGuiServer({ dir, port });
+    const server = startGuiServer({ dir, port: 0 });
+    // Let the OS pick the port: fixed high ports collide with the Windows
+    // ephemeral port range (49152-65535) and make the server fail to bind.
+    const port = server.port;
 
     try {
       // 1. Create a job without webhook first

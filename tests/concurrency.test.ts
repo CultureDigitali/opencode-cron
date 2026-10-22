@@ -328,8 +328,10 @@ describe("Feature 4: Execution Concurrency & Priority Queue", () => {
     });
     await saveJobs(tmpDir, [job]);
 
-    const port = 49100 + Math.floor(Math.random() * 500);
-    const server = startGuiServer({ port, dir: tmpDir });
+    const server = startGuiServer({ port: 0, dir: tmpDir });
+    // OS-assigned port: fixed high ports collide with the Windows ephemeral
+    // port range (49152-65535) and make the server fail to bind.
+    const port = server.port;
     const baseUrl = `http://127.0.0.1:${port}`;
 
     try {

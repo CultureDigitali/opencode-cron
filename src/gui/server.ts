@@ -1675,7 +1675,10 @@ export function startGuiServer(opts: ServerOpts = {}) {
       }
     });
     nodeServerInstance.listen(port, "127.0.0.1", () => {
-      console.log(`OpenCode Cron GUI server running at: http://127.0.0.1:${port}`);
+      const address = nodeServerInstance.address();
+      const actualPort = address && typeof address === "object" ? address.port : port;
+      serverObj.port = actualPort;
+      console.log(`OpenCode Cron GUI server running at: http://127.0.0.1:${actualPort}`);
     });
   });
 

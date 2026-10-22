@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.6] - 2026-10-22
+
+### Fixed
+- **Windows GUI server tests**: the test suite bound the GUI server to a random port in 49100-49899, which overlaps the Windows ephemeral port range (49152-65535): the OS could hand the same port to an outbound connection and the server failed to bind with "Is port X in use?". The server now asks the OS for a free port (`port: 0`) and the Node fallback reports the real port.
+
 ## [1.2.5] - 2026-10-22
 
 ### Fixed
