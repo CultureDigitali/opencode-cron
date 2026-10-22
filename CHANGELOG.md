@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.1] - 2026-10-22
 
 ### Fixed
 - **opencode 2.1 compatibility for the HTTP prompt transport**: `POST /api/session/:id/prompt` now accepts the prompt text at the root of the payload. The previous nested `prompt.text` shape was rejected with `400 InvalidRequestError ("Missing key at [text]")`, so every headless tick admitted over HTTP failed. Both shapes are now sent, so the same build works against opencode 2.0.x and 2.1+.
