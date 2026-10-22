@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2026-10-22
+
+### Fixed
+- **Windows desktop build**: `build:bin` injected the CLI shebang with a `head | grep | printf | cat | chmod` shell pipeline, which does not exist in cmd.exe — `bun run` uses cmd.exe on Windows, so the build always aborted and no Windows artifact was ever published. The logic moved to `scripts/postbuild-bin.mjs` (portable, covered by tests).
+
 ## [1.2.3] - 2026-10-22
 
 ### Fixed
