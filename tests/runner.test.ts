@@ -108,7 +108,10 @@ describe("http prompt transport", () => {
     await promptViaHttp({ url: "http://127.0.0.1:1", username: "u", password: "p" }, "ses_1", "hello", ok);
     expect(calls[0].url).toContain("/api/session/ses_1/prompt");
     expect(calls[0].init.headers.Authorization).toContain("Basic ");
-    expect(JSON.parse(calls[0].init.body).prompt.text).toBe("hello");
+    const body = JSON.parse(calls[0].init.body);
+    expect(body.prompt.text).toBe("hello");
+    // opencode >= 2.1 reads the text at the root of the payload
+    expect(body.text).toBe("hello");
     const bad: any = async () => ({ ok: false, status: 500, text: async () => "boom" });
     expect(promptViaHttp({ url: "http://127.0.0.1:1", username: "u", password: "p" }, "ses_1", "x", bad)).rejects.toThrow("500");
   });
@@ -161,6 +164,21 @@ describe("credentials refresh", () => {
   });
   it("throws without env credentials", async () => {
     expect(writeCredentialsFile({ HOME: "/tmp" } as NodeJS.ProcessEnv, "/tmp/x-creds-test")).rejects.toThrow("missing OPENCODE_SERVER");
+  });
+  it("falls back to the desktop service.json when env credentials are absent", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-service-json-"));
+    await fs.mkdir(path.join(dir, ".config", "opencode"), { recursive: true });
+    await fs.writeFile(
+      path.join(dir, ".config", "opencode", "service.json"),
+      JSON.stringify({ password: "live-secret" }),
+      "utf-8"
+    );
+    const target = path.join(dir, "credentials");
+    const file = await writeCredentialsFile({ HOME: dir } as NodeJS.ProcessEnv, target);
+    expect(file).toBe(target);
+    const content = await fs.readFile(target, "utf-8");
+    expect(content).toContain("CRON_UN=opencode");
+    expect(content).toContain("CRON_PW=live-secret");
   });
   it("OPENCODE_NO_REPIN=1 admits the prompt without any model pin (deferred mode)", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "cron-norepin-"));

@@ -12,10 +12,12 @@ Dev commands: `bun install && bun test && bun run typecheck && bun run build`.
 ## Desktop credentials rotation (important)
 
 The desktop app rotates its sidecar credentials on every restart. The ticker reads
-them from `~/.config/opencode-cron/credentials` (0600). After an app restart ticks
-fail with HTTP 401 until the credentials are refreshed — and fresh credentials are
-injected into every agent turn's environment. So: if the user mentions the cron
-stopped working, or jobs show `consecutiveFailures` climbing with 401 errors, run:
+them from `~/.config/opencode-cron/credentials` (0600), falling back to the live
+password in `~/.config/opencode/service.json` (opencode 2.1 desktop stores it
+there and no longer injects `OPENCODE_SERVER_*` into agent turns). After an app
+restart ticks fail with HTTP 401 until the credentials are refreshed. So: if the
+user mentions the cron stopped working, or jobs show `consecutiveFailures` climbing
+with 401 errors, run:
 
 ```bash
 node ./dist/bin/run.js refresh-creds
@@ -23,3 +25,7 @@ node ./dist/bin/run.js refresh-creds
 
 (and reset `consecutiveFailures` to 0 / re-enable the job if it auto-paused).
 The `/cron-refresh` slash command wraps the same flow.
+
+Note: the sidecar exposes the API at `http://127.0.0.1:<port>/api/...` (the
+port is logged by the desktop app as `v2 CLI background service ready { url: ... }`).
+`POST /api/session/:id/prompt` requires the text at the root of the payload.

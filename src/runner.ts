@@ -117,10 +117,14 @@ export function readHttpPromptConfig(env: NodeJS.ProcessEnv = process.env): Http
 
 export async function promptViaHttp(cfg: HttpPromptConfig, sessionID: string, text: string, fetchFn: typeof fetch = fetch): Promise<void> {
   const auth = "Basic " + btoa(cfg.username + ":" + cfg.password);
+  // opencode >= 2.1 expects the prompt text at the ROOT of the payload ("text")
+  // and answers 400 InvalidRequestError ("Missing key at [text]") when it is
+  // nested. Older builds only read the nested "prompt.text" shape. Send both
+  // so the same build works against either server version.
   const res = await fetchFn(`${cfg.url}/api/session/${encodeURIComponent(sessionID)}/prompt`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: auth },
-    body: JSON.stringify({ prompt: { text } }),
+    body: JSON.stringify({ text, prompt: { text } }),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -174,15 +178,31 @@ export async function repinSessionModel(
   return post?.ok === true;
 }
 
-/** Persist the current process's sidecar credentials (the desktop app injects
- * fresh OPENCODE_SERVER_USERNAME/PASSWORD into every agent turn) so the launchd
- * ticker can authenticate after an app restart rotated them. File mode 0600. */
+/** Persist the current process's sidecar credentials so the launchd ticker can
+ * authenticate after an app restart rotated them. opencode 2.1 desktop keeps the
+ * live password in ~/.config/opencode/service.json; older builds inject
+ * OPENCODE_SERVER_USERNAME/PASSWORD into every agent turn. File mode 0600. */
 export async function writeCredentialsFile(
   env: NodeJS.ProcessEnv = process.env,
   filePath?: string
 ): Promise<string> {
-  const un = env.OPENCODE_SERVER_USERNAME;
-  const pw = env.OPENCODE_SERVER_PASSWORD;
+  let un = env.OPENCODE_SERVER_USERNAME;
+  let pw = env.OPENCODE_SERVER_PASSWORD;
+  if (!un || !pw) {
+    // opencode >= 2.1 desktop no longer injects OPENCODE_SERVER_USERNAME/PASSWORD
+    // into every agent turn; it persists the live sidecar password in
+    // ~/.config/opencode/service.json (rotated on each app restart).
+    const home = env.HOME ?? process.env.HOME;
+    const servicePath = path.join(home ?? "~", ".config", "opencode", "service.json");
+    try {
+      const parsed = JSON.parse(await fs.readFile(servicePath, "utf-8")) as {
+        password?: string;
+        username?: string;
+      };
+      un = un || parsed.username || "opencode";
+      pw = pw || parsed.password;
+    } catch { /* ignore */ }
+  }
   if (!un || !pw) {
     throw new Error("missing OPENCODE_SERVER_USERNAME/OPENCODE_SERVER_PASSWORD in environment - run this from inside an opencode agent session");
   }

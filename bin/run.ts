@@ -10,9 +10,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CREDS_FILE = path.join(process.env.HOME ?? "~", ".config", "opencode-cron", "credentials");
 
-/** refresh-creds: persist the current process's OPENCODE_SERVER_USERNAME/PASSWORD
- * (injected by the desktop app into every agent turn) so the launchd ticker can
- * authenticate after an app restart rotated the credentials. */
+/** refresh-creds: persist the current sidecar credentials so the launchd ticker
+ * can authenticate after an app restart rotated them. Reads
+ * OPENCODE_SERVER_USERNAME/PASSWORD from the environment when present, otherwise
+ * falls back to ~/.config/opencode/service.json (opencode 2.1 desktop). */
 async function refreshCreds(): Promise<void> {
   try {
     const target = await writeCredentialsFile();
