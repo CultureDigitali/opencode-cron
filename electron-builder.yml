@@ -73,6 +73,7 @@ linux:
         - x64
   category: Development
   icon: assets/icons/icon.png
+  maintainer: Culture Digitali <culturedigitalieu@gmail.com>
   desktop:
     Name: OpenCode Cron
     Comment: Scheduled Tasks & Persistent Memory for OpenCode AI Agents
