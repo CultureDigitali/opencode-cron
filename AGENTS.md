@@ -9,6 +9,25 @@ Dev commands: `bun install && bun test && bun run typecheck && bun run build`.
 - A launchd ticker (`ai.opencode.cron`, 60s) checks due jobs and admits tick prompts
   over HTTP into the desktop app's session server (`OPENCODE_PROMPT_HTTP` transport).
 
+### Plugin installation (global)
+
+opencode loads the plugin **globally** from the config dir, not from this repo:
+
+```
+~/.config/opencode/plugins/opencode-cron/index.ts   # re-exports <repo>/src/index.ts
+```
+
+`~/.config/opencode/plugins/` is the global plugin directory in opencode V2 (the
+counterpart of a project's `.opencode/plugins/`) and every sub-directory with an
+`index.ts` is loaded automatically. That is also what the desktop app lists under
+Settings → Plugins, and what `/api/plugin` reports as
+`{"type":"local","path":".../plugins/opencode-cron/index.ts"}`.
+
+Do **not** add a second copy of the plugin inside the repo (`.opencode/plugin/` or
+`.opencode/plugins/`): two sources with the same plugin `id` make the second one
+fail with `Duplicate plugin ID: opencode-cron`. The wrapper above keeps the repo
+as the single source of truth.
+
 ## Desktop credentials rotation (important)
 
 The desktop app rotates its sidecar credentials on every restart. The ticker reads
