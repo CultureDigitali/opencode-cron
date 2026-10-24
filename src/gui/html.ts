@@ -236,14 +236,16 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
     <section id="view-jobs" role="tabpanel" aria-labelledby="tab-btn-jobs" class="tab-view block space-y-6">
       <!-- Status signal strip: live readouts, scan left to right -->
       <div class="oc-band" role="status" aria-live="polite">
-        <div data-tooltip="tt.kpiActive" class="oc-band-cell">
+        <div data-tooltip="tt.kpiActive" onclick="filterByStatus('enabled')" class="oc-band-cell hover:bg-white/5 transition-colors cursor-pointer group">
           <div>
-            <p class="oc-band-label flex items-center">
+            <p class="oc-band-label group-hover:text-white transition-colors flex items-center">
               <span data-i18n="kpi.activeTasks">Task Attivi</span>
               <span class="oc-help-badge">?</span>
             </p>
-            <p class="oc-band-value tabular" id="stat-active">0</p>
-            <p class="oc-band-sub">abilitati & in cadenza</p>
+            <p class="oc-band-value tabular group-hover:text-emerald-300 transition-colors" id="stat-active">0</p>
+            <p class="oc-band-sub group-hover:text-slate-300 transition-colors flex items-center gap-1">
+              <span>abilitati & in cadenza</span> <i class="fa-solid fa-arrow-down text-[9px] group-hover:translate-y-0.5 transition-transform"></i>
+            </p>
           </div>
         </div>
 
@@ -1530,6 +1532,15 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
 
     function applyJobFilters() {
       renderJobs();
+    }
+
+    function filterByStatus(status) {
+      switchTab('jobs');
+      const statusSelect = document.getElementById('job-filter-status');
+      if (statusSelect) {
+        statusSelect.value = status;
+        applyJobFilters();
+      }
     }
 
     function renderJobs() {
@@ -4435,6 +4446,16 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
         activeSessionId = qSession;
       }
       await refreshAll();
+      const qStatus = params.get('status');
+      if (qStatus && document.getElementById('job-filter-status')) {
+        document.getElementById('job-filter-status').value = qStatus;
+        applyJobFilters();
+      }
+      const qProject = params.get('project');
+      if (qProject && document.getElementById('job-filter-project')) {
+        document.getElementById('job-filter-project').value = qProject;
+        applyJobFilters();
+      }
       if (qTab && ['jobs', 'chat', 'memory', 'diff', 'logs'].includes(qTab)) {
         switchTab(qTab);
       } else if (qSession) {
