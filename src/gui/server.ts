@@ -31,6 +31,7 @@ import { listJobTemplates, applyJobTemplate, getJobTemplate } from "../templates
 import { createBackup, listBackups, restoreBackup, deleteBackup, pruneBackups } from "../backup.ts";
 import { loadNotificationConfig, saveNotificationConfig, sendTestNotification } from "../notifications.ts";
 import { redactSensitiveData } from "../redact.ts";
+import { discoverProjects, canonicalProjectId } from "../projects.ts";
 
 let DatabaseClass: any = null;
 async function getSqliteDatabase() {
@@ -56,6 +57,8 @@ export interface ServerOpts {
   port?: number;
   dir?: string;
   dbPath?: string;
+  projectRegistryDir?: string;
+  projectScanRoots?: string[];
 }
 
 export function assertSessionId(id: string): void {
@@ -77,12 +80,396 @@ export function startGuiServer(opts: ServerOpts = {}) {
   const port = opts.port ?? parseInt(process.env.OPENCODE_CRON_PORT ?? "4488", 10);
   const directory = opts.dir ?? process.cwd();
   const dbPath = opts.dbPath ?? path.join(process.env.HOME ?? "", ".local", "share", "opencode", "opencode.db");
+  const projectRegistryDir = opts.projectRegistryDir ?? path.join(process.env.HOME ?? "", ".config", "opencode-cron", "registry");
+  const projectScanRoots = opts.projectScanRoots ?? [path.join(process.env.HOME ?? "", "Desktop")];
 
   // In-memory rate-limit cache to prevent race conditions on parallel burst requests
   const webhookRateLimitTracker = new Map<string, number>();
 
   const concurrencyManager = new ConcurrencyManager(directory);
   concurrencyManager.init().catch(() => {});
+
+  // Handle project-scoped requests by delegating to existing API logic with a different directory
+  async function handleProjectRequest(req: Request, projectDir: string, projectDbPath: string, warnings: string[]): Promise<Response> {
+    const url = new URL(req.url);
+    const pathname = url.pathname;
+    const method = req.method;
+
+    // Reuse the same headers logic
+    const scopedHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+    };
+
+    if (method === "OPTIONS") {
+      return new Response(null, { headers: scopedHeaders });
+    }
+
+    // GET /api/status
+    if (pathname === "/api/status" && method === "GET") {
+      return new Response(JSON.stringify({ ok: true, directory: projectDir, dbPath: projectDbPath, timestamp: new Date().toISOString() }), { headers: scopedHeaders });
+    }
+
+    // GET /api/jobs
+    if (pathname === "/api/jobs" && method === "GET") {
+      const jobs = await loadJobs(projectDir);
+      const tag = url.searchParams.get("tag") || undefined;
+      const category = url.searchParams.get("category") || undefined;
+      const status = (url.searchParams.get("status") as any) || undefined;
+      const search = url.searchParams.get("search") || undefined;
+      const filtered = filterJobs(jobs, { tag, category, status, search });
+      return new Response(JSON.stringify(filtered), { headers: scopedHeaders });
+    }
+
+    // POST /api/jobs
+    if (pathname === "/api/jobs" && method === "POST") {
+      try {
+        const body: any = await req.json();
+        const norm = normalizeSchedule({ ...parseScheduleStr(body.scheduleStr), timezone: body.timezone ? String(body.timezone).trim() : undefined });
+
+        const rand = Math.random().toString(36).slice(2, 8);
+        const slug = (body.title || "job").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+        const id = `${slug}-${Date.now().toString(36)}-${rand}`;
+        const now = new Date().toISOString();
+
+        let adaptive: any = undefined;
+        if (body.adaptive && typeof body.adaptive === "object" && body.adaptive.enabled) {
+          const burstMs = body.adaptive.burst ? parseEveryToMs(String(body.adaptive.burst)) : (typeof body.adaptive.burstEveryMs === "number" ? body.adaptive.burstEveryMs : 60_000);
+          const idleMs = body.adaptive.idle ? parseEveryToMs(String(body.adaptive.idle)) : (typeof body.adaptive.idleEveryMs === "number" ? body.adaptive.idleEveryMs : 1_800_000);
+          const quietThreshold = typeof body.adaptive.quietThreshold === "number" ? Math.max(1, body.adaptive.quietThreshold) : 3;
+          adaptive = { enabled: true, burstEveryMs: Math.max(60_000, burstMs), idleEveryMs: Math.max(60_000, idleMs), quietThreshold, consecutiveQuietTicks: 0, currentCadence: "normal", activeUntil: null };
+        }
+
+        let pipeline: any = undefined;
+        if (body.pipeline && typeof body.pipeline === "object" && body.pipeline.enabled) {
+          const rawSuccess = Array.isArray(body.pipeline.onSuccess) ? body.pipeline.onSuccess.map(String) : [];
+          const rawFailure = Array.isArray(body.pipeline.onFailure) ? body.pipeline.onFailure.map(String) : [];
+          for (const s of rawSuccess) assertJobId(s);
+          for (const f of rawFailure) assertJobId(f);
+          pipeline = { enabled: true, onSuccess: rawSuccess, onFailure: rawFailure, passPayload: body.pipeline.passPayload === true, maxDepth: Math.min(10, Math.max(1, parseInt(body.pipeline.maxDepth) || 5)) };
+        }
+
+        let webhook: any = undefined;
+        if (body.webhook && typeof body.webhook === "object" && body.webhook.enabled) {
+          webhook = { enabled: true, token: body.webhook.token || generateWebhookToken(), secret: body.webhook.secret || undefined, passPayload: body.webhook.passPayload !== false, rateLimitSeconds: typeof body.webhook.rateLimitSeconds === "number" ? Math.max(1, body.webhook.rateLimitSeconds) : 5, lastTriggeredAt: null };
+        }
+
+        let guard: any = undefined;
+        if (body.guard && typeof body.guard === "object" && body.guard.enabled) {
+          guard = { enabled: true, command: body.guard.command ? String(body.guard.command).trim() : undefined, httpUrl: body.guard.httpUrl ? String(body.guard.httpUrl).trim() : undefined, expectedStatus: parseInt(body.guard.expectedStatus) || 200, timeoutMs: Math.min(60_000, Math.max(1000, parseInt(body.guard.timeoutMs) || 5000)) };
+        }
+
+        let tags: string[] = [];
+        if (Array.isArray(body.tags)) {
+          tags = body.tags.map((t: any) => String(t).toLowerCase().trim()).filter(Boolean).slice(0, 10);
+        } else if (typeof body.tags === "string" && body.tags.trim()) {
+          tags = body.tags.split(",").map((t: string) => t.toLowerCase().trim()).filter(Boolean).slice(0, 10);
+        }
+
+        const job = CronJobSchema.parse({
+          id, sessionID: body.sessionID, directory: projectDir, title: body.title,
+          systemPrompt: body.systemPrompt, followupPrompt: body.followupPrompt,
+          schedule: { kind: norm.kind, everyMs: norm.everyMs, cron: norm.cron, timezone: norm.timezone },
+          adaptive, pipeline, webhook,
+          priority: body.priority ? JobPrioritySchema.parse(body.priority) : "normal",
+          guard, tags, category: body.category ? String(body.category).trim() : undefined,
+          timeoutMs: typeof body.timeoutMs === "number" && body.timeoutMs >= 5000 ? Math.floor(body.timeoutMs) : undefined,
+          agent: body.agent || "build", model: body.model || undefined, enabled: true,
+          catchUp: false, skipIfRunning: true, maxRuns: parseInt(body.maxRuns) || 0,
+          maxConsecutiveFailures: 5, runCount: 0, consecutiveFailures: 0, createdAt: now,
+        });
+
+        await ensureCronDir(projectDir);
+        await upsertJob(projectDir, job);
+        await writeMemory(projectDir, job.id, initialMemoryMd({ title: job.title, systemPrompt: job.systemPrompt, followupPrompt: job.followupPrompt }), { seenHashes: [], counts: { news: 0, tweets: 0 }, lastRunAt: null, consecutiveFailures: 0 });
+        return new Response(JSON.stringify({ ok: true, job }), { headers: scopedHeaders });
+      } catch (e: any) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers: scopedHeaders });
+      }
+    }
+
+    // PUT /api/jobs/:id
+    if (pathname.startsWith("/api/jobs/") && method === "PUT") {
+      const id = decodeURIComponent(pathname.replace("/api/jobs/", ""));
+      try {
+        assertJobId(id);
+        const body: any = await req.json();
+        const jobs = await loadJobs(projectDir);
+        const j = jobs.find((x) => x.id === id);
+        if (!j) return new Response(JSON.stringify({ ok: false, error: "Job not found" }), { status: 404, headers: scopedHeaders });
+
+        if (body.title) j.title = body.title;
+        if (body.systemPrompt) j.systemPrompt = body.systemPrompt;
+        if (body.followupPrompt) j.followupPrompt = body.followupPrompt;
+        if (body.sessionID) j.sessionID = body.sessionID;
+        if (body.model !== undefined) j.model = body.model || undefined;
+        if (body.priority) j.priority = JobPrioritySchema.parse(body.priority);
+        if (typeof body.maxRuns === "number") j.maxRuns = body.maxRuns;
+
+        if (body.adaptive !== undefined) {
+          if (body.adaptive === null || body.adaptive.enabled === false) {
+            j.adaptive = undefined;
+          } else {
+            const burstMs = body.adaptive.burst ? parseEveryToMs(String(body.adaptive.burst)) : (typeof body.adaptive.burstEveryMs === "number" ? body.adaptive.burstEveryMs : (j.adaptive?.burstEveryMs ?? 60_000));
+            const idleMs = body.adaptive.idle ? parseEveryToMs(String(body.adaptive.idle)) : (typeof body.adaptive.idleEveryMs === "number" ? body.adaptive.idleEveryMs : (j.adaptive?.idleEveryMs ?? 1_800_000));
+            const quietThreshold = typeof body.adaptive.quietThreshold === "number" ? Math.max(1, body.adaptive.quietThreshold) : (j.adaptive?.quietThreshold ?? 3);
+            j.adaptive = { enabled: true, burstEveryMs: Math.max(60_000, burstMs), idleEveryMs: Math.max(60_000, idleMs), quietThreshold, consecutiveQuietTicks: j.adaptive?.consecutiveQuietTicks ?? 0, currentCadence: j.adaptive?.currentCadence ?? "normal", activeUntil: j.adaptive?.activeUntil ?? null };
+          }
+        }
+
+        if (body.pipeline !== undefined) {
+          if (body.pipeline === null || body.pipeline.enabled === false) { j.pipeline = undefined; }
+          else {
+            const rawSuccess = Array.isArray(body.pipeline.onSuccess) ? body.pipeline.onSuccess.map(String) : [];
+            const rawFailure = Array.isArray(body.pipeline.onFailure) ? body.pipeline.onFailure.map(String) : [];
+            for (const s of rawSuccess) assertJobId(s);
+            for (const f of rawFailure) assertJobId(f);
+            j.pipeline = { enabled: true, onSuccess: rawSuccess, onFailure: rawFailure, passPayload: body.pipeline.passPayload === true, maxDepth: Math.min(10, Math.max(1, parseInt(body.pipeline.maxDepth) || 5)) };
+          }
+        }
+
+        if (body.webhook !== undefined) {
+          if (body.webhook === null || body.webhook.enabled === false) { j.webhook = undefined; }
+          else { j.webhook = { enabled: true, token: body.webhook.token || j.webhook?.token || generateWebhookToken(), secret: body.webhook.secret !== undefined ? (body.webhook.secret || undefined) : j.webhook?.secret, passPayload: body.webhook.passPayload !== false, rateLimitSeconds: typeof body.webhook.rateLimitSeconds === "number" ? Math.max(1, body.webhook.rateLimitSeconds) : 5, lastTriggeredAt: j.webhook?.lastTriggeredAt ?? null }; }
+        }
+
+        if (body.tags !== undefined) {
+          if (Array.isArray(body.tags)) { j.tags = body.tags.map((t: any) => String(t).toLowerCase().trim()).filter(Boolean).slice(0, 10); }
+          else if (typeof body.tags === "string") { j.tags = body.tags.split(",").map((t: string) => t.toLowerCase().trim()).filter(Boolean).slice(0, 10); }
+        }
+
+        if (body.category !== undefined) { j.category = body.category ? String(body.category).trim() : undefined; }
+        if (body.timeoutMs !== undefined) { j.timeoutMs = typeof body.timeoutMs === "number" && body.timeoutMs >= 5000 ? Math.floor(body.timeoutMs) : undefined; }
+        if (body.guard !== undefined) {
+          if (body.guard === null || body.guard.enabled === false) { j.guard = undefined; }
+          else { j.guard = { enabled: true, command: body.guard.command ? String(body.guard.command).trim() : undefined, httpUrl: body.guard.httpUrl ? String(body.guard.httpUrl).trim() : undefined, expectedStatus: parseInt(body.guard.expectedStatus) || 200, timeoutMs: Math.min(60_000, Math.max(1000, parseInt(body.guard.timeoutMs) || 5000)) }; }
+        }
+
+        if (body.scheduleStr || body.timezone !== undefined) {
+          const schedInput = body.scheduleStr || (j.schedule.cron || (j.schedule.everyMs ? `${j.schedule.everyMs / 1000}s` : "5m"));
+          const targetTz = body.timezone !== undefined ? (body.timezone ? String(body.timezone).trim() : undefined) : j.schedule.timezone;
+          const norm = normalizeSchedule({ ...parseScheduleStr(schedInput), timezone: targetTz });
+          j.schedule = { kind: norm.kind, everyMs: norm.everyMs, cron: norm.cron, timezone: norm.timezone };
+          j.nextRunAt = computeNextRun(j, new Date());
+        } else if (j.enabled && (!j.nextRunAt || new Date(j.nextRunAt).getTime() <= Date.now())) {
+          j.nextRunAt = computeNextRun(j, new Date());
+        }
+
+        validatePipelineDAG(jobs);
+        CronJobSchema.parse(j);
+        await saveJobs(projectDir, jobs);
+        return new Response(JSON.stringify({ ok: true, job: j }), { headers: scopedHeaders });
+      } catch (e: any) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers: scopedHeaders });
+      }
+    }
+
+    // DELETE /api/jobs/:id
+    if (pathname.startsWith("/api/jobs/") && method === "DELETE") {
+      const id = decodeURIComponent(pathname.replace("/api/jobs/", ""));
+      try {
+        assertJobId(id);
+        await removeJob(projectDir, id);
+        return new Response(JSON.stringify({ ok: true }), { headers: scopedHeaders });
+      } catch (e: any) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers: scopedHeaders });
+      }
+    }
+
+    // POST /api/jobs/:id/toggle
+    if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/toggle") && method === "POST") {
+      const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/toggle".length));
+      try {
+        assertJobId(id);
+        const body: any = await req.json();
+        const jobs = await loadJobs(projectDir);
+        const j = jobs.find((x) => x.id === id);
+        if (!j) return new Response(JSON.stringify({ ok: false, error: "Not found" }), { status: 404, headers: scopedHeaders });
+
+        j.enabled = Boolean(body.enabled);
+        if (j.enabled) { j.consecutiveFailures = 0; j.nextRunAt = computeNextRun(j, new Date()); }
+        await saveJobs(projectDir, jobs);
+        return new Response(JSON.stringify({ ok: true, job: j }), { headers: scopedHeaders });
+      } catch (e: any) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers: scopedHeaders });
+      }
+    }
+
+    // POST /api/jobs/:id/run
+    if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/run") && method === "POST") {
+      const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/run".length));
+      try {
+        assertJobId(id);
+        const jobs = await loadJobs(projectDir);
+        const j = jobs.find((x) => x.id === id);
+        if (!j) return new Response(JSON.stringify({ ok: false, error: "Job non trovato" }), { status: 404, headers: scopedHeaders });
+        if (!j.enabled) return new Response(JSON.stringify({ ok: false, error: "Il job è in pausa. Riattivalo prima di eseguire un tick." }), { status: 400, headers: scopedHeaders });
+        if (j.maxRuns > 0 && j.runCount >= j.maxRuns) {
+          return new Response(JSON.stringify({ ok: false, error: `Limite Max Runs raggiunto (${j.runCount}/${j.maxRuns}). Aumenta Max Runs o imposta 0.` }), { status: 400, headers: scopedHeaders });
+        }
+
+        const isAsync = url.searchParams.get("async") === "true";
+        const scopedConcurrencyManager = new ConcurrencyManager(projectDir);
+        await scopedConcurrencyManager.init();
+        const enqueuePromise = scopedConcurrencyManager.enqueue({
+          jobId: id, priority: j.priority ?? "normal", source: "manual", skipIfRunning: j.skipIfRunning ?? true,
+          execute: () => runJobHeadless(projectDir, id),
+        });
+
+        if (isAsync) {
+          return new Response(JSON.stringify({ ok: true, queued: true, jobId: id }), { headers: scopedHeaders });
+        }
+
+        const res = await enqueuePromise;
+        if (res.status === "skipped") {
+          return new Response(JSON.stringify({ ok: false, error: res.error || "Job già in esecuzione o saltato", skipped: true }), { status: 409, headers: scopedHeaders });
+        }
+        const code = typeof res.result === "number" ? res.result : (res.status === "completed" ? 0 : 1);
+        return new Response(JSON.stringify({ ok: code === 0, code, status: res.status, error: res.error }), { headers: scopedHeaders });
+      } catch (e: any) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: scopedHeaders });
+      }
+    }
+
+    // POST /api/jobs/:id/burst
+    if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/burst") && method === "POST") {
+      const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/burst".length));
+      try {
+        assertJobId(id);
+        const body: any = await req.json();
+        const jobs = await loadJobs(projectDir);
+        const j = jobs.find((x) => x.id === id);
+        if (!j) return new Response(JSON.stringify({ ok: false, error: "Not found" }), { status: 404, headers: scopedHeaders });
+        if (!j.adaptive || !j.adaptive.enabled) return new Response(JSON.stringify({ ok: false, error: "Adaptive scheduling non abilitato" }), { status: 400, headers: scopedHeaders });
+
+        const minutes = Math.max(1, Math.min(60, parseInt(body.minutes) || 5));
+        j.adaptive.activeUntil = new Date(Date.now() + minutes * 60_000).toISOString();
+        j.adaptive.currentCadence = "burst";
+        await saveJobs(projectDir, jobs);
+        return new Response(JSON.stringify({ ok: true, job: j, activeUntil: j.adaptive.activeUntil }), { headers: scopedHeaders });
+      } catch (e: any) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers: scopedHeaders });
+      }
+    }
+
+    // POST /api/jobs/:id/pipeline
+    if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/pipeline") && method === "POST") {
+      const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/pipeline".length));
+      try {
+        assertJobId(id);
+        const body: any = await req.json();
+        const jobs = await loadJobs(projectDir);
+        const j = jobs.find((x) => x.id === id);
+        if (!j) return new Response(JSON.stringify({ ok: false, error: "Not found" }), { status: 404, headers: scopedHeaders });
+
+        if (body.pipeline === null || body.pipeline?.enabled === false) { j.pipeline = undefined; }
+        else {
+          const rawSuccess = Array.isArray(body.pipeline?.onSuccess) ? body.pipeline.onSuccess.map(String) : [];
+          const rawFailure = Array.isArray(body.pipeline?.onFailure) ? body.pipeline.onFailure.map(String) : [];
+          for (const s of rawSuccess) assertJobId(s);
+          for (const f of rawFailure) assertJobId(f);
+          j.pipeline = { enabled: true, onSuccess: rawSuccess, onFailure: rawFailure, passPayload: body.pipeline?.passPayload === true, maxDepth: Math.min(10, Math.max(1, parseInt(body.pipeline?.maxDepth) || 5)) };
+        }
+        validatePipelineDAG(jobs);
+        CronJobSchema.parse(j);
+        await saveJobs(projectDir, jobs);
+        return new Response(JSON.stringify({ ok: true, job: j }), { headers: scopedHeaders });
+      } catch (e: any) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers: scopedHeaders });
+      }
+    }
+
+    // GET /api/jobs/:id/webhook
+    if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/webhook") && method === "GET") {
+      const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/webhook".length));
+      try {
+        assertJobId(id);
+        const jobs = await loadJobs(projectDir);
+        const j = jobs.find((x) => x.id === id);
+        if (!j) return new Response(JSON.stringify({ ok: false, error: "Not found" }), { status: 404, headers: scopedHeaders });
+        return new Response(JSON.stringify({ ok: true, webhook: j.webhook ?? { enabled: false } }), { headers: scopedHeaders });
+      } catch (e: any) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: scopedHeaders });
+      }
+    }
+
+    // POST /api/jobs/:id/webhook
+    if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/webhook") && method === "POST") {
+      const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/webhook".length));
+      try {
+        assertJobId(id);
+        const body: any = await req.json();
+        const jobs = await loadJobs(projectDir);
+        const j = jobs.find((x) => x.id === id);
+        if (!j) return new Response(JSON.stringify({ ok: false, error: "Not found" }), { status: 404, headers: scopedHeaders });
+
+        if (body.webhook === null || body.webhook?.enabled === false) { j.webhook = undefined; }
+        else { j.webhook = { enabled: true, token: body.webhook.token || j.webhook?.token || generateWebhookToken(), secret: body.webhook.secret !== undefined ? (body.webhook.secret || undefined) : j.webhook?.secret, passPayload: body.webhook.passPayload !== false, rateLimitSeconds: typeof body.webhook.rateLimitSeconds === "number" ? Math.max(1, body.webhook.rateLimitSeconds) : 5, lastTriggeredAt: j.webhook?.lastTriggeredAt ?? null }; }
+        CronJobSchema.parse(j);
+        await saveJobs(projectDir, jobs);
+        const port = parseInt(process.env.OPENCODE_CRON_PORT ?? "4488", 10);
+        const webhookUrl = `http://127.0.0.1:${port}/api/webhook/${j.id}`;
+        const tokenStr = j.webhook?.token ? `?token=${j.webhook.token}` : "";
+        return new Response(JSON.stringify({ ok: true, webhook: j.webhook, webhookUrl: `${webhookUrl}${tokenStr}` }), { headers: scopedHeaders });
+      } catch (e: any) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers: scopedHeaders });
+      }
+    }
+
+    // POST /api/jobs/:id/priority
+    if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/priority") && method === "POST") {
+      const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/priority".length));
+      try {
+        assertJobId(id);
+        const body: any = await req.json();
+        const jobs = await loadJobs(projectDir);
+        const j = jobs.find((x) => x.id === id);
+        if (!j) return new Response(JSON.stringify({ ok: false, error: "Not found" }), { status: 404, headers: scopedHeaders });
+        j.priority = JobPrioritySchema.parse(body.priority);
+        await saveJobs(projectDir, jobs);
+        return new Response(JSON.stringify({ ok: true, job: j }), { headers: scopedHeaders });
+      } catch (e: any) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers: scopedHeaders });
+      }
+    }
+
+    // POST /api/jobs/:id/circuit
+    if (pathname.startsWith("/api/jobs/") && pathname.endsWith("/circuit") && method === "POST") {
+      const id = decodeURIComponent(pathname.slice("/api/jobs/".length, -"/circuit".length));
+      try {
+        assertJobId(id);
+        const body: any = await req.json();
+        const jobs = await loadJobs(projectDir);
+        const j = jobs.find((x) => x.id === id);
+        if (!j) return new Response(JSON.stringify({ ok: false, error: "Not found" }), { status: 404, headers: scopedHeaders });
+        if (body.reset) { j.circuitBreaker = undefined; }
+        else if (body.trip) { j.circuitBreaker = { state: "open", trippedAt: new Date().toISOString(), resetTimeoutMs: 1800_000, halfOpenAt: null, lastFailureReason: body.reason || "Manual trip" }; }
+        await saveJobs(projectDir, jobs);
+        return new Response(JSON.stringify({ ok: true, job: j }), { headers: scopedHeaders });
+      } catch (e: any) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers: scopedHeaders });
+      }
+    }
+
+    // GET /api/runs
+    if (pathname === "/api/runs" && method === "GET") {
+      try {
+        const limitParam = parseInt(url.searchParams.get("limit") ?? "200", 10);
+        const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 500) : 200;
+        const result = await getUnifiedRuns({ directory: projectDir, dbPath: projectDbPath, limit });
+        const sanitizedRuns = (result.runs || []).map((r: any) => ({ ...r, outputPreview: r.outputPreview ? redactSensitiveData(r.outputPreview) : null, error: r.error ? redactSensitiveData(r.error) : null }));
+        return new Response(JSON.stringify({ ...result, runs: sanitizedRuns }), { headers: scopedHeaders });
+      } catch (e: any) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: scopedHeaders });
+      }
+    }
+
+    return new Response("Not found", { status: 404, headers: scopedHeaders });
+  }
 
   const handler = async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
@@ -1612,6 +1999,81 @@ export function startGuiServer(opts: ServerOpts = {}) {
         } catch (e: any) {
           return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
         }
+      }
+
+      // 19. GET /api/projects (Global project catalog)
+      if (pathname === "/api/projects" && method === "GET") {
+        try {
+          const catalog = await discoverProjects({
+            directory,
+            registryDir: projectRegistryDir,
+            scanRoots: projectScanRoots,
+          });
+          return new Response(JSON.stringify({ ok: true, projects: catalog.projects, warnings: catalog.warnings }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
+      // 20. GET /api/global/jobs (All jobs across all projects)
+      if (pathname === "/api/global/jobs" && method === "GET") {
+        try {
+          const catalog = await discoverProjects({
+            directory,
+            registryDir: projectRegistryDir,
+            scanRoots: projectScanRoots,
+          });
+          const allJobs: any[] = [];
+          const warnings: string[] = [];
+          for (const proj of catalog.projects) {
+            try {
+              const jobs = await loadJobs(proj.directory);
+              for (const job of jobs) {
+                const { webhook, systemPrompt, followupPrompt, ...summary } = job as any;
+                allJobs.push({ ...summary, projectId: proj.id, projectName: proj.name });
+              }
+            } catch (e: any) {
+              warnings.push(`Project ${proj.name}: ${e.message}`);
+            }
+          }
+          return new Response(JSON.stringify({ ok: true, jobs: allJobs, warnings }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
+        }
+      }
+
+      // 21. Project-scoped API: /p/:projectId/...
+      if (pathname.startsWith("/p/") && method !== "OPTIONS") {
+        const parts = pathname.split("/").filter(Boolean);
+        if (parts.length < 2 || parts[0] !== "p") {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid project path" }), { status: 404, headers });
+        }
+        const projectId = decodeURIComponent(parts[1]);
+        if (projectId.includes("..") || projectId.includes("/") || projectId.includes("\\")) {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid project ID" }), { status: 400, headers });
+        }
+        const catalog = await discoverProjects({
+          directory,
+          registryDir: projectRegistryDir,
+          scanRoots: projectScanRoots,
+        });
+        const project = catalog.projects.find((p) => p.id === projectId);
+        if (!project) {
+          return new Response(JSON.stringify({ ok: false, error: "Project not found" }), { status: 404, headers });
+        }
+        const projectDir = project.directory;
+        const scopedPath = "/" + parts.slice(2).join("/");
+        const scopedUrl = new URL(scopedPath, "http://localhost");
+        scopedUrl.search = url.search;
+
+        // Delegate to existing handlers with project directory
+        const scopedReq = new Request(scopedUrl.toString(), {
+          method,
+          headers: req.headers,
+          body: ["GET", "HEAD"].includes(method) ? undefined : req.body,
+        });
+        const scopedRes = await handleProjectRequest(scopedReq, projectDir, dbPath, catalog.warnings);
+        return scopedRes;
       }
 
       return new Response("Not found", { status: 404 });

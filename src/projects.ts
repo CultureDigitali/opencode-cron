@@ -22,6 +22,8 @@ export interface ProjectDiscoveryOptions {
   maxDepth?: number;
 }
 
+export { canonicalProjectId };
+
 function canonicalProjectId(dir: string): string {
   return createHash("sha256").update(dir).digest("hex").slice(0, 16);
 }
