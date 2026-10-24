@@ -1625,8 +1625,6 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
 
       container.innerHTML = filteredJobs.map(job => {
         const isMaxed = job.maxRuns > 0 && job.runCount >= job.maxRuns;
-        if (job.enabled && !isMaxed) activeCount++;
-        totalRuns += (job.runCount || 0);
         if (job.enabled && !isMaxed && job.nextRunAt) {
           const ts = new Date(job.nextRunAt).getTime();
           if (!earliestNext || ts < earliestNext) earliestNext = ts;

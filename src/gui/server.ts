@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { getHtml } from "./html.ts";
 import { getRunsHtml } from "./runs-html.ts";
 import { getInstructionsHtml } from "./instructions-html.ts";
+import { getGlobalHtml } from "./global-html.ts";
 import { loadJobs, saveJobs, upsertJob, removeJob, ensureCronDir, computeNextRun, assertJobId, filterJobs } from "../store.ts";
 import { normalizeSchedule, explainSchedule, explainAdaptive, parseEveryToMs, previewSchedule } from "../schedule.ts";
 import { readMemory, writeMemory, initialMemoryMd } from "../memory.ts";
@@ -523,9 +524,9 @@ export function startGuiServer(opts: ServerOpts = {}) {
         });
       }
 
-      // 1. Root: Web Dashboard HTML
+      // 1. Root: Global Dashboard HTML (all projects)
       if (pathname === "/" && (method === "GET" || method === "HEAD")) {
-        return new Response(method === "HEAD" ? null : getHtml(`OpenCode Cron - ${path.basename(directory)}`), {
+        return new Response(method === "HEAD" ? null : getGlobalHtml(), {
           headers: { "Content-Type": "text/html; charset=utf-8" },
         });
       }
@@ -542,6 +543,29 @@ export function startGuiServer(opts: ServerOpts = {}) {
         return new Response(method === "HEAD" ? null : getInstructionsHtml(`Istruzioni & Guida Completa - ${path.basename(directory)}`), {
           headers: { "Content-Type": "text/html; charset=utf-8" },
         });
+      }
+
+      // 1d. Project-scoped Dashboard HTML: /p/:projectId/
+      if (pathname.startsWith("/p/") && pathname.endsWith("/") && (method === "GET" || method === "HEAD")) {
+        const parts = pathname.split("/").filter(Boolean);
+        if (parts.length === 2 && parts[0] === "p") {
+          const projectId = decodeURIComponent(parts[1]);
+          if (!projectId.includes("..") && !projectId.includes("/") && !projectId.includes("\\")) {
+            const catalog = await discoverProjects({ directory, registryDir: projectRegistryDir, scanRoots: projectScanRoots });
+            const project = catalog.projects.find((p) => p.id === projectId);
+            if (project) {
+              // Scope the existing project HTML to use /p/:projectId/ prefix for all API calls and navigation
+              const scopedHtml = getHtml(`OpenCode Cron - ${path.basename(project.directory)}`)
+                .replace(/(href|action)=["']\/(?!api)/g, '$1="/p/' + projectId + '/')
+                .replace(/fetch\(['"`]\/(?!api)/g, 'fetch("' + '/p/' + projectId + '/')
+                .replace(/new URL\(['"`]\/(?!api)/g, 'new URL("' + '/p/' + projectId + '/');
+              return new Response(method === "HEAD" ? null : scopedHtml, {
+                headers: { "Content-Type": "text/html; charset=utf-8" },
+              });
+            }
+          }
+        }
+        return new Response("Not found", { status: 404 });
       }
 
       // 2. GET /api/status
