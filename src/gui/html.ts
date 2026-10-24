@@ -357,6 +357,18 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
             </select>
           </div>
 
+          <!-- Project dropdown (Multi-Project Support) -->
+          <div class="shrink-0">
+            <select
+              id="job-filter-project"
+              onchange="applyJobFilters()"
+              aria-label="Filtra per Progetto"
+              class="w-full sm:w-auto bg-slate-100 border border-darkborder rounded-lg px-2.5 py-1.5 text-xs text-slate-700 font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
+            >
+              <option value="all">📁 Tutti i Progetti</option>
+            </select>
+          </div>
+
           <!-- Match count readout -->
           <div class="text-[11px] text-slate-500 font-mono text-right sm:text-left shrink-0 whitespace-nowrap self-center px-1">
             <span id="job-filtered-count">0</span> / <span id="job-total-count">0</span>
@@ -1484,7 +1496,7 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
     // Jobs management
     async function loadJobs() {
       try {
-        const res = await fetch('/api/jobs');
+        const res = await fetch('/api/jobs?all=true');
         currentJobs = await res.json();
         renderJobs();
         refreshQueueBadge().catch(() => {});
@@ -1510,6 +1522,8 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
       if (searchInput) searchInput.value = '';
       const clearBtn = document.getElementById('job-filter-search-clear');
       if (clearBtn) clearBtn.classList.add('hidden');
+      const projSelect = document.getElementById('job-filter-project');
+      if (projSelect) projSelect.value = 'all';
       activeFilterTag = '';
       renderJobs();
     }
@@ -1566,6 +1580,26 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
         }
       }
 
+      // Dynamically populate project dropdown options from currentJobs
+      const projectSelect = document.getElementById('job-filter-project');
+      if (projectSelect) {
+        const selectedProj = projectSelect.value || 'all';
+        const uniqueProjects = new Set(['all']);
+        currentJobs.forEach(j => {
+          if (j.projectName && j.projectName.trim()) uniqueProjects.add(j.projectName.trim());
+        });
+        const currentOptions = Array.from(projectSelect.options).map(o => o.value);
+        const needsUpdate = Array.from(uniqueProjects).some(p => !currentOptions.includes(p));
+        if (needsUpdate || projectSelect.options.length <= 1) {
+          projectSelect.innerHTML = '<option value="all">📁 Tutti i Progetti</option>' +
+            Array.from(uniqueProjects).filter(p => p !== 'all').map(p => {
+              const count = currentJobs.filter(j => j.projectName === p).length;
+              return \`<option value="\${escapeHtml(p)}">📁 \${escapeHtml(p)} (\${count})</option>\`;
+            }).join('');
+          projectSelect.value = selectedProj;
+        }
+      }
+
       const searchQuery = (searchInput?.value || '').toLowerCase().trim();
       if (searchClearBtn) {
         if (searchQuery) searchClearBtn.classList.remove('hidden');
@@ -1573,6 +1607,7 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
       }
       const categoryFilter = categorySelect?.value || 'all';
       const statusFilter = statusSelect?.value || 'all';
+      const projectFilter = document.getElementById('job-filter-project')?.value || 'all';
 
       if (totalCountEl) totalCountEl.textContent = String(currentJobs.length);
 
@@ -1595,6 +1630,7 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
 
       // Filter jobs
       const filteredJobs = currentJobs.filter(job => {
+        if (projectFilter !== 'all' && (job.projectName || '').toLowerCase() !== projectFilter.toLowerCase()) return false;
         if (categoryFilter !== 'all' && (job.category || 'general').toLowerCase() !== categoryFilter.toLowerCase()) return false;
         if (statusFilter === 'enabled' && !job.enabled) return false;
         if (statusFilter === 'disabled' && job.enabled) return false;
@@ -1604,8 +1640,9 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
           const matchTitle = (job.title || '').toLowerCase().includes(searchQuery);
           const matchId = (job.id || '').toLowerCase().includes(searchQuery);
           const matchCategory = (job.category || '').toLowerCase().includes(searchQuery);
+          const matchProject = (job.projectName || '').toLowerCase().includes(searchQuery);
           const matchTags = Array.isArray(job.tags) && job.tags.some(t => t.toLowerCase().includes(searchQuery));
-          if (!matchTitle && !matchId && !matchCategory && !matchTags) return false;
+          if (!matchTitle && !matchId && !matchCategory && !matchProject && !matchTags) return false;
         }
         return true;
       });
@@ -1697,6 +1734,10 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
           ? \`<span class="text-slate-500 font-mono text-[9px]">(\${escapeHtml(job.schedule.timezone)})</span>\`
           : '';
 
+        const projectBadge = job.projectName
+          ? \`<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60 flex items-center gap-1"><i class="fa-solid fa-folder text-[9px] text-indigo-500"></i> \${escapeHtml(job.projectName)}</span>\`
+          : '';
+
         const schedDesc = job.schedule.kind === 'interval'
           ? formatInterval(job.schedule.everyMs)
           : 'Cron: ' + escapeHtml(job.schedule.cron || '');
@@ -1715,6 +1756,7 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
                     <span class="oc-job-dot \${job.enabled ? 'bg-emerald-500 pulse-dot' : 'bg-slate-300'}" aria-hidden="true"></span>
                     <h3 class="text-sm font-bold text-slate-900 tracking-tight">\${safeTitle}</h3>
                     \${statusBadge}
+                    \${projectBadge}
                     \${circuitBadge}
                     \${priorityBadge}
                     \${categoryBadge}
@@ -1809,12 +1851,6 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
           </div>
         \`;
       }).join('');
-
-      document.getElementById('stat-active').textContent = activeCount;
-      document.getElementById('stat-runs').textContent = totalRuns;
-      document.getElementById('stat-next-tick').textContent = earliestNext
-        ? new Date(earliestNext).toLocaleTimeString()
-        : '-';
     }
 
     // Trigger Tick Now
@@ -1826,7 +1862,9 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
       }
       showToast((typeof t === 'function' ? t('toast.tickRunning') : 'Esecuzione tick in corso per ') + id + '...', 'info');
       try {
-        const res = await fetch('/api/jobs/' + encodeURIComponent(id) + '/run', { method: 'POST' });
+        const job = currentJobs.find(j => j.id === id);
+        const dirQuery = job?.directory ? '?dir=' + encodeURIComponent(job.directory) : '';
+        const res = await fetch('/api/jobs/' + encodeURIComponent(id) + '/run' + dirQuery, { method: 'POST' });
         const data = await res.json();
         if (res.ok && data.ok) {
           showToast(typeof t === 'function' ? t('toast.tickSuccess') : 'Tick completato con successo!', 'success');
@@ -1848,7 +1886,9 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
     // Toggle Job Enabled/Disabled
     async function toggleJob(id, enable) {
       try {
-        const res = await fetch('/api/jobs/' + encodeURIComponent(id) + '/toggle', {
+        const job = currentJobs.find(j => j.id === id);
+        const dirQuery = job?.directory ? '?dir=' + encodeURIComponent(job.directory) : '';
+        const res = await fetch('/api/jobs/' + encodeURIComponent(id) + '/toggle' + dirQuery, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ enabled: enable })
@@ -1893,7 +1933,9 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
 
     async function executeDeleteJob(id) {
       try {
-        const res = await fetch('/api/jobs/' + encodeURIComponent(id), { method: 'DELETE' });
+        const job = currentJobs.find(j => j.id === id);
+        const dirQuery = job?.directory ? '?dir=' + encodeURIComponent(job.directory) : '';
+        const res = await fetch('/api/jobs/' + encodeURIComponent(id) + dirQuery, { method: 'DELETE' });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || 'Eliminazione fallita');
         showToast(typeof t === 'function' ? t('toast.jobDeleted') : 'Job eliminato con successo', 'success');
@@ -3386,7 +3428,9 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
       };
 
       try {
-        const url = id ? ('/api/jobs/' + encodeURIComponent(id)) : '/api/jobs';
+        const existingJob = id ? currentJobs.find(j => j.id === id) : null;
+        const dirQuery = existingJob?.directory ? '?dir=' + encodeURIComponent(existingJob.directory) : '';
+        const url = id ? ('/api/jobs/' + encodeURIComponent(id) + dirQuery) : '/api/jobs';
         const method = id ? 'PUT' : 'POST';
         const res = await fetch(url, {
           method,
