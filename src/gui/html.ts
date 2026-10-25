@@ -371,6 +371,48 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
             </select>
           </div>
 
+          <!-- Quick Batch Actions: Pausa Tutti / Riattiva Tutti -->
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onclick="pauseAllJobs()"
+              class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
+              title="Metti in pausa tutti i cronjob attivi con un clic"
+            >
+              <i class="fa-solid fa-pause text-[10px]"></i> <span class="hidden md:inline">Pausa</span> Tutti
+            </button>
+            <button
+              type="button"
+              onclick="resumeAllJobs()"
+              class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
+              title="Riattiva tutti i cronjob in pausa con un clic"
+            >
+              <i class="fa-solid fa-play text-[10px]"></i> <span class="hidden md:inline">Riattiva</span> Tutti
+            </button>
+          </div>
+
+          <!-- View Mode Toggle: Per Progetto vs Elenco -->
+          <div class="flex items-center bg-slate-200/80 p-0.5 rounded-lg border border-darkborder shrink-0 ml-auto sm:ml-0">
+            <button
+              type="button"
+              id="view-mode-grouped-btn"
+              onclick="setJobViewMode('grouped')"
+              class="px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all bg-white text-slate-900 shadow-sm flex items-center gap-1 cursor-pointer"
+              title="Raggruppa cron per Progetto"
+            >
+              <i class="fa-solid fa-folder text-[10px]"></i> <span class="hidden lg:inline">Per Progetto</span>
+            </button>
+            <button
+              type="button"
+              id="view-mode-flat-btn"
+              onclick="setJobViewMode('flat')"
+              class="px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-600 hover:text-slate-900 transition-all flex items-center gap-1 cursor-pointer"
+              title="Visualizza tutti in elenco compatto"
+            >
+              <i class="fa-solid fa-list text-[10px]"></i> <span class="hidden lg:inline">Elenco</span>
+            </button>
+          </div>
+
           <!-- Match count readout -->
           <div class="text-[11px] text-slate-500 font-mono text-right sm:text-left shrink-0 whitespace-nowrap self-center px-1">
             <span id="job-filtered-count">0</span> / <span id="job-total-count">0</span>
@@ -1446,6 +1488,90 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
       return Math.round(everyMs / 1000) + 's';
     }
 
+    function formatScheduleReadable(sched) {
+      if (!sched) return 'Nessuna cadenza';
+      if (sched.kind === 'interval') {
+        const ms = sched.everyMs;
+        if (!ms) return sched.every ? 'Ogni ' + sched.every : 'Ogni 1m';
+        if (ms === 60000) return 'Ogni 1 minuto';
+        if (ms === 300000) return 'Ogni 5 minuti';
+        if (ms === 900000) return 'Ogni 15 minuti';
+        if (ms === 1800000) return 'Ogni 30 minuti';
+        if (ms === 3600000) return 'Ogni ora';
+        if (ms % 3600000 === 0) return 'Ogni ' + (ms / 3600000) + ' ore';
+        if (ms % 60000 === 0) return 'Ogni ' + (ms / 60000) + ' minuti';
+        return 'Ogni ' + Math.round(ms / 1000) + 's';
+      }
+      return 'Cron: ' + (sched.cron || '') + (sched.timezone ? ' (' + sched.timezone + ')' : '');
+    }
+
+    let jobViewMode = localStorage.getItem('oc_cron_view_mode') || 'grouped';
+
+    function setJobViewMode(mode) {
+      jobViewMode = mode;
+      localStorage.setItem('oc_cron_view_mode', mode);
+      const groupedBtn = document.getElementById('view-mode-grouped-btn');
+      const flatBtn = document.getElementById('view-mode-flat-btn');
+      if (groupedBtn && flatBtn) {
+        if (mode === 'grouped') {
+          groupedBtn.className = 'px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all bg-white text-slate-900 shadow-sm flex items-center gap-1 cursor-pointer';
+          flatBtn.className = 'px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-600 hover:text-slate-900 transition-all flex items-center gap-1 cursor-pointer';
+        } else {
+          flatBtn.className = 'px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all bg-white text-slate-900 shadow-sm flex items-center gap-1 cursor-pointer';
+          groupedBtn.className = 'px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-600 hover:text-slate-900 transition-all flex items-center gap-1 cursor-pointer';
+        }
+      }
+      renderJobs();
+    }
+
+    async function pauseAllJobs() {
+      const activeJobs = currentJobs.filter(j => j.enabled);
+      if (activeJobs.length === 0) {
+        showToast('Nessun cronjob attivo al momento. Tutti i job sono già in pausa.', 'info');
+        return;
+      }
+      if (!confirm('Vuoi mettere in pausa tutti i ' + activeJobs.length + ' cronjob attivi?')) return;
+      showToast('Messa in pausa di ' + activeJobs.length + ' cronjob in corso...', 'info');
+      try {
+        await Promise.all(activeJobs.map(j => {
+          const dirQuery = j.directory ? '?dir=' + encodeURIComponent(j.directory) : '';
+          return fetch('/api/jobs/' + encodeURIComponent(j.id) + '/toggle' + dirQuery, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: false })
+          });
+        }));
+        showToast('Tutti i cronjob sono stati messi in pausa!', 'success');
+        await loadJobs();
+      } catch (err) {
+        showToast('Errore durante la pausa: ' + err.message, 'error');
+      }
+    }
+
+    async function resumeAllJobs() {
+      const pausedJobs = currentJobs.filter(j => !j.enabled && (!j.maxRuns || j.runCount < j.maxRuns));
+      if (pausedJobs.length === 0) {
+        showToast('Nessun cronjob in pausa da riattivare.', 'info');
+        return;
+      }
+      if (!confirm('Vuoi riattivare tutti i ' + pausedJobs.length + ' cronjob in pausa?')) return;
+      showToast('Riattivazione di ' + pausedJobs.length + ' cronjob in corso...', 'info');
+      try {
+        await Promise.all(pausedJobs.map(j => {
+          const dirQuery = j.directory ? '?dir=' + encodeURIComponent(j.directory) : '';
+          return fetch('/api/jobs/' + encodeURIComponent(j.id) + '/toggle' + dirQuery, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: true })
+          });
+        }));
+        showToast('Tutti i cronjob sono stati riattivati!', 'success');
+        await loadJobs();
+      } catch (err) {
+        showToast('Errore durante la riattivazione: ' + err.message, 'error');
+      }
+    }
+
     // Toast notifications with interactive selection and severity icons
     function showToast(msg, type = 'info') {
       const c = document.getElementById('toast-container');
@@ -1671,43 +1797,35 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
         return;
       }
 
-      container.innerHTML = filteredJobs.map(job => {
-        const isMaxed = job.maxRuns > 0 && job.runCount >= job.maxRuns;
-        if (job.enabled && !isMaxed && job.nextRunAt) {
-          const ts = new Date(job.nextRunAt).getTime();
-          if (!earliestNext || ts < earliestNext) earliestNext = ts;
-        }
+      function renderSingleJobCard(job, isMaxed) {
+        const schedDesc = formatScheduleReadable(job.schedule);
+        const safeId = escapeHtml(job.id);
+        const safeTitle = escapeHtml(job.title);
+        const safePrompt = escapeHtml(job.followupPrompt);
+        const safeSession = escapeHtml(job.sessionID);
+        const safeDir = escapeHtml(job.directory || '');
+
+        const matchedSes = currentSessions.find(s => s.id === job.sessionID);
+        const sessionDisplay = matchedSes && matchedSes.title ? escapeHtml(matchedSes.title) : safeSession;
+
+        const prio = job.priority || 'normal';
+        const prioBadge = prio === 'high'
+          ? \`<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200"><i class="fa-solid fa-fire text-rose-500 mr-1"></i>Alta priorità</span>\`
+          : (prio === 'low' ? \`<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200"><i class="fa-solid fa-bed text-slate-400 mr-1"></i>Bassa priorità</span>\` : '');
+
+        const catBadge = job.category
+          ? \`<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-darkborder"><i class="fa-solid fa-tag text-[9px] text-slate-400 mr-1"></i>\${escapeHtml(job.category)}</span>\`
+          : '';
+
+        const tagsPills = (Array.isArray(job.tags) && job.tags.length > 0)
+          ? job.tags.map(tag => \`<span onclick="filterByTag('\${escapeHtml(tag)}')" class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 text-slate-600 hover:text-slate-900 border border-darkborder cursor-pointer transition-colors">#\${escapeHtml(tag)}</span>\`).join(' ')
+          : '';
 
         const statusBadge = isMaxed
-          ? \`<span data-tooltip="tt.maxRunsBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-800 border border-amber-500/30">🏁 \${escapeHtml(t('job.completed'))} (\${job.runCount}/\${job.maxRuns})</span>\`
+          ? \`<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5"><i class="fa-solid fa-flag-checkered text-amber-600"></i> Completato (\${job.runCount}/\${job.maxRuns})</span>\`
           : job.enabled
-            ? \`<span data-tooltip="tt.kpiActive" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span>\${escapeHtml(t('job.active'))}</span>\`
-            : \`<span data-tooltip="tt.toggleBtn" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-500">\${escapeHtml(t('job.paused'))}</span>\`;
-
-        let adaptiveBadge = '';
-        if (job.adaptive && job.adaptive.enabled) {
-          const isForcedBurst = job.adaptive.activeUntil && new Date(job.adaptive.activeUntil).getTime() > Date.now();
-          const isBurst = job.adaptive.currentCadence === 'burst' || isForcedBurst;
-          const isIdle = job.adaptive.currentCadence === 'idle' && !isBurst;
-          if (isBurst) {
-            adaptiveBadge = \`<span data-tooltip="tt.burstBtn" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-800 border border-amber-500/30 flex items-center gap-1 animate-pulse"><i class="fa-solid fa-bolt text-amber-600"></i> \${escapeHtml(t('job.burstActive'))} (\${formatInterval(job.adaptive.burstEveryMs)})</span>\`;
-          } else if (isIdle) {
-            adaptiveBadge = \`<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1"><i class="fa-solid fa-moon text-indigo-600"></i> \${escapeHtml(t('job.idleActive'))} (\${formatInterval(job.adaptive.idleEveryMs)})</span>\`;
-          } else {
-            adaptiveBadge = \`<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 text-indigo-700 border border-indigo-500/20 flex items-center gap-1"><i class="fa-solid fa-gauge text-indigo-600"></i> \${escapeHtml(t('job.adaptiveBadge'))}</span>\`;
-          }
-        }
-
-        let pipelineBadge = '';
-        if (job.pipeline && job.pipeline.enabled) {
-          const okCount = job.pipeline.onSuccess ? job.pipeline.onSuccess.length : 0;
-          pipelineBadge = \`<span data-tooltip="tt.pipelineBtn" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-700 border border-cyan-500/20 flex items-center gap-1"><i class="fa-solid fa-diagram-project text-cyan-700"></i> \${escapeHtml(t('job.pipelineBadge'))}\${okCount > 0 ? ' [' + okCount + '→]' : ''}</span>\`;
-        }
-
-        let webhookBadge = '';
-        if (job.webhook && job.webhook.enabled) {
-          webhookBadge = \`<button onclick="openWebhookModal(this.dataset.jobId)" data-job-id="\${escapeHtml(job.id)}" data-tooltip="tt.webhookBtn" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 border border-violet-500/20 flex items-center gap-1 cursor-pointer"><i class="fa-solid fa-satellite-dish text-violet-600"></i> \${escapeHtml(t('job.webhookBadge'))}</button>\`;
-        }
+            ? \`<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5 shadow-sm"><span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span>ATTIVO</span>\`
+            : \`<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1.5"><i class="fa-solid fa-pause text-slate-400"></i> IN PAUSA</span>\`;
 
         let circuitBadge = '';
         if (job.circuitBreaker) {
@@ -1718,150 +1836,184 @@ export function getHtml(title: string = "OpenCode Cron - Web GUI"): string {
           }
         }
 
-        const prio = job.priority || 'normal';
-        const priorityBadge = prio === 'high'
-          ? \`<span data-tooltip="tt.priorityHigh" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30 flex items-center gap-1"><i class="fa-solid fa-fire text-rose-600"></i> \${escapeHtml(t('priority.high'))}</span>\`
-          : prio === 'low'
-            ? \`<span data-tooltip="tt.priorityLow" class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-200 text-slate-500 border border-slate-300 flex items-center gap-1"><i class="fa-solid fa-bed text-slate-500"></i> \${escapeHtml(t('priority.low'))}</span>\`
-            : \`<span data-tooltip="tt.priorityNormal" class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-700 border border-blue-500/20 flex items-center gap-1"><i class="fa-solid fa-bolt text-blue-600"></i> \${escapeHtml(t('priority.normal'))}</span>\`;
-
-        const categoryBadge = job.category
-          ? \`<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 border border-slate-300 flex items-center gap-1"><i class="fa-solid fa-folder text-[9px] text-slate-500"></i> \${escapeHtml(job.category)}</span>\`
-          : '';
-
-        const guardBadge = (job.guard && (job.guard.command || job.guard.httpUrl))
-          ? \`<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 flex items-center gap-1"><i class="fa-solid fa-shield-halved text-[9px] text-emerald-600"></i> Guard</span>\`
-          : '';
-
-        const timeoutBadge = job.timeoutMs
-          ? \`<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-darkborder flex items-center gap-1"><i class="fa-solid fa-stopwatch text-[9px] text-slate-500"></i> \${Math.round(job.timeoutMs / 1000)}s</span>\`
-          : '';
-
-        const tagsPills = (Array.isArray(job.tags) && job.tags.length > 0)
-          ? job.tags.map(tag => \`<span onclick="filterByTag('\${escapeHtml(tag)}')" class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 text-slate-600 hover:text-slate-900 border border-darkborder cursor-pointer transition-colors">#\${escapeHtml(tag)}</span>\`).join(' ')
-          : '';
-
-        const tzBadge = job.schedule?.timezone
-          ? \`<span class="text-slate-500 font-mono text-[9px]">(\${escapeHtml(job.schedule.timezone)})</span>\`
-          : '';
-
-        const projectBadge = job.projectName
-          ? \`<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60 flex items-center gap-1"><i class="fa-solid fa-folder text-[9px] text-indigo-500"></i> \${escapeHtml(job.projectName)}</span>\`
-          : '';
-
-        const schedDesc = job.schedule.kind === 'interval'
-          ? formatInterval(job.schedule.everyMs)
-          : 'Cron: ' + escapeHtml(job.schedule.cron || '');
-
-        const safeId = escapeHtml(job.id);
-        const safeTitle = escapeHtml(job.title);
-        const safePrompt = escapeHtml(job.followupPrompt);
-        const safeSession = escapeHtml(job.sessionID);
-
         return \`
-          <div class="oc-job min-w-0 flex flex-col justify-between">
-            <div class="min-w-0">
-              <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                <div class="min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="oc-job-dot \${job.enabled ? 'bg-emerald-500 pulse-dot' : 'bg-slate-300'}" aria-hidden="true"></span>
-                    <h3 class="text-sm font-bold text-slate-900 tracking-tight">\${safeTitle}</h3>
-                    \${statusBadge}
-                    \${projectBadge}
-                    \${circuitBadge}
-                    \${priorityBadge}
-                    \${categoryBadge}
-                    \${guardBadge}
-                    \${timeoutBadge}
-                    \${adaptiveBadge}
-                    \${pipelineBadge}
-                    \${webhookBadge}
-                  </div>
-                  <p class="text-[11px] font-mono text-indigo-600 mt-1">\${safeId}</p>
-                  \${tagsPills ? \`<div class="flex flex-wrap gap-1 mt-1.5">\${tagsPills}</div>\` : ''}
+          <div class="oc-job-card rounded-2xl border \${job.enabled ? 'border-emerald-300 bg-white ring-1 ring-emerald-400/20 shadow-sm' : (isMaxed ? 'border-amber-300 bg-white' : 'border-slate-200/90 bg-white shadow-sm')} p-4 sm:p-5 transition-all hover:shadow-md">
+            <div class="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
+              
+              <!-- Left Info Block -->
+              <div class="flex items-start gap-3.5 min-w-0 flex-1">
+                <div class="pt-1 shrink-0">
+                  <span class="w-3.5 h-3.5 rounded-full block \${job.enabled ? 'bg-emerald-500 pulse-dot shadow-sm' : (isMaxed ? 'bg-amber-400' : 'bg-slate-300')}"></span>
                 </div>
-                <div class="oc-scrollrow no-scrollbar flex items-center gap-1.5 pb-0.5 shrink-0">
-                  <button id="webhook-btn-\${safeId}" data-job-id="\${safeId}" onclick="openWebhookModal(this.dataset.jobId)" data-tooltip="tt.webhookBtn" aria-label="\${escapeHtml(t('job.webhookBtn'))}" class="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-violet-600 hover:text-violet-800 hover:bg-violet-50 rounded-lg transition-colors border border-violet-200/60 cursor-pointer">
-                    <i class="fa-solid fa-satellite-dish text-xs"></i>
-                  </button>
-                  \${job.adaptive && job.adaptive.enabled ? \`
-                  <button id="burst-btn-\${safeId}" data-job-id="\${safeId}" onclick="triggerBurstNow(this.dataset.jobId)" data-tooltip="tt.burstBtn" aria-label="\${escapeHtml(t('job.burstTitle'))}" class="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition-colors border border-amber-200/60 cursor-pointer">
-                    <i class="fa-solid fa-bolt-lightning text-xs"></i>
-                  </button>
-                  \` : ''}
-                  <button id="run-btn-\${safeId}" data-job-id="\${safeId}" onclick="triggerRunNow(this.dataset.jobId)" data-tooltip="tt.runNowBtn" aria-label="\${escapeHtml(t('job.runNowTitle'))}" class="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-200/60 cursor-pointer">
-                    <i class="fa-solid fa-bolt text-xs"></i>
-                  </button>
-                  <button data-job-id="\${safeId}" data-enabled="\${!job.enabled}" onclick="toggleJob(this.dataset.jobId, this.dataset.enabled === 'true')" data-tooltip="tt.toggleBtn" aria-label="\${escapeHtml(job.enabled ? t('job.pauseTitle') : t('job.resumeTitle'))}" class="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 cursor-pointer">
-                    <i class="fa-solid \${job.enabled ? 'fa-pause' : 'fa-play'} text-xs"></i>
-                  </button>
-                  <button data-job-id="\${safeId}" onclick="editJob(this.dataset.jobId)" aria-label="\${escapeHtml(t('job.editBtn'))}" class="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 cursor-pointer">
-                    <i class="fa-solid fa-pen text-xs"></i>
-                  </button>
-                  <button data-job-id="\${safeId}" onclick="deleteJob(this.dataset.jobId)" data-tooltip="tt.deleteBtn" aria-label="\${escapeHtml(t('job.deleteTitle'))}" class="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors border border-rose-200/60 cursor-pointer">
-                    <i class="fa-solid fa-trash text-xs"></i>
-                  </button>
+                <div class="min-w-0 flex-1 space-y-2.5">
+                  
+                  <!-- Title & Badges row -->
+                  <div>
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                      <h4 class="text-base font-bold text-slate-900 tracking-tight leading-snug">\${safeTitle}</h4>
+                      \${statusBadge}
+                      <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/70 inline-flex items-center gap-1.5">
+                        <i class="fa-regular fa-clock text-indigo-500"></i> \${schedDesc}
+                      </span>
+                      \${prioBadge}
+                      \${catBadge}
+                      \${circuitBadge}
+                    </div>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span class="text-[11px] font-mono text-slate-400">ID: \${safeId}</span>
+                      \${tagsPills ? \`<div class="flex flex-wrap gap-1">\${tagsPills}</div>\` : ''}
+                    </div>
+                  </div>
+
+                  <!-- Prompt box: What this cron does -->
+                  <div class="bg-slate-50 border border-darkborder/70 rounded-xl p-3 text-xs text-slate-700 leading-relaxed font-sans">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                      <i class="fa-solid fa-robot text-indigo-500"></i> Istruzione eseguita ad ogni tick:
+                    </div>
+                    <div class="line-clamp-2 italic text-slate-600">"\${safePrompt}"</div>
+                  </div>
+
+                  <!-- Target chat & metadata strip -->
+                  <div class="flex items-center gap-2 sm:gap-4 flex-wrap text-xs text-slate-500 pt-0.5">
+                    <div class="flex items-center gap-1.5 font-medium text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-darkborder/50">
+                      <i class="fa-solid fa-comments text-indigo-600"></i>
+                      <span>Chat: <strong class="text-slate-900">\${sessionDisplay}</strong></span>
+                    </div>
+                    <span>•</span>
+                    <span>Esecuzioni: <strong class="font-mono text-slate-800">\${job.runCount}\${job.maxRuns ? '/' + job.maxRuns : ''}</strong></span>
+                    <span>•</span>
+                    <span>Ultimo tick: <strong class="font-mono text-slate-800">\${job.lastRunAt ? new Date(job.lastRunAt).toLocaleTimeString() : 'Mai'}</strong></span>
+                    <span>•</span>
+                    <span>Prossimo: <strong class="font-mono \${job.enabled ? 'text-emerald-700 font-bold' : 'text-slate-400'}">\${(job.enabled && !isMaxed && job.nextRunAt) ? new Date(job.nextRunAt).toLocaleTimeString() : (isMaxed ? 'Completato' : 'In pausa')}</strong></span>
+                    \${job.consecutiveFailures > 0 ? \`<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300">⚠️ \${job.consecutiveFailures} errori</span>\` : ''}
+                  </div>
+
                 </div>
               </div>
 
-              <div class="mt-4 grid grid-cols-2 gap-2 text-[11px] bg-slate-100/70 p-3 rounded-xl border border-darkborder">
-                <div><span class="text-gray-500">\${escapeHtml(t('job.schedule'))}:</span> <span class="text-slate-700 font-medium">\${schedDesc} \${tzBadge}</span></div>
-                <div><span class="text-gray-500">\${escapeHtml(t('job.executions'))}:</span> <span class="text-slate-700 font-medium font-mono">\${job.runCount}\${job.maxRuns ? '/' + job.maxRuns : ''}</span></div>
-                <div><span class="text-gray-500">\${escapeHtml(t('job.lastRun'))}:</span> <span class="text-slate-700 font-mono">\${job.lastRunAt ? new Date(job.lastRunAt).toLocaleTimeString() : '-'}</span></div>
-                <div><span class="text-gray-500">\${escapeHtml(t('job.nextRun'))}:</span> <span class="\${isMaxed ? 'text-amber-600' : 'text-emerald-700'} font-mono">\${(job.enabled && !isMaxed && job.nextRunAt) ? new Date(job.nextRunAt).toLocaleTimeString() : (isMaxed ? escapeHtml(t('job.completed')) : '-')}</span></div>
-                \${job.adaptive && job.adaptive.enabled ? \`
-                <div class="col-span-2 pt-1 border-t border-darkborder/50 text-[10px] text-slate-500 flex items-center justify-between">
-                  <span><i class="fa-solid fa-gauge-high text-indigo-600 mr-1"></i>\${escapeHtml(t('job.cadence'))}: <strong class="text-slate-700">\${job.adaptive.currentCadence}</strong> (quiet: \${job.adaptive.consecutiveQuietTicks ?? 0}/\${job.adaptive.quietThreshold ?? 3})</span>
-                  <span>burst: <strong class="text-amber-700">\${formatInterval(job.adaptive.burstEveryMs)}</strong> | idle: <strong class="text-indigo-700">\${formatInterval(job.adaptive.idleEveryMs)}</strong></span>
-                </div>
-                \` : ''}
-                \${job.pipeline && job.pipeline.enabled ? \`
-                <div class="col-span-2 pt-1 border-t border-darkborder/50 text-[10px] text-slate-500 flex flex-wrap items-center justify-between gap-1">
-                  <div class="flex items-center gap-1.5 flex-wrap">
-                    <i class="fa-solid fa-diagram-project text-cyan-700"></i>
-                    <span class="text-cyan-800 font-medium">\${escapeHtml(t('job.pipelineBadge'))}:</span>
-                    \${(job.pipeline.onSuccess && job.pipeline.onSuccess.length > 0) ? \`
-                      <span class="text-emerald-700 font-mono"><strong class="text-slate-500">\${escapeHtml(t('job.pipelineOk'))}</strong> \${escapeHtml(job.pipeline.onSuccess.join(', '))}</span>
-                    \` : ''}
-                    \${(job.pipeline.onFailure && job.pipeline.onFailure.length > 0) ? \`
-                      <span class="text-rose-600 font-mono"><strong class="text-slate-500">\${escapeHtml(t('job.pipelineErr'))}</strong> \${escapeHtml(job.pipeline.onFailure.join(', '))}</span>
-                    \` : ''}
-                  </div>
-                  \${job.pipeline.passPayload ? \`<span class="text-indigo-700 font-mono text-[9px] bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">📦 payload</span>\` : ''}
-                </div>
-                \` : ''}
-                \${job.webhook && job.webhook.enabled ? \`
-                <div class="col-span-2 pt-1 border-t border-darkborder/50 text-[10px] text-slate-500 flex flex-wrap items-center justify-between gap-1">
-                  <div class="flex items-center gap-1.5 flex-wrap">
-                    <i class="fa-solid fa-satellite-dish text-violet-600"></i>
-                    <span class="text-violet-700 font-medium">\${escapeHtml(t('job.webhookBadge'))}:</span>
-                    <span class="text-violet-600 font-mono">/api/webhook/\${safeId}</span>
-                    <span class="text-violet-700 font-mono text-[9px] bg-violet-100/70 px-1.5 py-0.5 rounded border border-violet-200">cooldown: \${job.webhook.rateLimitSeconds ?? 5}s</span>
-                  </div>
-                  \${job.webhook.lastTriggeredAt ? \`<span class="text-slate-500 font-mono text-[9px]">last: \${new Date(job.webhook.lastTriggeredAt).toLocaleTimeString()}</span>\` : '<span class="text-slate-500 italic text-[9px]">in attesa</span>'}
-                </div>
-                \` : ''}
+              <!-- Right Controls: Big clear buttons with text labels -->
+              <div class="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap border-t xl:border-t-0 pt-3 xl:pt-0 border-darkborder/50 self-end xl:self-start">
+                \${job.enabled ? \`
+                  <button
+                    type="button"
+                    data-job-id="\${safeId}"
+                    data-job-dir="\${safeDir}"
+                    data-enabled="false"
+                    onclick="toggleJob(this.dataset.jobId, false, this.dataset.jobDir)"
+                    class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
+                  >
+                    <i class="fa-solid fa-pause"></i> Metti in Pausa
+                  </button>
+                \` : \`
+                  <button
+                    type="button"
+                    data-job-id="\${safeId}"
+                    data-job-dir="\${safeDir}"
+                    data-enabled="true"
+                    onclick="toggleJob(this.dataset.jobId, true, this.dataset.jobDir)"
+                    class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5 cursor-pointer transition-all"
+                  >
+                    <i class="fa-solid fa-play"></i> Riattiva Cron
+                  </button>
+                \`}
+                <button
+                  type="button"
+                  id="run-btn-\${safeId}"
+                  data-job-id="\${safeId}"
+                  data-job-dir="\${safeDir}"
+                  onclick="triggerRunNow(this.dataset.jobId, this.dataset.jobDir)"
+                  class="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 flex items-center gap-1.5 cursor-pointer transition-colors"
+                  title="Esegui subito il tick senza attendere la scadenza"
+                >
+                  <i class="fa-solid fa-bolt text-indigo-600"></i> Esegui Ora
+                </button>
+                <button
+                  type="button"
+                  data-job-id="\${safeId}"
+                  data-job-dir="\${safeDir}"
+                  onclick="editJob(this.dataset.jobId, this.dataset.jobDir)"
+                  class="px-3 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-darkborder flex items-center gap-1.5 cursor-pointer transition-colors"
+                  title="Modifica parametri, prompt o cadenza"
+                >
+                  <i class="fa-solid fa-pen text-slate-500"></i> Modifica
+                </button>
+                <button
+                  type="button"
+                  data-session-id="\${safeSession}"
+                  onclick="jumpToChat(this.dataset.sessionId)"
+                  class="px-3 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-indigo-600 border border-darkborder flex items-center gap-1.5 cursor-pointer transition-colors"
+                  title="Apri la conversazione associata in Live Chat"
+                >
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Chat
+                </button>
+                <button
+                  type="button"
+                  data-job-id="\${safeId}"
+                  data-job-dir="\${safeDir}"
+                  onclick="deleteJob(this.dataset.jobId, this.dataset.jobDir)"
+                  class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-rose-200"
+                  title="Elimina questo Cronjob"
+                >
+                  <i class="fa-solid fa-trash text-xs"></i>
+                </button>
               </div>
 
-              <div class="mt-3 text-[11px] text-slate-500 line-clamp-2 italic bg-slate-100/40 p-2 rounded-lg border border-darkborder/50">
-                "\${safePrompt}"
-              </div>
-            </div>
-
-            <div class="mt-4 pt-3 border-t border-darkborder/70 flex items-center justify-between text-[11px] text-gray-500">
-              <span class="truncate max-w-[220px] text-slate-600 font-medium" data-tooltip-raw="Session ID: \${safeSession}">
-                <i class="fa-solid fa-comment-dots text-indigo-600 mr-1.5"></i>\${(() => {
-                  const matchedSes = currentSessions.find(s => s.id === job.sessionID);
-                  return matchedSes && matchedSes.title ? escapeHtml(matchedSes.title) : safeSession;
-                })()}
-              </span>
-              <button data-session-id="\${safeSession}" onclick="jumpToChat(this.dataset.sessionId)" data-tooltip="tt.tabChat" class="text-indigo-600 hover:text-indigo-700 font-semibold flex items-center gap-1 cursor-pointer">
-                <span>\${escapeHtml(t('job.viewChat'))}</span> <i class="fa-solid fa-arrow-right rtl:rotate-180 text-[9px]"></i>
-              </button>
             </div>
           </div>
         \`;
-      }).join('');
+      }
+
+      if (jobViewMode === 'grouped') {
+        const groups = new Map();
+        filteredJobs.forEach(job => {
+          const pName = job.projectName || 'Locale';
+          if (!groups.has(pName)) {
+            groups.set(pName, { name: pName, dir: job.directory || '', jobs: [] });
+          }
+          groups.get(pName).jobs.push(job);
+        });
+
+        container.innerHTML = Array.from(groups.values()).map(g => {
+          const activeInGroup = g.jobs.filter(j => j.enabled).length;
+          const totalInGroup = g.jobs.length;
+          const cardsHtml = g.jobs.map(j => {
+            const isMaxed = j.maxRuns > 0 && j.runCount >= j.maxRuns;
+            return renderSingleJobCard(j, isMaxed);
+          }).join('');
+
+          return \`
+            <div class="oc-project-section bg-slate-100/70 rounded-2xl border border-darkborder p-4 sm:p-5 mb-5 space-y-3.5">
+              <!-- Project Section Header -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-darkborder/70 gap-2">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
+                    <i class="fa-solid fa-folder-open text-sm"></i>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                      <h3 class="text-sm font-bold text-slate-900 tracking-tight">\${escapeHtml(g.name)}</h3>
+                      <span class="text-[10px] px-2 py-0.5 rounded-full font-bold \${activeInGroup > 0 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-200 text-slate-600'}">
+                        \${activeInGroup > 0 ? \`\${activeInGroup} attivi\` : 'Tutti in pausa'} (\${totalInGroup} cron)
+                      </span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 font-mono truncate max-w-md mt-0.5">\${escapeHtml(g.dir)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Job cards in this project -->
+              <div class="flex flex-col gap-3">
+                \${cardsHtml}
+              </div>
+            </div>
+          \`;
+        }).join('');
+      } else {
+        container.innerHTML = '<div class="flex flex-col gap-3">' + filteredJobs.map(job => {
+          const isMaxed = job.maxRuns > 0 && job.runCount >= job.maxRuns;
+          return renderSingleJobCard(job, isMaxed);
+        }).join('') + '</div>';
+      }
     }
 
     // Trigger Tick Now
