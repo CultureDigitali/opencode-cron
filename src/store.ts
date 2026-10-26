@@ -68,7 +68,7 @@ export async function saveJobs(directory: string, jobs: CronJob[]): Promise<void
 export interface JobFilterOptions {
   tag?: string;
   category?: string;
-  status?: "enabled" | "disabled" | "running" | "quarantined";
+  status?: "enabled" | "disabled" | "paused" | "running" | "quarantined" | "completed";
   search?: string;
 }
 
@@ -87,6 +87,19 @@ export function filterJobs(jobs: CronJob[], options: JobFilterOptions): CronJob[
       res = res.filter((j) => j.enabled && j.circuitBreaker?.state !== "open");
     } else if (options.status === "disabled") {
       res = res.filter((j) => !j.enabled);
+    } else if (options.status === "paused") {
+      res = res.filter((j) =>
+        !j.enabled &&
+        j.circuitBreaker?.state !== "open" &&
+        !(typeof j.maxRuns === "number" && j.maxRuns > 0 && (j.runCount ?? 0) >= j.maxRuns)
+      );
+    } else if (options.status === "completed") {
+      res = res.filter((j) =>
+        !j.enabled &&
+        typeof j.maxRuns === "number" &&
+        j.maxRuns > 0 &&
+        (j.runCount ?? 0) >= j.maxRuns
+      );
     } else if (options.status === "quarantined") {
       res = res.filter((j) => j.circuitBreaker?.state === "open");
     }

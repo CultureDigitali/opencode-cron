@@ -533,6 +533,39 @@ export function startGuiServer(opts: ServerOpts = {}) {
         }
       }
 
+      // 5b. PATCH /api/jobs/:id (Partial update, including enabled toggle)
+      if (pathname.startsWith("/api/jobs/") && method === "PATCH") {
+        const id = decodeURIComponent(pathname.replace("/api/jobs/", ""));
+        try {
+          assertJobId(id);
+          const body: any = await req.json().catch(() => ({}));
+          const targetDir = await resolveJobDir(id, body.directory || url.searchParams.get("dir") || undefined);
+          const jobs = await loadJobs(targetDir);
+          const j = jobs.find((x) => x.id === id);
+          if (!j) return new Response(JSON.stringify({ ok: false, error: "Job not found" }), { status: 404, headers });
+
+          if (body.enabled !== undefined) {
+            j.enabled = Boolean(body.enabled);
+            if (j.enabled) {
+              j.consecutiveFailures = 0;
+              j.nextRunAt = computeNextRun(j, new Date());
+            }
+          }
+          if (body.title !== undefined) j.title = String(body.title);
+          if (body.systemPrompt !== undefined) j.systemPrompt = String(body.systemPrompt);
+          if (body.followupPrompt !== undefined) j.followupPrompt = String(body.followupPrompt);
+          if (body.priority !== undefined) j.priority = JobPrioritySchema.parse(body.priority);
+          if (typeof body.maxRuns === "number") j.maxRuns = body.maxRuns;
+
+          validatePipelineDAG(jobs);
+          CronJobSchema.parse(j);
+          await saveJobs(targetDir, jobs);
+          return new Response(JSON.stringify({ ok: true, job: j }), { headers });
+        } catch (e: any) {
+          return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers });
+        }
+      }
+
       // 6. DELETE /api/jobs/:id
       if (pathname.startsWith("/api/jobs/") && method === "DELETE") {
         const id = decodeURIComponent(pathname.replace("/api/jobs/", ""));
