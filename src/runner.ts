@@ -420,10 +420,19 @@ export async function runJobHeadless(
         job.adaptive.currentCadence = "burst";
       }
     }
-    const candidateNext = computeNextRun(job, new Date(startedAtMs));
-    job.nextRunAt = new Date(candidateNext).getTime() > finishedAtMs
-      ? candidateNext
-      : computeNextRun(job, new Date(finishedAtMs));
+    if (job.maxRuns > 0 && job.runCount >= job.maxRuns) {
+      // One-shot job completato: disabilita e azzera il nextRunAt invece di
+      // lasciare un job "zombie" (enabled con nextRunAt nel passato) che il
+      // ticker salta in silenzio.
+      job.enabled = false;
+      job.nextRunAt = null;
+      console.log(`job ${jobId} disabled (maxRuns ${job.maxRuns} reached)`);
+    } else {
+      const candidateNext = computeNextRun(job, new Date(startedAtMs));
+      job.nextRunAt = new Date(candidateNext).getTime() > finishedAtMs
+        ? candidateNext
+        : computeNextRun(job, new Date(finishedAtMs));
+    }
     const updated = latest.some((j) => j.id === job.id)
       ? latest.map((j) => (j.id === job.id ? job : j))
       : [...latest, job];
