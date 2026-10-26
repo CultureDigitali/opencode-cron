@@ -282,6 +282,12 @@ describe("GUI Server API", () => {
         expect(html).toContain(`<option value="${code}">`);
       }
       expect(html).toContain("langMeta && langMeta.rtl ? 'rtl' : 'ltr'");
+      // Regression: header tools-menu keys must exist in all 10 language dicts
+      // (they shipped in it+en only, leaving the other 8 on the Italian fallback)
+      for (const key of ["nav.tools", "nav.templates", "nav.instructions", "tour.startBtn"]) {
+        const pattern = new RegExp('"' + key.replace(/\./g, "\\.") + '":', "g");
+        expect((html.match(pattern) || []).length).toBe(expectedLangs.length);
+      }
     }
   });
 

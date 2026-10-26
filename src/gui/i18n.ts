@@ -508,6 +508,7 @@ export function getUiEnhancementsScript(): string {
  "toast.dlqCleared": "Dead Letter Queue svuotata con successo.",
  "toast.dlqDeleted": "Entry DLQ rimossa.",
  "nav.templates": "Modelli",
+ "nav.tools": "Strumenti",
  "nav.backup": "Snapshot",
  "nav.metrics": "Metriche",
  "nav.notifications": "Notifiche",
@@ -886,6 +887,7 @@ export function getUiEnhancementsScript(): string {
  "toast.dlqCleared": "Dead Letter Queue cleared successfully.",
  "toast.dlqDeleted": "DLQ entry removed.",
  "nav.templates": "Templates",
+ "nav.tools": "Tools",
  "nav.backup": "Snapshots",
  "nav.metrics": "Metrics",
  "nav.notifications": "Alerts",
@@ -1212,6 +1214,10 @@ export function getUiEnhancementsScript(): string {
  "toast.queueCancelled": "Tarea eliminada de la cola.",
  "toast.queueCleared": "Cola vaciada con éxito.",
  "nav.dlq": "DLQ & Circuit",
+ "nav.templates": "Plantillas",
+ "nav.tools": "Herramientas",
+ "nav.instructions": "Instrucciones",
+ "tour.startBtn": "Demo",
  "tt.dlqBtn": "Ver tareas en cuarentena (Dead Letter Queue) y gestionar disyuntores",
  "tt.circuitOpen": "Circuit Breaker ABIERTO: Tarea en cuarentena por fallos repetidos",
  "tt.circuitHalfOpen": "Circuit Breaker HALF-OPEN: Prueba canary en curso",
@@ -1398,6 +1404,10 @@ export function getUiEnhancementsScript(): string {
  "toast.queueCancelled": "Tâche retirée de la file d'attente.",
  "toast.queueCleared": "File d'attente vidée avec succès.",
  "nav.dlq": "DLQ & Circuit",
+ "nav.templates": "Modèles",
+ "nav.tools": "Outils",
+ "nav.instructions": "Instructions",
+ "tour.startBtn": "Démo",
  "tt.dlqBtn": "Voir les tâches en quarantaine (Dead Letter Queue) et gérer les coupe-circuits",
  "tt.circuitOpen": "Circuit Breaker OUVERT : Tâche en quarantaine suite à des échecs répétés",
  "tt.circuitHalfOpen": "Circuit Breaker HALF-OPEN : Test canary en cours",
@@ -1584,6 +1594,10 @@ export function getUiEnhancementsScript(): string {
  "toast.queueCancelled": "Job aus der Warteschlange entfernt.",
  "toast.queueCleared": "Warteschlange erfolgreich geleert.",
  "nav.dlq": "DLQ & Circuit",
+ "nav.templates": "Vorlagen",
+ "nav.tools": "Werkzeuge",
+ "nav.instructions": "Anleitungen",
+ "tour.startBtn": "Demo",
  "tt.dlqBtn": "Quarantäne-Jobs (Dead Letter Queue) ansehen und Schutzschalter verwalten",
  "tt.circuitOpen": "Circuit Breaker OFFEN: Job wegen wiederholter Fehler in Quarantäne",
  "tt.circuitHalfOpen": "Circuit Breaker HALF-OPEN: Canary-Testlauf wird ausgeführt",
@@ -1770,6 +1784,10 @@ export function getUiEnhancementsScript(): string {
  "toast.queueCancelled": "Job removido da fila.",
  "toast.queueCleared": "Fila limpa com sucesso.",
  "nav.dlq": "DLQ & Circuit",
+ "nav.templates": "Modelos",
+ "nav.tools": "Ferramentas",
+ "nav.instructions": "Instruções",
+ "tour.startBtn": "Demo",
  "tt.dlqBtn": "Ver jobs em quarentena (Dead Letter Queue) e gerenciar disjuntores",
  "tt.circuitOpen": "Circuit Breaker ABERTO: Job em quarentena por falhas repetidas",
  "tt.circuitHalfOpen": "Circuit Breaker HALF-OPEN: Teste canary em andamento",
@@ -1956,6 +1974,10 @@ export function getUiEnhancementsScript(): string {
  "toast.queueCancelled": "任务已从队列中移除。",
  "toast.queueCleared": "等待队列已成功清空。",
  "nav.dlq": "死信队列与熔断",
+ "nav.templates": "模板",
+ "nav.tools": "工具",
+ "nav.instructions": "使用说明",
+ "tour.startBtn": "演示",
  "tt.dlqBtn": "查看隔离任务 (Dead Letter Queue) 并管理熔断器状态",
  "tt.circuitOpen": "熔断器已开启 (OPEN)：因连续多次失败任务已被隔离保护",
  "tt.circuitHalfOpen": "熔断器半开 (HALF-OPEN)：正在执行金丝雀试探探测",
@@ -2142,6 +2164,10 @@ export function getUiEnhancementsScript(): string {
  "toast.queueCancelled": "ジョブがキューから削除されました。",
  "toast.queueCleared": "キューが正常にクリアされました。",
  "nav.dlq": "DLQ＆サーキット",
+ "nav.templates": "テンプレート",
+ "nav.tools": "ツール",
+ "nav.instructions": "使い方",
+ "tour.startBtn": "デモ",
  "tt.dlqBtn": "隔離ジョブ（Dead Letter Queue）を確認しサーキットブレーカーを管理",
  "tt.circuitOpen": "サーキットブレーカー OPEN: 連続失敗のためジョブが隔離保護されています",
  "tt.circuitHalfOpen": "サーキットブレーカー HALF-OPEN: カナリア試行テスト実行中",
@@ -2328,6 +2354,10 @@ export function getUiEnhancementsScript(): string {
  "toast.queueCancelled": "تمت إزالة المهمة من قائمة الانتظار.",
  "toast.queueCleared": "تم إفراغ قائمة الانتظار بنجاح.",
  "nav.dlq": "قائمة المهام المعطلة والحماية",
+ "nav.templates": "القوالب",
+ "nav.tools": "الأدوات",
+ "nav.instructions": "التعليمات",
+ "tour.startBtn": "عرض توضيحي",
  "tt.dlqBtn": "عرض المهام المحجوزة في الحجر الصحي (Dead Letter Queue) وإدارة قواطع الدائرة",
  "tt.circuitOpen": "قاطع الدائرة مفتوح (OPEN): تم حجر المهمة بسبب الإخفاقات المتكررة",
  "tt.circuitHalfOpen": "قاطع الدائرة شبه مفتوح (HALF-OPEN): جاري تشغيل فحص الاختبار التجريبي (Canary)",
@@ -2514,6 +2544,10 @@ export function getUiEnhancementsScript(): string {
  "toast.queueCancelled": "Задача удалена из очереди.",
  "toast.queueCleared": "Очередь успешно очищена.",
  "nav.dlq": "DLQ и Защита",
+ "nav.templates": "Шаблоны",
+ "nav.tools": "Инструменты",
+ "nav.instructions": "Инструкции",
+ "tour.startBtn": "Демо",
  "tt.dlqBtn": "Просмотр изолированных задач (Dead Letter Queue) и управление прерывателями цепи",
  "tt.circuitOpen": "Прерыватель цепи РАЗОМКНУТ (OPEN): Задача изолирована из-за частых сбоев",
  "tt.circuitHalfOpen": "Прерыватель цепи HALF-OPEN: Выполняется пробный запуск (Canary)",
@@ -2774,6 +2808,7 @@ export function getUiEnhancementsScript(): string {
  closeGuideDrawer();
  } else if (e.key === '?' && !['INPUT', 'TEXTAREA', 'SELECT'].includes((document.activeElement && document.activeElement.tagName) || '')) {
  e.preventDefault();
+ if (typeof closeToolsMenu === 'function') closeToolsMenu();
  openGuideDrawer();
  }
  });
@@ -3588,48 +3623,25 @@ export function getHeaderControlsHtml(suffix: string = ''): string {
  const langId = `oc-lang-select${suffix}`;
  const guideId = `oc-guide-btn${suffix}`;
  return `
- <!-- Direct link to Instructions / Guide Page -->
- <a
- href="/instructions"
- data-tooltip="tt.navInstructions"
- class="bg-slate-100 hover:bg-slate-200 text-teal-700 hover:text-slate-900 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border border-teal-500/30 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
- >
- <i class="fa-solid fa-book text-teal-600 text-xs"></i>
- <span class="hidden md:inline" data-i18n="nav.instructions">Istruzioni</span>
- </a>
-
- <!-- Interactive Guided Demo Tour Button -->
- <button
- type="button"
- onclick="startGuidedDemo()"
- data-tooltip="tt.tourBtn"
- class="bg-slate-100 hover:bg-slate-200 text-amber-700 hover:text-slate-900 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border border-amber-500/30 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
- >
- <i class="fa-solid fa-wand-magic-sparkles text-amber-600 text-xs"></i>
- <span class="hidden lg:inline" data-i18n="tour.startBtn">Demo</span>
- </button>
-
  <!-- Language Selector (10 Languages) -->
- <div class="relative flex items-center shrink-0" data-tooltip="tt.liveBadge">
  <label for="${langId}" class="sr-only">Lingua / Language</label>
  <select
  id="${langId}"
  onchange="setLanguage(this.value)"
  aria-label="Seleziona lingua interfaccia"
- class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-darkborder focus:outline-none focus:border-brand-500 cursor-pointer transition-colors"
+ class="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 text-xs font-semibold rounded-xl px-2.5 py-2 min-h-[36px] border border-darkborder focus:outline-none focus:border-brand-500 cursor-pointer transition-colors shrink-0"
  >
- <option value="it">🇮🇹 IT</option>
- <option value="en">🇬🇧 EN</option>
- <option value="es">🇪🇸 ES</option>
- <option value="fr">🇫🇷 FR</option>
- <option value="de">🇩🇪 DE</option>
- <option value="pt">🇵🇹 PT</option>
- <option value="zh">🇨🇳 中文</option>
- <option value="ja">🇯🇵 日本語</option>
- <option value="ar">🇸🇦 العربية</option>
- <option value="ru">🇷🇺 RU</option>
+ <option value="it">Italiano</option>
+ <option value="en">English</option>
+ <option value="es">Español</option>
+ <option value="fr">Français</option>
+ <option value="de">Deutsch</option>
+ <option value="pt">Português</option>
+ <option value="zh">中文</option>
+ <option value="ja">日本語</option>
+ <option value="ar">العربية</option>
+ <option value="ru">Русский</option>
  </select>
- </div>
 
  <!-- Interactive Guide Drawer Button -->
  <button
@@ -3637,9 +3649,9 @@ export function getHeaderControlsHtml(suffix: string = ''): string {
  id="${guideId}"
  onclick="openGuideDrawer()"
  data-tooltip="guide.shortcutHint"
- class="bg-slate-100 hover:bg-slate-200 text-teal-700 hover:text-slate-900 px-3 py-1.5 rounded-xl text-xs font-semibold border border-teal-500/30 flex items-center gap-1.5 transition-all shrink-0"
+ class="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 px-2.5 py-2 min-h-[36px] min-w-[36px] rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shrink-0"
  >
- <i class="fa-solid fa-circle-question text-teal-600"></i>
+ <i class="fa-solid fa-circle-question text-slate-500 text-xs"></i>
  <span class="hidden sm:inline" data-i18n="nav.guide">Guida</span>
  </button>
  `;

@@ -3,13 +3,12 @@ import {
  getUiEnhancementsHeadStyle,
  getUiEnhancementsBodyHtml,
  getUiEnhancementsScript,
- getHeaderControlsHtml,
  getOnboardingBannerHtml,
 } from"./i18n.ts";
 
 export function getHtml(title: string ="OpenCode Cron - Web GUI", bootstrapJobs?: unknown[]): string {
  const bootstrapScript = Array.isArray(bootstrapJobs)
-   ? `<scr` + `ipt>window.__OC_BOOTSTRAP_JOBS = ${JSON.stringify(bootstrapJobs).replace(/</g, "\u003c")};</scr` + `ipt>`
+   ? `<scr` + `ipt>window.__OC_BOOTSTRAP_JOBS = ${JSON.stringify(bootstrapJobs).replace(/</g, "\\u003c")};</scr` + `ipt>`
    : "";
  return `<!DOCTYPE html>
 <html lang="it">
@@ -159,43 +158,101 @@ export function getHtml(title: string ="OpenCode Cron - Web GUI", bootstrapJobs?
  </span>
  </div>
  <div class="flex items-center gap-1.5 shrink-0">
- <div class="hidden xl:flex items-center gap-1.5">
- ${getHeaderControlsHtml()}
+ <!-- Guida: drawer -->
+ <button
+ type="button"
+ onclick="openGuideDrawer()"
+ data-tooltip="guide.shortcutHint"
+ aria-label="Guida"
+ class="oc-btn-light p-2 min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors cursor-pointer"
+ >
+ <i class="fa-solid fa-circle-question text-slate-500 text-sm"></i>
+ </button>
+
+ <!-- Strumenti: unico menu a tendina per tutti i pannelli operativi -->
+ <div class="relative" id="oc-tools-wrap">
+ <button
+ type="button"
+ id="btn-tools-menu"
+ onclick="toggleToolsMenu()"
+ aria-controls="oc-tools-menu"
+ aria-expanded="false"
+ aria-label="Strumenti e pannelli operativi"
+ class="oc-btn-light px-2.5 sm:px-3 py-2 text-[13px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]"
+ >
+ <i class="fa-solid fa-sliders text-slate-500 text-xs"></i>
+ <span data-i18n="nav.tools">Strumenti</span>
+ <i class="fa-solid fa-chevron-down text-[10px] text-slate-500"></i>
+ </button>
+ <div
+ id="oc-tools-menu"
+ aria-label="Strumenti e pannelli operativi"
+ class="hidden absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] max-h-[70dvh] overflow-y-auto bg-white rounded-2xl border border-slate-200 p-1.5 z-50"
+ >
+ <button type="button" id="btn-header-templates" onclick="openTemplatesModal(); closeToolsMenu()" class="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer">
+ <i class="fa-solid fa-shapes text-slate-500 w-4 text-center"></i>
+ <span data-i18n="nav.templates">Modelli e Blueprint</span>
+ </button>
+ <button type="button" id="btn-header-backup" onclick="openBackupModal(); closeToolsMenu()" class="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer">
+ <i class="fa-solid fa-box-archive text-slate-500 w-4 text-center"></i>
+ <span data-i18n="nav.backup">Snapshot e Backup</span>
+ </button>
+ <button type="button" id="btn-header-metrics" onclick="openMetricsModal(); closeToolsMenu()" class="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer">
+ <i class="fa-solid fa-chart-pie text-slate-500 w-4 text-center"></i>
+ <span data-i18n="nav.metrics">Metriche e Telemetria</span>
+ </button>
+ <button type="button" id="btn-header-notify" onclick="openNotificationsModal(); closeToolsMenu()" class="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer">
+ <i class="fa-solid fa-bell text-slate-500 w-4 text-center"></i>
+ <span data-i18n="nav.notifications">Notifiche e Alert</span>
+ </button>
+ <button type="button" id="btn-header-queue" onclick="openQueueModal(); closeToolsMenu()" class="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer">
+ <i class="fa-solid fa-layer-group text-slate-500 w-4 text-center"></i>
+ <span data-i18n="nav.queue">Coda e Worker</span>
+ <span id="header-queue-badge" class="tabular px-1.5 py-0.5 rounded-full text-[13px] font-bold bg-amber-500/15 text-amber-800">0/2</span>
+ </button>
+ <button type="button" id="btn-header-dlq" onclick="openDlqModal(); closeToolsMenu()" class="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer">
+ <i class="fa-solid fa-triangle-exclamation text-slate-500 w-4 text-center"></i>
+ <span data-i18n="nav.dlq">DLQ e Circuit</span>
+ <span id="header-dlq-badge" class="tabular px-1.5 py-0.5 rounded-full text-[13px] font-bold bg-rose-500/15 text-rose-700">0</span>
+ </button>
+ <div class="my-1.5 h-px bg-slate-200"></div>
+ <a href="/instructions" class="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+ <i class="fa-solid fa-book text-slate-500 w-4 text-center"></i>
+ <span data-i18n="nav.instructions">Istruzioni</span>
+ </a>
+ <button type="button" onclick="startGuidedDemo(); closeToolsMenu()" class="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer">
+ <i class="fa-solid fa-wand-magic-sparkles text-slate-500 w-4 text-center"></i>
+ <span data-i18n="tour.startBtn">Demo</span>
+ </button>
+ <div class="my-1.5 h-px bg-slate-200"></div>
+ <div class="px-3 py-2">
+ <label for="oc-lang-select" class="sr-only">Lingua / Language</label>
+ <select
+ id="oc-lang-select"
+ onchange="setLanguage(this.value)"
+ aria-label="Seleziona lingua interfaccia"
+ class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-[13px] font-semibold rounded-xl px-2.5 py-2 min-h-[36px] border border-darkborder focus:outline-none focus:border-brand-500 cursor-pointer transition-colors"
+ >
+ <option value="it">Italiano</option>
+ <option value="en">English</option>
+ <option value="es">Español</option>
+ <option value="fr">Français</option>
+ <option value="de">Deutsch</option>
+ <option value="pt">Português</option>
+ <option value="zh">中文</option>
+ <option value="ja">日本語</option>
+ <option value="ar">العربية</option>
+ <option value="ru">Русский</option>
+ </select>
  </div>
- <button id="btn-header-templates" onclick="openTemplatesModal()" data-tooltip="tt.templatesBtn" aria-label="Modelli e Blueprint" class="oc-btn-light px-2.5 sm:px-3 py-2 text-[13px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]">
- <i class="fa-solid fa-shapes text-teal-600"></i>
- <span class="hidden md:inline" data-i18n="nav.templates">Modelli</span>
- </button>
- <button id="btn-header-backup" onclick="openBackupModal()" data-tooltip="tt.backupBtn" aria-label="Snapshot e Backup" class="oc-btn-light px-2.5 sm:px-3 py-2 text-[13px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]">
- <i class="fa-solid fa-box-archive text-cyan-600"></i>
- <span class="hidden md:inline" data-i18n="nav.backup">Snapshot</span>
- </button>
- <button id="btn-header-metrics" onclick="openMetricsModal()" data-tooltip="tt.metricsBtn" aria-label="Metriche e Telemetria" class="oc-btn-light px-2.5 sm:px-3 py-2 text-[13px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]">
- <i class="fa-solid fa-chart-pie text-emerald-600"></i>
- <span class="hidden md:inline" data-i18n="nav.metrics">Metriche</span>
- </button>
- <button id="btn-header-notify" onclick="openNotificationsModal()" data-tooltip="tt.notifyBtn" aria-label="Notifiche e Alert" class="oc-btn-light px-2.5 sm:px-3 py-2 text-[13px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]">
- <i class="fa-solid fa-bell text-slate-700"></i>
- <span class="hidden md:inline" data-i18n="nav.notifications">Notifiche</span>
- </button>
- <button id="btn-header-queue" onclick="openQueueModal()" data-tooltip="tt.queueBtn" aria-label="Coda e Worker" class="oc-btn-light px-2.5 sm:px-3 py-2 text-[13px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]">
- <i class="fa-solid fa-layer-group text-amber-600"></i>
- <span class="hidden md:inline" data-i18n="nav.queue">Coda & Worker</span>
- <span id="header-queue-badge" class="tabular px-1.5 py-0.5 rounded-full text-[13px] font-bold bg-amber-500/15 text-amber-800 ">0/2</span>
- </button>
- <button id="btn-header-dlq" onclick="openDlqModal()" data-tooltip="tt.dlqBtn" aria-label="DLQ e Circuit" class="oc-btn-light px-2.5 sm:px-3 py-2 text-[13px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]">
- <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
- <span class="hidden md:inline" data-i18n="nav.dlq">DLQ & Circuit</span>
- <span id="header-dlq-badge" class="tabular px-1.5 py-0.5 rounded-full text-[13px] font-bold bg-rose-500/15 text-rose-700 ">0</span>
- </button>
+ </div>
+ </div>
+
  <button onclick="refreshAll()" data-tooltip="tt.liveBadge" aria-label="Ricarica stato" class="oc-btn-light p-2 min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors cursor-pointer">
  <i class="fa-solid fa-arrows-rotate text-[13px]" id="refresh-spinner"></i>
  </button>
  <button id="btn-header-new-job" onclick="openNewJobModal()" data-tooltip="tt.tabJobs" class="oc-btn-dark px-3 sm:px-3.5 py-2 text-[13px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]">
  <i class="fa-solid fa-plus text-[13px]"></i> <span class="hidden sm:inline" data-i18n="nav.newJob">Nuovo Job</span>
- </button>
- <button type="button" onclick="const m=document.getElementById('oc-mobile-menu');m.classList.toggle('hidden');this.setAttribute('aria-expanded',String(!m.classList.contains('hidden')))" aria-label="Apri menu" aria-expanded="false" class="xl:hidden oc-btn-light p-2 min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer">
- <i class="fa-solid fa-bars text-sm"></i>
  </button>
  </div>
  </div>
@@ -221,9 +278,6 @@ export function getHtml(title: string ="OpenCode Cron - Web GUI", bootstrapJobs?
  <i class="fa-solid fa-chart-line"></i> <span data-i18n="nav.runs">Esiti Runs</span>
  </a>
  </nav>
- <div id="oc-mobile-menu" class="hidden xl:hidden flex flex-wrap items-center gap-2">
- ${getHeaderControlsHtml('-mob')}
- </div>
  </div>
  </header>
 
@@ -1235,6 +1289,7 @@ export function getHtml(title: string ="OpenCode Cron - Web GUI", bootstrapJobs?
  <button onclick="closeDlqModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-200 text-[13px] font-semibold transition-colors cursor-pointer">Chiudi</button>
  </div>
  </div>
+ </div>
  <!-- ============================================== -->
  <!-- MODAL: TEMPLATES & BLUEPRINT ENGINE -->
  <!-- ============================================== -->
@@ -1578,6 +1633,35 @@ export function getHtml(title: string ="OpenCode Cron - Web GUI", bootstrapJobs?
  c.appendChild(t);
  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 4000);
  }
+
+ // Strumenti dropdown: toggle, outside click, focusout, Escape (focus returns to trigger)
+ function toggleToolsMenu() {
+ const m = document.getElementById('oc-tools-menu');
+ const b = document.getElementById('btn-tools-menu');
+ if (!m || !b) return;
+ const open = m.classList.contains('hidden');
+ m.classList.toggle('hidden', !open);
+ b.setAttribute('aria-expanded', String(open));
+ }
+ function closeToolsMenu(returnFocus) {
+ const m = document.getElementById('oc-tools-menu');
+ const b = document.getElementById('btn-tools-menu');
+ if (!m || m.classList.contains('hidden')) return;
+ m.classList.add('hidden');
+ if (b) b.setAttribute('aria-expanded', 'false');
+ if (returnFocus && b) b.focus();
+ }
+ document.addEventListener('click', (e) => {
+ const wrap = document.getElementById('oc-tools-wrap');
+ if (wrap && !wrap.contains(e.target)) closeToolsMenu();
+ });
+ document.addEventListener('focusin', (e) => {
+ const wrap = document.getElementById('oc-tools-wrap');
+ if (wrap && e.target && !wrap.contains(e.target)) closeToolsMenu();
+ });
+ document.addEventListener('keydown', (e) => {
+ if (e.key === 'Escape') closeToolsMenu(true);
+ });
 
  // Refresh All Data
  async function refreshAll() {

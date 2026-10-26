@@ -75,7 +75,8 @@ export function getRunsHtml(title: string ="Storico Runs & Esiti Cron - OpenCode
  ${getUiEnhancementsBodyHtml()}
 
  <!-- Top Header: wraps on mobile -->
- <header class="bg-darkcard/95 sticky top-0 z-40 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+ <header class="bg-darkcard/95 sticky top-0 z-40 sm:backdrop-blur-md">
+ <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
  <div class="flex items-center gap-2.5 min-w-0">
  <a href="/" data-tooltip="tt.tabJobs" aria-label="Dashboard" class="shrink-0 min-w-[40px] min-h-[40px] px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-200 text-slate-700 hover:text-slate-900 text-[13px] font-semibold flex items-center gap-2 transition-colors">
  <i class="fa-solid fa-arrow-left rtl:rotate-180"></i>
