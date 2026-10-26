@@ -87,6 +87,23 @@ export function startGuiServer(opts: ServerOpts = {}) {
   const concurrencyManager = new ConcurrencyManager(directory);
   concurrencyManager.init().catch(() => {});
 
+  // Cache TTL della discovery progetti: la prima scansione del Desktop può richiedere
+  // qualche secondo a server freddo; con la cache la dashboard rende i job subito.
+  let projectCache: { at: number; catalog: Awaited<ReturnType<typeof discoverProjects>> } | null = null;
+  const PROJECT_CACHE_TTL_MS = 15_000;
+  async function cachedDiscoverProjects(): Promise<Awaited<ReturnType<typeof discoverProjects>>> {
+    if (projectCache && Date.now() - projectCache.at < PROJECT_CACHE_TTL_MS) return projectCache.catalog;
+    const catalog = await discoverProjects({
+      directory,
+      registryDir: opts.projectRegistryDir ?? path.join(process.env.HOME ?? "", ".config", "opencode-cron", "registry"),
+      scanRoots: opts.projectScanRoots ?? [path.join(process.env.HOME ?? "", "Desktop")],
+    });
+    projectCache = { at: Date.now(), catalog };
+    return catalog;
+  }
+  // Warmup: la cache è calda prima del primo caricamento della pagina.
+  cachedDiscoverProjects().catch(() => {});
+
   async function resolveJobDir(jobId: string, requestedDir?: string): Promise<string> {
     if (requestedDir) return requestedDir;
     // Check local directory first
@@ -97,11 +114,7 @@ export function startGuiServer(opts: ServerOpts = {}) {
 
     // Check discovered projects
     try {
-      const catalog = await discoverProjects({
-        directory,
-        registryDir: opts.projectRegistryDir ?? path.join(process.env.HOME ?? "", ".config", "opencode-cron", "registry"),
-        scanRoots: opts.projectScanRoots ?? [path.join(process.env.HOME ?? "", "Desktop")],
-      });
+      const catalog = await cachedDiscoverProjects();
       for (const proj of catalog.projects) {
         try {
           const jobs = await loadJobs(proj.directory);
@@ -166,7 +179,17 @@ export function startGuiServer(opts: ServerOpts = {}) {
 
       // 1. Root: Web Dashboard HTML
       if (pathname === "/" && (method === "GET" || method === "HEAD")) {
-        return new Response(method === "HEAD" ? null : getHtml(`OpenCode Cron - ${path.basename(directory)}`), {
+        let bootstrapJobs: unknown[] = [];
+        try {
+          const catalog = await cachedDiscoverProjects();
+          for (const proj of catalog.projects) {
+            try {
+              const jobs = await loadJobs(proj.directory);
+              for (const j of jobs) bootstrapJobs.push({ ...j, projectName: proj.name, directory: proj.directory });
+            } catch { /* skip corrupted */ }
+          }
+        } catch { /* il client ricarichera via API */ }
+        return new Response(method === "HEAD" ? null : getHtml(`OpenCode Cron - ${path.basename(directory)}`, bootstrapJobs), {
           headers: { "Content-Type": "text/html; charset=utf-8" },
         });
       }
@@ -198,11 +221,7 @@ export function startGuiServer(opts: ServerOpts = {}) {
       // 2b. GET /api/projects (List discovered projects)
       if (pathname === "/api/projects" && method === "GET") {
         try {
-          const catalog = await discoverProjects({
-            directory,
-            registryDir: path.join(process.env.HOME ?? "", ".config", "opencode-cron", "registry"),
-            scanRoots: [path.join(process.env.HOME ?? "", "Desktop")],
-          });
+          const catalog = await cachedDiscoverProjects();
           return new Response(JSON.stringify({ ok: true, projects: catalog.projects, warnings: catalog.warnings }), { headers });
         } catch (e: any) {
           return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers });
@@ -222,11 +241,7 @@ export function startGuiServer(opts: ServerOpts = {}) {
         let allJobs: any[] = [];
         if (includeAll) {
           try {
-            const catalog = await discoverProjects({
-              directory,
-              registryDir: opts.projectRegistryDir ?? path.join(process.env.HOME ?? "", ".config", "opencode-cron", "registry"),
-              scanRoots: opts.projectScanRoots ?? [path.join(process.env.HOME ?? "", "Desktop")],
-            });
+            const catalog = await cachedDiscoverProjects();
 
             const seenDirs = new Set<string>();
             for (const proj of catalog.projects) {
@@ -245,7 +260,7 @@ export function startGuiServer(opts: ServerOpts = {}) {
               } catch { /* skip corrupted */ }
             }
 
-            if (!seenDirs.has(directory) && (!dirFilter || dirFilter === directory)) {
+            if (!projectFilter && !seenDirs.has(directory) && (!dirFilter || dirFilter === directory)) {
               try {
                 const jobs = await loadJobs(directory);
                 for (const j of jobs) {
